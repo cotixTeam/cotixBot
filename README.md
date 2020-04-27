@@ -16,4 +16,7 @@ Anurag Sahare - [aps1g17](mailto:aps1g17@soton.ac.uk)
 
 * **Anurag Sahare** - *Added Readme file*
 * **Eamonn Trimm** - *Leaderboard Functions*
+* **Josh Bullock** - *Nothing yet*
+* **Matt Johns** - *Nothing yet*
+* **Gavin Fish** - *Nothing yet*
 
