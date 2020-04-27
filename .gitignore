@@ -1,6 +1,9 @@
 auth.json
 discordBot_priv.ppk
 DiscordBot.pem
+<<<<<<< HEAD
 DiscordBot.pub
+=======
+>>>>>>> 4849abcfa330124c34598118eb9df3df8b23cff4
 discordBot
 discord_priv.ppk
