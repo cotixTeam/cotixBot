@@ -7,3 +7,5 @@
 - [ ] Automatic Gifs for certain phrases
 - [ ] Salty points?
 - [ ] Non-toxic Tuesday reminders (and other reminds - stags Friday)
+
+## Return to [README](https://github.com/MMRREE/BKKKDiscordBot/blob/master/README.md)
