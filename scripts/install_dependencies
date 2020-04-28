@@ -1,6 +1,6 @@
 #!/bin/bash
 cd /home/ubuntu/
-echo {"token":"NjkxNTcwNTM0MTUyMTQyODUw.Xnh6Cw.eitqPI3698lcHbr8Z2R9guVylcM"}>auth.json
+echo '{"token":"NjkxNTcwNTM0MTUyMTQyODUw.Xnh6Cw.eitqPI3698lcHbr8Z2R9guVylcM"}'>./local/auth.json
 curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
 sudo bash nodesource_setup.sh
 sudo apt install nodejs -y
