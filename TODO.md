@@ -6,3 +6,4 @@
 - [ ] Spotify integration?
 - [ ] Automatic Gifs for certain phrases
 - [ ] Salty points?
+- [ ] Non-toxic Tuesday reminders (and other reminds - stags Friday)
