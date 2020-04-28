@@ -8,7 +8,7 @@ This is not public at the moment, as such a getting started is not included. For
 
 ## Todo
 
-There is a full todo readme found at [TODO](/README.md)
+There is a full todo readme found at [TODO](https://github.com/MMRREE/BKKKDiscordBot/blob/master/TODO.md)
 
 ## Contributing
 
