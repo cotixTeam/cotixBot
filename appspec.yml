@@ -1,22 +1,22 @@
 version: 0.1
 os: linux
 files:
-  - source: /bot.js
+- source: /bot.js
   destination: /home/ubuntu/
-  - source: /package.json
+- source: /package.json
   destination: /home/ubuntu/
-  - source: /package-lock.json
+- source: /package-lock.json
   destination: /home/ubuntu/
 hooks:
-  - location: scripts/install_dependencies
+- location: scripts/install_dependencies
   timeout: 300
   runas: root
-  - location: scripts/post_install
+- location: scripts/post_install
   timeout: 300
   runas: root
-  - location: scripts/start_server
+- location: scripts/start_server
   timeout: 300
   runas: root
-  - location: scripts/stop_server
+- location: scripts/stop_server
   timemout: 300
   runas: root
