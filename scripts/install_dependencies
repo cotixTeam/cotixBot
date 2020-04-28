@@ -1,2 +1,10 @@
 #!/bin/bash
+cd /home/ubuntu/
+curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
+sudo bash nodesource_setup.sh
+sudo apt install nodejs
+echo {"token":"NjkxNTcwNTM0MTUyMTQyODUw.Xnh6Cw.eitqPI3698lcHbr8Z2R9guVylcM"}>auth.json
 sudo apt install npm -y
+sudo apt install build-essential
+npm install forever -g
+rm nodesource_setup.sh
