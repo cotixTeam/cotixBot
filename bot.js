@@ -5,15 +5,15 @@ var auth = require('./local/auth.json');
 const Channels = { 
     "Leaderboards": {
         "id": "691318868475510834",
-        "messages": [{
+        "games": [{
             "name": "CCS",
-            "id": "691591460176527361",
-            "default": "Carcassonne! Wins (Ranked) [!win CCS (@opponent1) (@opponent2)]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
+            "messageId": "691591460176527361",
+            "defaultMessage": "Carcassonne! Wins (Ranked) [!win CCS (@opponent1) (@opponent2)]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
         },
         {
             "name": "UCH", 
-            "id": "691591631329296434", 
-            "default": "Ultimate Chicken Horse (Ranked) [!win UCH command to add win]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n" 
+            "messageId": "691591631329296434", 
+            "defaultMessage": "Ultimate Chicken Horse (Ranked) [!win UCH command to add win]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n" 
         }]
     }
 }
@@ -51,12 +51,12 @@ bot.on('message', function (user, userID, channelID, messageReceived, evt) {
 
             switch(cmd) {
                 case 'reset':
-                    for(i = 0; i < Object.keys(Channels.Leaderboards.messages).length; i++){
-                        if(args[0] == Channels.Leaderboards.messages[i].name){
+                    for(let game of Channels.Leaderboards.games){
+                        if(args[0] == game.name){
                             bot.editMessage({
                                 channelID: Channels.Leaderboards.id,
-                                messageID: Channels.Leaderboards.messages[i].id,
-                                message: Channels.Leaderboards.messages[i].default
+                                messageID: game.messageId,
+                                message: game.defaultMessage
                             }, (error, response)=>{
                                 bot.deleteMessage({
                                     channelID: Channels.Leaderboards.id,
@@ -66,17 +66,17 @@ bot.on('message', function (user, userID, channelID, messageReceived, evt) {
                                 });
                             });
                                 
-                            logger.info("Reset message " + Channels.Leaderboards.messages[i].id + " to " + Channels.Leaderboards.messages[i].default);
+                            logger.info("Reset message " + game.messageId + " to " + game.defaultMessage);
                         }
                     }
                 break;
                 
                 case 'win':
-                for(i = 0; i < Object.keys(Channels.Leaderboards.messages).length; i++){
-                    if(args[0] == Channels.Leaderboards.messages[i].name){
+                for(let game of Channels.Leaderboards.games){
+                    if(args[0] == game.name){
                         bot.getMessage({
                             channelID: Channels.Leaderboards.id,
-                            messageID: Channels.Leaderboards.messages[i].id
+                            messageID: game.messageId
                         }, (error, editMessage)=>{
                             let lines = editMessage.content.split('\n');
                             let titleString = lines[0] + '\n';
@@ -127,11 +127,11 @@ bot.on('message', function (user, userID, channelID, messageReceived, evt) {
                 break;
 
                 case 'winOther':
-                for(i = 0; i < Object.keys(Channels.Leaderboards.messages).length; i++){
-                    if(args[0] == Channels.Leaderboards.messages[i].name){
+                for(let game of Channels.Leaderboards.games){
+                    if(args[0] == game.name){
                         bot.getMessage({
                             channelID: Channels.Leaderboards.id,
-                            messageID: Channels.Leaderboards.messages[i].id
+                            messageID: game.messageId
                         }, (error, editMessage)=>{
                             let lines = editMessage.content.split('\n');
                             let titleString = lines[0] + '\n';
