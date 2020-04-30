@@ -3,7 +3,7 @@ run-as: ubuntu
 phases:
   install:
     commands:
-      - echo Entered the install phase...
+      - apt-get update
 artifacts:
   files:
     - 'bot.js'
