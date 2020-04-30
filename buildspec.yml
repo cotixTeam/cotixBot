@@ -8,3 +8,4 @@ artifacts:
     - 'bot.js'
     - 'package-lock.json'
     - 'package.json'
+    - 'appspec.yml'
