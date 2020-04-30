@@ -9,3 +9,4 @@ artifacts:
     - 'package-lock.json'
     - 'package.json'
     - 'appspec.yml'
+    - 'scripts/*'
