@@ -1,0 +1,14 @@
+version: 0.2
+
+run-as: ubuntu
+   
+phases:
+  build:
+    commands:
+      - echo Building..
+
+artifacts:
+  files:
+    - 'bot.js'
+    - 'package-lock.json'
+    - 'package.json'
