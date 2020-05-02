@@ -138,10 +138,10 @@ bot.on('message', (messageReceived) => {
                 break;
 
                 default:
-                new Discord.User(bot, {id: messageReceived.userID}).send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then(()=>{
-                    messageReceived.delete()
-                    .then(()=>console.log("Deleted the incorrect command message!"));
-                });
+                    messageReceived.author.send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then((sentMessage)=>{
+                        logger.info(messageReceived.deletable);
+                        messageReceived.delete().then(()=>console.log("Delete the message!"));
+                    });
                 break;
              }
          }
