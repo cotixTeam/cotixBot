@@ -10,5 +10,5 @@ artifacts:
     - 'package-lock.json'
     - 'package.json'
     - 'Channels.json'
-    - 'appsec.yml'
+    - 'appspec.yml'
     - 'scripts/*'
