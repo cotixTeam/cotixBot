@@ -1,5 +1,4 @@
 const Discord = require('discord.js');
-const logger = require('winston');
 const auth = require('./local/auth.json');
 const bot = new Discord.Client();
 
@@ -21,16 +20,9 @@ const Channels = {
     }
 }
 
-logger.remove(logger.transports.Console);
-logger.add(new logger.transports.Console, {
-    colorize: true
-});
-
-logger.level = 'debug';
-
 bot.on('ready', () => {
-    logger.info('Connected');
-    logger.info('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')');
+    console.log('Connected');
+    console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')');
 });
 
 bot.on('message', (messageReceived) => {
@@ -52,12 +44,11 @@ bot.on('message', (messageReceived) => {
                     for(let game of Channels.Leaderboards.games){
                         if(args[0] == game.name){
                             new Discord.Message(bot, {id: game.messageId}, leaderboardChannel).edit(game.defaultMessage).then(()=>{
-                                messageReceived.delete().then((e)=>{
-                                    logger.error(e);
-                                });
-                            });                                
-                            logger.info("Reset message " + game.messageId + " to " + game.defaultMessage);
-                        }
+                                messageReceived.delete()
+                                .then(()=>console.log("Deleted the sent message!"))
+                                .then(()=>console.log("Reset message " + game.messageId + " to " + game.defaultMessage));
+                            });
+                        }  
                     }
                 break;
                 
@@ -96,12 +87,10 @@ bot.on('message', (messageReceived) => {
                         workingString = titleString.concat(workingStrings.join(''));
 
                         editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete((e)=>{
-                                logger.error(e);
-                            })
+                            messageReceived.delete()
+                            .then(()=>console.log("Deleted the sent message!"))
+                            .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
                         });
-
-                        logger.info("Updated message " + editMessage.id + " to " + workingString);
                     }
                 }
                 break;
@@ -139,21 +128,19 @@ bot.on('message', (messageReceived) => {
                         workingString = titleString.concat(workingStrings.join(''));
 
                         editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete((e)=>{
-                                logger.error(e);
-                            });
+                            messageReceived.delete()
+                            .then(()=>console.log("Deleted the command"))
+                            .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
                         });
 
-                        logger.info("Updated message " + editMessage.id + " to " + workingString);
                     }
                 }
                 break;
 
                 default:
                 new Discord.User(bot, {id: messageReceived.userID}).send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then(()=>{
-                    messageReceived.delete((e)=>{
-                        logger.error(e);
-                    });
+                    messageReceived.delete()
+                    .then(()=>console.log("Deleted the incorrect command message!"));
                 });
                 break;
              }
