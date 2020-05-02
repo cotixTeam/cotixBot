@@ -7,7 +7,7 @@ artifacts:
   files:
     - 'bot.js'
     - 'package-lock.json'
-    - 'package.json
+    - 'package.json'
     - 'Channels.json'
     - 'appspec.yml'
     - 'scripts/*'
