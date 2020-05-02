@@ -9,3 +9,4 @@ artifacts:
     - 'bot.js'
     - 'package-lock.json'
     - 'package.json'
+    - 'Channels.json'

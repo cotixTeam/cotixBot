@@ -15,7 +15,33 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
 
 ## Getting Started
 
-This is not public at the moment, as such a getting started is not included. For information purposes, the bot is hosted on an AWS server and the development environment is automatically deployed on the server using AWS's CodeDeploy.
+This is a discord bot that uses "[discord.js](https://discord.js.org/#/)" library. To get started, you will need node and npm installed. Then install discord.js by using the command
+
+```bash
+npm install discord.js
+```
+
+You will then need you discord bot's authentication token (found under the "click to reveal token" on the [https://discordapp.com/developers/applications/${YOUR_APPLICATION_ID}/bot/](https://discordapp.com/developers/applications/)). Once you have this, create a folder in the bots location named "local" and place you key in a file named `auth.json` formatted as follows (this prevents others for stealing your bot):
+
+```json
+{
+  "token": "YOUR_COPIED_BOT_TOKEN_HERE"
+}
+```
+
+Once you have done this, and configured the Channels.json file to your server, you are ready to run the bot with
+
+```bash
+node bot.js
+```
+
+or
+
+```bash
+npm start
+```
+
+Further information on how to set up the Channels.json and other relevant configuration files will be produced later in the project.
 
 ## Todo
 
@@ -29,7 +55,7 @@ This is not public at the moment, as such a getting started is not included. For
 
 ## Directory Structure
 
-``` 
+```notepad
 Discord Bot
 |-- package.json               [node package settings for bot]
 |-- package-lock.json          [automatically node generated file]
