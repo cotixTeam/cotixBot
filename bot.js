@@ -30,7 +30,8 @@ bot.on('message', (messageReceived) => {
                     for(let game of Channels.Leaderboards.games){
                         if(args[0] == game.name){
                             new Discord.Message(bot, {id: game.messageId}, leaderboardChannel).fetch((editMessage)=>{
-                                editMessage.edit(game.defaultMessage).then(()=>{
+                                editMessage.edit(game.defaultMessage)
+                                .then(()=>{
                                     messageReceived.delete()
                                     .then(()=>console.log("Deleted the sent message!"))
                                     .then(()=>console.log("Reset message " + game.messageId + " to " + game.defaultMessage));
@@ -74,7 +75,8 @@ bot.on('message', (messageReceived) => {
         
                             workingString = titleString.concat(workingStrings.join(''));
 
-                            editMessage.edit(workingString).then(()=>{
+                            editMessage.edit(workingString)
+                            .then(()=>{
                                 messageReceived.delete()
                                 .then(()=>console.log("Deleted the sent message!"))
                                 .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
@@ -116,7 +118,8 @@ bot.on('message', (messageReceived) => {
 
                             workingString = titleString.concat(workingStrings.join(''));
 
-                            editMessage.edit(workingString).then(()=>{
+                            editMessage.edit(workingString)
+                            .then(()=>{
                                 messageReceived.delete()
                                 .then(()=>console.log("Deleted the command"))
                                 .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
@@ -127,9 +130,11 @@ bot.on('message', (messageReceived) => {
                 break;
 
                 default:
-                    messageReceived.author.send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then((sentMessage)=>{
-                        logger.info(messageReceived.deletable);
-                        messageReceived.delete().then(()=>console.log("Delete the message!"));
+                    messageReceived.author.send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!")
+                    .then((sentMessage)=>{
+                        console.log(messageReceived.deletable);
+                        messageReceived.delete()
+                        .then(()=>console.log("Delete the message!"));
                     });
                 break;
              }
