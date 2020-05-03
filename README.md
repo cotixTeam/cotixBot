@@ -98,9 +98,9 @@ Discord Bot
 
 Author: Eamonnn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
-Action: Moving todo to readme, adding file directory list and reformatting authors section
+Action: Adding process flow, branches and getting started section
 
-Date: 29/04/2020
+Date: 02/05/2020
 
 ## Contributing
 
