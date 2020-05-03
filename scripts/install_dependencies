@@ -7,4 +7,4 @@ sudo bash nodesource_setup.sh
 sudo apt install nodejs -y
 sudo apt install build-essential
 npm install forever -g
-rm nodesource_setup.sh
+rm -f nodesource_setup.sh install

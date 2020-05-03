@@ -1,11 +1,13 @@
 version: 0.2
-run-as: ubuntu
 phases:
   install:
     commands:
-      - echo Entered the install phase...
+      - apt-get update
 artifacts:
   files:
     - 'bot.js'
     - 'package-lock.json'
     - 'package.json'
+    - 'Channels.json'
+    - 'appspec.yml'
+    - 'scripts/*'

@@ -5,7 +5,6 @@
     "main": "bot.js",
     "author": "Eamonn Trim",
     "dependencies": {
-        "discord.js": "^12.2.0",
-        "winston": "^3.2.1"
+        "discord.js": "^12.2.0"
     }
 }
