@@ -1,5 +1,4 @@
 const Discord = require('discord.js');
-const logger = require('winston');
 const auth = require('./local/auth.json');
 const bot = new Discord.Client();
 
@@ -96,12 +95,10 @@ bot.on('message', (messageReceived) => {
                         workingString = titleString.concat(workingStrings.join(''));
 
                         editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete((e)=>{
-                                logger.error(e);
-                            })
+                            messageReceived.delete()
+                            .then(()=>logger.info("Deleted the command"))
+                            .then(()=>logger.info("Updated message " + editMessage.id + " to " + workingString));
                         });
-
-                        logger.info("Updated message " + editMessage.id + " to " + workingString);
                     }
                 }
                 break;
@@ -139,21 +136,19 @@ bot.on('message', (messageReceived) => {
                         workingString = titleString.concat(workingStrings.join(''));
 
                         editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete((e)=>{
-                                logger.error(e);
-                            });
+                            messageReceived.delete()
+                            .then(()=>logger.info("Deleted the command"))
+                            .then(()=>logger.info("Updated message " + editMessage.id + " to " + workingString));
                         });
 
-                        logger.info("Updated message " + editMessage.id + " to " + workingString);
                     }
                 }
                 break;
 
                 default:
                 new Discord.User(bot, {id: messageReceived.userID}).send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then(()=>{
-                    messageReceived.delete((e)=>{
-                        logger.error(e);
-                    });
+                    messageReceived.delete()
+                    .then(()=>logger.info("Deleted the incorrect command message!"));
                 });
                 break;
              }
