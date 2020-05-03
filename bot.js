@@ -100,7 +100,7 @@ bot.on('message', (messageReceived) => {
                             let workingStrings = [];    
                             let indexAdded = 0;
 
-                            args.splice(1);
+                            args = args.splice(1);
 
                             args.forEach((arg, indexArg)=>{
                                 lines.forEach((line, indexLine)=>{
