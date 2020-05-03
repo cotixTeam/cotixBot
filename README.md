@@ -7,6 +7,9 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
 - [~BKKK Discord Bot](#bkkk-discord-bot)
   - [Contents](#contents)
   - [Getting Started](#getting-started)
+  - [Branches and Process Flow](#branches-and-process-flow)
+    - [Branches](#branches)
+    - [Process Flow](#process-flow)
   - [Todo](#todo)
   - [Directory Structure](#directory-structure)
   - [Latest Addition](#latest-addition)
@@ -42,6 +45,27 @@ npm start
 ```
 
 Further information on how to set up the Channels.json and other relevant configuration files will be produced later in the project.
+
+## Branches and Process Flow
+
+### Branches
+
+- Release
+- Master (Dev)
+
+### Process Flow
+
+1. Create a new branch in the name of your implementation
+
+2. Implement your feature on your local development environment
+
+3. Test your branch and once complete, merge with master (dev)
+
+4. Have your new implementation tested by another member (assign them)
+
+5. Once verified, create a merge request to the release environment
+
+6. One final check will be completed (by Eamonn) before merging the branches and deploying to AWS
 
 ## Todo
 

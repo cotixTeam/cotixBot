@@ -5,7 +5,6 @@ const bot = new Discord.Client();
 
 bot.login(auth.token);
 
-
 bot.on('ready', () => {
     console.log('Connected');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')');
@@ -75,7 +74,9 @@ bot.on('message', (messageReceived) => {
         
                             workingString = titleString.concat(workingStrings.join(''));
 
-                            editMessage.edit(workingString)
+                            editMessage
+                            .fetch()
+                            .edit(workingString)
                             .then(()=>{
                                 messageReceived.delete()
                                 .then(()=>console.log("Deleted the sent message!"))
@@ -118,7 +119,9 @@ bot.on('message', (messageReceived) => {
 
                             workingString = titleString.concat(workingStrings.join(''));
 
-                            editMessage.edit(workingString)
+                            editMessage
+                            .fetch()
+                            .edit(workingString)
                             .then(()=>{
                                 messageReceived.delete()
                                 .then(()=>console.log("Deleted the command"))
