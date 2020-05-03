@@ -100,21 +100,21 @@ bot.on('message', (messageReceived) => {
                             let workingStrings = [];    
                             let indexAdded = 0;
 
+                            args.splice(1);
+
                             args.forEach((arg, indexArg)=>{
                                 lines.forEach((line, indexLine)=>{
-                                    if(indexArg != 0){
-                                        if(arg.substr(3,18) == line.substr(3,18)){
-                                            if(indexAdded == 0){
-                                                indexAdded++;
-                                                line = line.substr(0, 25) + (parseInt(line.substr(25,1))+1) + "/" + (parseInt(line.substr(27,1))+1) + " \n";
-                                            } else{
-                                                line = line.substr(0, 25) + (parseInt(line.substr(25,1))) + "/" + (parseInt(line.substr(27,1))+1) + " \n";
-                                            }
-                                            workingStrings[indexLine] = line;
-                                        } else if (indexArg == 0) {
-                                            let tempString = line + " \n";
-                                            workingStrings[indexLine] = tempString;
+                                    if(arg.substr(3,18) == line.substr(3,18)){
+                                        if(indexAdded == 0){
+                                            indexAdded++;
+                                            line = line.substr(0, 25) + (parseInt(line.substr(25,1))+1) + "/" + (parseInt(line.substr(27,1))+1) + " \n";
+                                        } else{
+                                            line = line.substr(0, 25) + (parseInt(line.substr(25,1))) + "/" + (parseInt(line.substr(27,1))+1) + " \n";
                                         }
+                                        workingStrings[indexLine] = line;
+                                    } else if (indexArg == 0) {
+                                        let tempString = line + " \n";
+                                        workingStrings[indexLine] = tempString;
                                     }
                                 });
                             });
