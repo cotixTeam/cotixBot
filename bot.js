@@ -45,42 +45,6 @@ bot.on('message', (messageReceived) => {
                 for(let game of Channels.Leaderboards.games){
                     if(args[0] == game.name){
 
-<<<<<<< HEAD
-                        let editMessage = new Discord.Message(bot, {id: game.messageId}, leaderboardChannel);
-                        let lines = editMessage.content.split('\n');
-                        let titleString = lines[0] + '\n';
-                        lines = lines.splice(1);
-                        let workingStrings = [];
-    
-                        lines.forEach((line, index)=>{
-                            if(userID == line.substr(3, 18)){
-                                line = line.substr(0, 25) + (parseInt(line.substr(25,1))+1) + "/" + (parseInt(line.substr(27,1))+1) + " \n";
-                                workingStrings[index] = line;
-                            } else{
-                                let tempString = line + " \n";
-                                workingStrings[index] = tempString;
-                            }
-                            
-                        });
-    
-                        args.forEach((arg, indexArg)=>{
-                            if(indexArg != 0){
-                                lines.forEach((line, indexLine)=>{
-                                    if(arg.substr(3,18) == line.substr(3,18)){
-                                        line = line.substr(0, 27) + (parseInt(line.substr(27,1))+1) + " \n";
-                                        workingStrings[indexLine] = line;
-                                    }
-                                });
-                            }
-                        });
-    
-                        workingString = titleString.concat(workingStrings.join(''));
-
-                        editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete()
-                            .then(()=>logger.info("Deleted the command"))
-                            .then(()=>logger.info("Updated message " + editMessage.id + " to " + workingString));
-=======
                         new Discord.Message(bot, {id: game.messageId}, leaderboardChannel).fetch((editMessage)=>{
                             let lines = editMessage.content.split('\n');
                             let titleString = lines[0] + '\n';
@@ -117,7 +81,6 @@ bot.on('message', (messageReceived) => {
                                 .then(()=>console.log("Deleted the sent message!"))
                                 .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
                             });
->>>>>>> c6213426f712150bd530b9a6c3adc938c630f381
                         });
                     }
                 }
@@ -154,15 +117,7 @@ bot.on('message', (messageReceived) => {
                             });
 
                             workingString = titleString.concat(workingStrings.join(''));
-
-<<<<<<< HEAD
-                        editMessage.edit(workingString).then(()=>{
-                            messageReceived.delete()
-                            .then(()=>logger.info("Deleted the command"))
-                            .then(()=>logger.info("Updated message " + editMessage.id + " to " + workingString));
-                        });
-
-=======
+                            
                             editMessage.edit(workingString)
                             .then(()=>{
                                 messageReceived.delete()
@@ -170,25 +125,17 @@ bot.on('message', (messageReceived) => {
                                 .then(()=>console.log("Updated message " + editMessage.id + " to " + workingString));
                             });
                         });
->>>>>>> c6213426f712150bd530b9a6c3adc938c630f381
                     }
                 }
                 break;
 
                 default:
-<<<<<<< HEAD
-                new Discord.User(bot, {id: messageReceived.userID}).send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!").then(()=>{
-                    messageReceived.delete()
-                    .then(()=>logger.info("Deleted the incorrect command message!"));
-                });
-=======
                     messageReceived.author.send("Hi " + messageReceived.username + ",\n'" + cmd + "' is not an implemented command!")
                     .then((sentMessage)=>{
                         console.log(messageReceived.deletable);
                         messageReceived.delete()
                         .then(()=>console.log("Delete the message!"));
                     });
->>>>>>> c6213426f712150bd530b9a6c3adc938c630f381
                 break;
              }
          }
