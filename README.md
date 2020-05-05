@@ -7,6 +7,9 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
 - [~BKKK Discord Bot](#bkkk-discord-bot)
   - [Contents](#contents)
   - [Getting Started](#getting-started)
+  - [Branches and Process Flow](#branches-and-process-flow)
+    - [Branches](#branches)
+    - [Process Flow](#process-flow)
   - [Todo](#todo)
   - [Directory Structure](#directory-structure)
   - [Latest Addition](#latest-addition)
@@ -43,15 +46,41 @@ npm start
 
 Further information on how to set up the Channels.json and other relevant configuration files will be produced later in the project.
 
+## Branches and Process Flow
+
+### Branches
+
+- Release
+- Master (Dev)
+
+### Process Flow
+
+1. Create a new branch in the name of your implementation
+
+2. Implement your feature on your local development environment
+
+3. Test your branch and once complete, merge with master (dev)
+
+4. Have your new implementation tested by another member (assign them)
+
+5. Once verified, create a merge request to the release environment
+
+6. One final check will be completed (by Eamonn) before merging the branches and deploying to AWS
+
 ## Todo
 
+- [ ] Test mode to see server in non-admin mode
+- [ ] Reading ideas messages, taking the ones with 3 upvotes and adding, 3 downvotes and delete
 - [ ] Toxicity Ranking
 - [ ] Modularise the leaderboards chat
 - [ ] Auto-format quotes page
-- [ ] Spotify integration?
+- [ ] General stats about server usage per usage
 - [ ] Automatic Gifs for certain phrases
-- [ ] Salty points?
-- [ ] Non-toxic Tuesday reminders (and other reminds - stags Friday)
+- [ ] Reminders (Non-toxic Tuesday / Stags Friday)
+- [ ] Crushampton / RSS feeds
+- [ ] Random insults when @'ing the bot
+- [ ] Spotify integration (bot plays music in call)?
+- [ ] MongoDB interface?
 
 ## Directory Structure
 
@@ -74,9 +103,9 @@ Discord Bot
 
 Author: Eamonnn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
-Action: Moving todo to readme, adding file directory list and reformatting authors section
+Action: Adding process flow, branches and getting started section
 
-Date: 29/04/2020
+Date: 02/05/2020
 
 ## Contributing
 
