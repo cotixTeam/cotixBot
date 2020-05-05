@@ -8,6 +8,7 @@ bot.login(auth.token);
 bot.on('ready', () => {
     console.log('Connected');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')');
+    bot.user.setPresence({activity:{name:"Listening to Spotify"}, status: "online"});
 });
 
 bot.on('message', (messageReceived) => {
