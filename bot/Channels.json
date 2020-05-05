@@ -12,5 +12,8 @@
         "todo": "706952681033302038",
         "bad": "707237620723220480",
         "majority": 2
+    },
+    "Test other object": {
+        "test": "result"
     }
 }
