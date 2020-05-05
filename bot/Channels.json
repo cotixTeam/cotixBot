@@ -1,22 +1,17 @@
+
 {
     "Leaderboards": {
-        "id": "691318868475510834",
+        "id": "705758469780799501",
         "games": [{
-                "name": "CCS",
-                "messageId": "691591460176527361",
-                "defaultMessage": "Carcassonne! Wins (Ranked) [!win CCS (@opponent1) (@opponent2)]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
-            },
-            {
-                "name": "UCH",
-                "messageId": "691591631329296434",
-                "defaultMessage": "Ultimate Chicken Horse (Ranked) [!win UCH command to add win]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
-            }
-        ]
+            "name": "test",
+            "messageId": "706486498651930691",
+            "defaultMessage": "Test Leaderboard!"
+        }]
     },
     "Ideas": {
-        "id": "704317078059876444",
-        "todo": "707228009567879181",
-        "bad": "707238978234875904",
-        "majority": 3
+        "id": "706937591735255070",
+        "todo": "706952681033302038",
+        "bad": "707237620723220480",
+        "majority": 2
     }
 }
