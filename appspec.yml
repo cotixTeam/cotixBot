@@ -7,8 +7,8 @@ files:
     destination: /home/ubuntu/
   - source: /package-lock.json
     destination: /home/ubuntu/
-  - source: /Channels.json
-    destination: /home/ubuntu/
+  - source: /bot/Channels.json
+    destination: /home/ubuntu/bot/
   - source: /bot/ideas.js
     destination: /home/ubuntu/bot/
   - source: /bot/leaderboard.js
