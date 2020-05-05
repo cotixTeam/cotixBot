@@ -9,10 +9,10 @@ files:
     destination: /home/ubuntu/
   - source: /Channels.json
     destination: /home/ubuntu/
-  - source: /ideas.js
-    destination: /home/ubuntu/
-  - source: /leaderboard.js
-    destination: /home/ubuntu/
+  - source: /bot/ideas.js
+    destination: /home/ubuntu/bot/
+  - source: /bot/leaderboards.js
+    destination: /home/ubuntu/bot/
 hooks:
   BeforeInstall:
     - location: scripts/install_dependencies
