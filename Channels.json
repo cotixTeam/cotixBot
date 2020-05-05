@@ -1,16 +1,15 @@
-{ 
+{
     "Leaderboards": {
         "id": "705758469780799501",
-        "games":[
-            {
-                "name": "test",
-                "messageId": "706486498651930691",
-                "defaultMessage": "Test Leaderboard!\n<@!705758877517479937> - 0/0\n<@!161848310578151424> - 0/0"
-            }
-        ]
+        "games": [{
+            "name": "test",
+            "messageId": "706486498651930691",
+            "defaultMessage": "Test Leaderboard!\n<@!705758877517479937> - 0/0\n<@!161848310578151424> - 0/0"
+        }]
     },
-    "Ideas":{
+    "Ideas": {
         "id": "706937591735255070",
-        "todo": "706952681033302038"
+        "todo": "706952681033302038",
+        "majority": 2
     }
 }

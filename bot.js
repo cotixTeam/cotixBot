@@ -59,9 +59,29 @@ bot.on('message', (messageReceived) => {
                             ideas.add(messageReceived, idea);
                             break;
 
+                        case 'addVeto':
+                            console.log("Adding (without vote) idea!");
+                            ideas.addVeto(messageReceived, idea);
+                            break;
+
                         case 'completed':
                             console.log("Completing idea!");
                             ideas.completed(messageReceived, idea);
+                            break;
+
+                        case 'unfinished':
+                            console.log("Unfinishing idea!");
+                            ideas.unfinished(messageReceived, idea);
+                            break;
+
+                        case 'remove':
+                            console.log("Removing idea!");
+                            ideas.remove(messageReceived, idea);
+                            break;
+
+                        case 'reset':
+                            console.log("Clearing todo list!");
+                            ideas.reset(messageReceived);
                             break;
 
                         default:
