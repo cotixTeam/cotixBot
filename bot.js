@@ -1,5 +1,4 @@
 const Discord = require('discord.js');
-const auth = require('./local/auth.json');
 const Channels = require('./bot/Channels.json');
 const IdeasClass = require('./bot/ideas');
 const LeaderboardClass = require('./bot/leaderboard');
@@ -7,7 +6,11 @@ const bot = new Discord.Client();
 const ideas = new IdeasClass.IdeasClass(bot);
 const leaderboard = new LeaderboardClass.LeaderboardClass(bot);
 
-bot.login(auth.token);
+if (process.env.botToken != null) bot.login(process.env.botToken);
+else {
+    const auth = require('./local/auth.json');
+    bot.login(auth.token);
+}
 
 bot.on('ready', () => {
     console.log('Connected');
