@@ -11,7 +11,7 @@ files:
     destination: /home/ubuntu/
   - source: /bot/ideas.js
     destination: /home/ubuntu/bot/
-  - source: /bot/leaderboards.js
+  - source: /bot/leaderboard.js
     destination: /home/ubuntu/bot/
 hooks:
   BeforeInstall:

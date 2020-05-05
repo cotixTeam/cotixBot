@@ -18,7 +18,7 @@ class IdeasClass {
                         messageReceived.channel.members.forEach((guildMem) => {
                             //console.log(guildMem); // for debugging
                         });
-                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == Channels.Ideas.majority;
+                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (Channels.Ideas.majority+1);
                         let collectorUp = messageReceived.createReactionCollector(filterUp, {
                             time: 0
                         });
@@ -45,7 +45,7 @@ class IdeasClass {
                                 });
                         });
 
-                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == Channels.Ideas.majority;
+                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (Channels.Ideas.majority+1);
                         let collectorDown = messageReceived.createReactionCollector(filterDown, {
                             time: 0
                         });
