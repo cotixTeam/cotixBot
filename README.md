@@ -69,13 +69,18 @@ Further information on how to set up the Channels.json and other relevant config
 
 ## Todo
 
+- [ ] Test mode to see server in non-admin mode
+- [ ] Reading ideas messages, taking the ones with 3 upvotes and adding, 3 downvotes and delete
 - [ ] Toxicity Ranking
 - [ ] Modularise the leaderboards chat
 - [ ] Auto-format quotes page
-- [ ] Spotify integration?
+- [ ] General stats about server usage per usage
 - [ ] Automatic Gifs for certain phrases
-- [ ] Salty points?
-- [ ] Non-toxic Tuesday reminders (and other reminds - stags Friday)
+- [ ] Reminders (Non-toxic Tuesday / Stags Friday)
+- [ ] Crushampton / RSS feeds
+- [ ] Random insults when @'ing the bot
+- [ ] Spotify integration (bot plays music in call)?
+- [ ] MongoDB interface?
 
 ## Directory Structure
 
