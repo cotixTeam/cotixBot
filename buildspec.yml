@@ -6,10 +6,9 @@ phases:
 artifacts:
   files:
     - "bot.js"
-    - ideas.js
-    - leaderboard.js
     - "package-lock.json"
     - "package.json"
     - "Channels.json"
     - "appspec.yml"
+    - "bot/*"
     - "scripts/*"
