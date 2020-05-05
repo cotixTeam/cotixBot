@@ -51,7 +51,25 @@ class IdeasClass {
                         });
                         collectorDown.on('collect', reaction => {
                             // Just delete the idea
-                            reaction.message.delete();
+                            new Discord.Message(this.bot, {
+                                    id: Channels.Ideas.bad
+                                }, messageReceived.channel)
+                                .fetch()
+                                .then((editMessage) => {
+                                    if (editMessage.content != 'Placeholder Message') {
+                                        editMessage
+                                            .edit(editMessage.content.substring(0, editMessage.content.length - 2) + '\n- ' + idea + '||')
+                                            .then(() => {
+                                                messageReceived.delete();
+                                            });
+                                    } else {
+                                        editMessage
+                                            .edit("||Bad Ideas:\n- " + idea + '||')
+                                            .then(() => {
+                                                messageReceived.delete();
+                                            });
+                                    }
+                                });
                         });
                     });
             });
