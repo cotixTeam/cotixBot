@@ -11,7 +11,7 @@ files:
     destination: /home/ubuntu/
   - source: /ideas.js
     destination: /home/ubuntu/
-  - source: /leaderboards.js
+  - source: /leaderboard.js
     destination: /home/ubuntu/
 hooks:
   BeforeInstall:
