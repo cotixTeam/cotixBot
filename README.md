@@ -10,6 +10,8 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
   - [Branches and Process Flow](#branches-and-process-flow)
     - [Branches](#branches)
     - [Process Flow](#process-flow)
+      - [Envrionment setup](#envrionment-setup)
+      - [Process of moving from Development to Release](#process-of-moving-from-development-to-release)
   - [Todo](#todo)
   - [Directory Structure](#directory-structure)
   - [Latest Addition](#latest-addition)
@@ -50,22 +52,43 @@ Further information on how to set up the Channels.json and other relevant config
 
 ### Branches
 
-- Release
-- Master (Dev)
+- Release (Default)
+- master
 
 ### Process Flow
 
-1. Create a new branch in the name of your implementation
+#### Envrionment setup
 
-2. Implement your feature on your local development environment
+Before running through the individual setup process you must ensure that your "./bot/Channels.json" is independant to your branch.
+To do this, all you have to do is run the configuration line:
 
-3. Test your branch and once complete, merge with master (dev)
+```bash
+git config --global merge.ours.driver true
+```
 
-4. Have your new implementation tested by another member (assign them)
+Once this is completed, you may then edit the Channels.json as you require.
 
-5. Once verified, create a merge request to the release environment
+When it is time to merge the branch DO NOT merge via the web or any VCS, instead open the terminal and run the following:
 
-6. One final check will be completed (by Eamonn) before merging the branches and deploying to AWS
+```bash
+git checkout {destination}
+git merge {source}
+```
+
+If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout {your_branch}` to return to your dev environment, otherwise you will be trying to change either the master or the release directly (this is not a good idea).
+
+Another important part of the code is checking if `process.env.botToken` is set. In the release environment it is, in yours it should not be, for your local key, following the [Getting Started](#getting-started) guide for authentication.
+
+#### Process of moving from Development to Release
+
+1. Create a branch from master of the implementation you want to implement
+2. Implement the solution
+3. Merge to master
+4. Request merge from master to release
+5. Assign another memeber to review the merge
+6. If approved, will be pushed to AWS
+7. If deploy has failed, the old version will stay live, Eamonn will look at debugging
+8. If succeeded, the bot will be live on release
 
 ## Todo
 
@@ -115,10 +138,10 @@ Anurag Sahare - [aps1g17](mailto:aps1g17@soton.ac.uk)
 
 ## Authors
 
-Name | Actions
---- | ---
-**Anurag Sahare** | *Edited Readme file*
-**Eamonn Trim** | *Leaderboard Functions, edited Readme file*
-**Josh Bullock** | *Nothing yet*
-**Matt Johns** | *Nothing yet*
-**Gavin Fish** | *Nothing yet*
+| Name              | Actions                                     |
+| ----------------- | ------------------------------------------- |
+| **Anurag Sahare** | *Edited Readme file*                        |
+| **Eamonn Trim**   | *Leaderboard Functions, edited Readme file* |
+| **Josh Bullock**  | *Nothing yet*                               |
+| **Matt Johns**    | *Nothing yet*                               |
+| **Gavin Fish**    | *Nothing yet*                               |
