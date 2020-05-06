@@ -1,1 +1,1 @@
-bot/Channels.json merge=ours
+bot/config/*.json merge=ours

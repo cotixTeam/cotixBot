@@ -1,15 +1,15 @@
 "use strict";
 
 const Discord = require('discord.js');
-const Channels = require('./Channels.json');
 
 class LeaderboardClass {
-    constructor(client) {
+    constructor(client, channels) {
         this.bot = client;
+        this.channels = channels;
     }
 
     reset(messageReceived, gameCheck) {
-        for (let game of Channels.Leaderboards.games) {
+        for (let game of this.channels.Leaderboards.games) {
             if (gameCheck == game.name) {
                 new Discord.Message(this.bot, {
                         id: game.messageId
@@ -23,7 +23,7 @@ class LeaderboardClass {
     }
 
     win(messageReceived, args) {
-        for (let game of Channels.Leaderboards.games) {
+        for (let game of this.channels.Leaderboards.games) {
             if (args[0] == game.name) {
 
                 new Discord.Message(this.bot, {
@@ -64,7 +64,7 @@ class LeaderboardClass {
 
 
     winOther(messageReceived, args) {
-        for (let game of Channels.Leaderboards.games) {
+        for (let game of this.channels.Leaderboards.games) {
             if (args[0] == game.name) {
 
                 new Discord.Message(this.bot, {

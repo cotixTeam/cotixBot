@@ -1,11 +1,11 @@
 "use strict";
 
 const Discord = require('discord.js');
-const Channels = require('./Channels.json');
 
 class IdeasClass {
-    constructor(client) {
+    constructor(client, channels) {
         this.bot = client;
+        this.channels = channels;
     }
 
     add(messageReceived, idea) {
@@ -18,14 +18,14 @@ class IdeasClass {
                         messageReceived.channel.members.forEach((guildMem) => {
                             //console.log(guildMem); // for debugging
                         });
-                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (Channels.Ideas.majority+1);
+                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.channels.Ideas.majority + 1);
                         let collectorUp = messageReceived.createReactionCollector(filterUp, {
                             time: 0
                         });
                         collectorUp.on('collect', reaction => {
                             // Add to todo then delete
                             new Discord.Message(this.bot, {
-                                    id: Channels.Ideas.todo
+                                    id: this.channels.Ideas.todo
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
@@ -45,14 +45,14 @@ class IdeasClass {
                                 });
                         });
 
-                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (Channels.Ideas.majority+1);
+                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.channels.Ideas.majority + 1);
                         let collectorDown = messageReceived.createReactionCollector(filterDown, {
                             time: 0
                         });
                         collectorDown.on('collect', reaction => {
                             // Just delete the idea
                             new Discord.Message(this.bot, {
-                                    id: Channels.Ideas.bad
+                                    id: this.channels.Ideas.bad
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
@@ -77,7 +77,7 @@ class IdeasClass {
 
     addVeto(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: Channels.Ideas.todo
+                id: this.channels.Ideas.todo
             }, messageReceived.channel)
             .fetch()
             .then((editMessage) => {
@@ -99,7 +99,7 @@ class IdeasClass {
 
     completed(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: Channels.Ideas.todo
+                id: this.channels.Ideas.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -129,7 +129,7 @@ class IdeasClass {
 
     unfinished(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: Channels.Ideas.todo
+                id: this.channels.Ideas.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -159,7 +159,7 @@ class IdeasClass {
 
     remove(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: Channels.Ideas.todo
+                id: this.channels.Ideas.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -190,7 +190,7 @@ class IdeasClass {
 
     reset(messageReceived) {
         new Discord.Message(this.bot, {
-                id: Channels.Ideas.todo
+                id: this.channels.Ideas.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
