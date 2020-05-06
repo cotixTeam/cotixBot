@@ -66,18 +66,29 @@ To do this, all you have to do is run the configuration line:
 git config --global merge.ours.driver true
 ```
 
-Once this is completed, you may then edit the Channels.json as you require.
+In the first line of the Channels.json you should put a tag as the following:
 
-When it is time to merge the branch DO NOT merge via the web or any VCS, instead open the terminal and run the following (where "x" are your relevant variables):
-
-```bash
-git checkout "destination"
-git merge "source"
+```json
+{
+  "Branch_name": "Branch_name",
+  "ChannelsInfo":{...}
+}
 ```
 
-If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout "your_branch"` to return to your dev environment, otherwise you will be trying to change either the master or the release directly (this is not a good idea).
+Doing this ensure that there is a merge error on this file with any other branch (the differential can check if `"varaibleA":"a"` is changed to `"variableA":"b"` as the tag is the same, the different tag ensures the conflict). Once this is completed, you may then edit the Channels.json as you require.
 
-Another important part of the code is checking if `process.env.botToken` is set. In the release environment it is, in yours it should not be, for your local key, following the [Getting Started](#getting-started) guide for authentication.
+When it is time to merge to the master dev branch DO NOT merge via the web or any VCS, instead open the terminal and run the following (where "x" are your relevant variables):
+
+```bash
+git checkout master
+git merge "your_branch"
+```
+
+If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout "your_branch"` to return to your dev environment, otherwise you will be trying to change either the master directly (this is not a good idea).
+
+Another important part of the code is checking if `process.env.botToken` is set DO NOT REMOVE IT. In the release environment it is, in yours it should not be, for your local key, following the [Getting Started](#getting-started) guide for authentication.
+
+Merging from the master to the release must be completed on the web side of git, this ensures another person reviews it before it is released. Unfortunately this removes the automatic resolution of Channels.json, but this can be handled manually in the conflict resolution (as the review has to happen anyway).
 
 #### Process of moving from Development to Release
 
