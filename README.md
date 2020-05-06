@@ -30,7 +30,7 @@ You will then need you discord bot's authentication token (found under the "clic
 
 ```json
 {
-  "token": "YOUR_COPIED_BOT_TOKEN_HERE"
+  "token": "authentication_token"
 }
 ```
 
@@ -68,14 +68,14 @@ git config --global merge.ours.driver true
 
 Once this is completed, you may then edit the Channels.json as you require.
 
-When it is time to merge the branch DO NOT merge via the web or any VCS, instead open the terminal and run the following:
+When it is time to merge the branch DO NOT merge via the web or any VCS, instead open the terminal and run the following (where "x" are your relevant variables):
 
 ```bash
-git checkout {destination}
-git merge {source}
+git checkout "destination"
+git merge "source"
 ```
 
-If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout {your_branch}` to return to your dev environment, otherwise you will be trying to change either the master or the release directly (this is not a good idea).
+If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout "your_branch"` to return to your dev environment, otherwise you will be trying to change either the master or the release directly (this is not a good idea).
 
 Another important part of the code is checking if `process.env.botToken` is set. In the release environment it is, in yours it should not be, for your local key, following the [Getting Started](#getting-started) guide for authentication.
 
@@ -92,18 +92,23 @@ Another important part of the code is checking if `process.env.botToken` is set.
 
 ## Todo
 
-- [ ] Test mode to see server in non-admin mode
-- [ ] Reading ideas messages, taking the ones with 3 upvotes and adding, 3 downvotes and delete
-- [ ] Toxicity Ranking
-- [ ] Modularise the leaderboards chat
-- [ ] Auto-format quotes page
-- [ ] General stats about server usage per usage
-- [ ] Automatic Gifs for certain phrases
-- [ ] Reminders (Non-toxic Tuesday / Stags Friday)
-- [ ] Crushampton / RSS feeds
-- [ ] Random insults when @'ing the bot
-- [ ] Spotify integration (bot plays music in call)?
-- [ ] MongoDB interface?
+- [ ] toxicity ranking
+- [ ] modularity in games scoreboard
+- [ ] quotes meta-data
+- [ ] format the quotes automatically
+- [ ] call meta-data stats
+- [x] bot tracks ideas page
+- [ ] automatic gif replys
+- [ ] reminders
+- [ ] crushampton feed
+- [ ] spotify integration
+- [ ] insult when you @ the bot
+- [ ] bulk remove messages
+- [ ] help for a list of commands per channel (or generally)
+- [ ] log bad ideas for a reminder
+- [ ] automatic command list message pinned to channel
+- [ ] a kind of "read" react so messages can be deleted in channels that we want to keep clean
+- [ ] test mode to see server in non-admin mode
 
 ## Directory Structure
 
