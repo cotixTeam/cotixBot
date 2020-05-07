@@ -5,9 +5,4 @@ phases:
       - apt-get update
 artifacts:
   files:
-    - "bot.js"
-    - "package-lock.json"
-    - "package.json"
-    - "appspec.yml"
-    - "bot/*"
-    - "scripts/*"
+    - "**/*"

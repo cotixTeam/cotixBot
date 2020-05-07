@@ -1,18 +1,8 @@
 version: 0.0
 os: linux
 files:
-  - source: /bot.js
+  - source: /
     destination: /home/ubuntu/
-  - source: /package.json
-    destination: /home/ubuntu/
-  - source: /package-lock.json
-    destination: /home/ubuntu/
-  - source: /bot/Channels.json
-    destination: /home/ubuntu/bot/
-  - source: /bot/ideas.js
-    destination: /home/ubuntu/bot/
-  - source: /bot/leaderboard.js
-    destination: /home/ubuntu/bot/
 hooks:
   BeforeInstall:
     - location: scripts/install_dependencies
