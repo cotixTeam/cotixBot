@@ -26,8 +26,14 @@ const reminder = new ReminderClass.ReminderClass(bot, Channels);
 // Environment check based on if pre-processor setting is made
 if (process.env.botToken != null) bot.login(process.env.botToken);
 else {
-    const auth = require('./local/auth.json');
-    bot.login(auth.token);
+    try {
+        let auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"))
+        bot.login(auth.token);
+    } catch (err) {
+        console.error(err);
+        bot.destroy();
+        process.exit();
+    }
 }
 
 
