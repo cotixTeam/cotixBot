@@ -3,12 +3,23 @@
 const Discord = require('discord.js');
 const FileSystem = require('fs');
 
+
+function timeoutReminderFunction(reminder, reminderDate, bot) {
+    for (let user of reminder.users) {
+        bot.users.fetch(user)
+            .then((userSend) => {
+                userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
+            }).then(() => {
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() + 7 * 24 * 60 * 60 * 1000 - (new Date()).getTime(), reminder, reminderDate, bot); // Once started once, the reminder will go weekly
+            }).catch(err => console.error(err));
+    }
+}
 class ReminderClass {
     constructor(client, channels) {
         this.bot = client;
         this.channels = channels;
 
-        this.Reminders = null
+        this.Reminders = null;
         try {
             this.Reminders = JSON.parse(FileSystem.readFileSync("./bot/config/Reminders.json"));
         } catch (err) {
@@ -26,20 +37,9 @@ class ReminderClass {
             reminderDate.setHours(reminder.hour);
             reminderDate.setMinutes(reminder.minute);
             if (reminderDate.getTime() - (new Date()).getTime() >= 0) // If later today or this week
-                setTimeout(this.timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime(), reminder, reminderDate);
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime(), reminder, reminderDate, this.bot);
             else // If any time before this time next week, set for next week
-                setTimeout(this.timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime() + 7 * 24 * 60 * 60 * 1000, reminder, reminderDate);
-        }
-    }
-
-    timeoutReminderFunction(reminder, reminderDate) {
-        for (let user of reminder.users) {
-            bot.users.fetch(user)
-                .then((userSend) => {
-                    userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
-                }).then(() => {
-                    setTimeout(this.timeoutReminderFunction.bind(user, reminder, reminderDate), reminderDate.getTime() + 7 * 24 * 60 * 60 * 1000 - (new Date()).getTime()); // Once started once, the reminder will go weekly
-                });
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime() + 7 * 24 * 60 * 60 * 1000, reminder, reminderDate, this.bot);
         }
     }
 
@@ -56,7 +56,7 @@ class ReminderClass {
             .send(sendString)
             .then(() => {
                 messageReceived.delete();
-            });
+            }).catch(err => console.error(err));
     }
 
     joinReminder(messageReceived, argumentString) {
@@ -72,9 +72,9 @@ class ReminderClass {
                 if (addFlag) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.push(messageReceived.author.id)
                     FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
-                    messageReceived.author.send("You have been added to the reminder: " + reminder.name);
+                    messageReceived.author.send("You have been added to the reminder: " + reminder.name).catch(err => console.error(err));
                 } else {
-                    messageReceived.author.send("You are already registerd to the reminder: " + reminder.name);
+                    messageReceived.author.send("You are already registerd to the reminder: " + reminder.name).catch(err => console.error(err));
                 }
             }
         }
@@ -97,9 +97,9 @@ class ReminderClass {
                 if (userExists) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.splice(userIndex, 1);
                     FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
-                    messageReceived.author.send("You have been removed from the reminder: " + reminder.name);
+                    messageReceived.author.send("You have been removed from the reminder: " + reminder.name).catch(err => console.error(err));
                 } else {
-                    messageReceived.author.send("You are not registerd to the reminder: " + reminder.name);
+                    messageReceived.author.send("You are not registerd to the reminder: " + reminder.name).catch(err => console.error(err));
                 }
             }
         }
