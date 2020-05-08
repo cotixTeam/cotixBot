@@ -19,9 +19,6 @@ try {
 
 // Object creation
 const bot = new Discord.Client();
-const ideas = new IdeasClass.IdeasClass(bot, Channels);
-const leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
-const reminder = new ReminderClass.ReminderClass(bot, Channels);
 
 // Environment check based on if pre-processor setting is made
 if (process.env.botToken != null) bot.login(process.env.botToken);
@@ -36,6 +33,10 @@ else {
     }
 }
 
+// Functional Blocks
+const ideas = new IdeasClass.IdeasClass(bot, Channels);
+const leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
+const reminder = new ReminderClass.ReminderClass(bot, Channels);
 
 bot.on('ready', () => { // Run init code
     console.log('Connected');

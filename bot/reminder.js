@@ -34,7 +34,7 @@ class ReminderClass {
 
     timeoutReminderFunction(reminder, reminderDate) {
         for (let user of reminder.users) {
-            bot.users.fetch(user)
+            this.bot.users.fetch(user)
                 .then((userSend) => {
                     userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
                 }).then(() => {
