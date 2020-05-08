@@ -33,10 +33,9 @@ else {
     }
 }
 
-// Functional Blocks
-const ideas = new IdeasClass.IdeasClass(bot, Channels);
-const leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
-const reminder = new ReminderClass.ReminderClass(bot, Channels);
+var ideas = null;
+var leaderboard = null;
+var reminder = null;
 
 bot.on('ready', () => { // Run init code
     console.log('Connected');
@@ -48,6 +47,10 @@ bot.on('ready', () => { // Run init code
         },
         status: "online"
     });
+
+    ideas = new IdeasClass.IdeasClass(bot, Channels);
+    leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
+    reminder = new ReminderClass.ReminderClass(bot, Channels);
 });
 
 function notImplementedCommand(messageReceived, cmd) {
@@ -55,7 +58,7 @@ function notImplementedCommand(messageReceived, cmd) {
         .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
         .then((sentMessage) => {
             messageReceived.delete();
-        });
+        }).catch(err => console.error(err));
 }
 
 bot.on('message', (messageReceived) => {
@@ -75,7 +78,7 @@ bot.on('message', (messageReceived) => {
                 .send('Placeholder Message')
                 .then(() => {
                     messageReceived.delete();
-                });
+                }).catch(err => console.error(err));
         } else {
             switch (messageReceived.channel.id) {
                 case Channels.Settings.id:
