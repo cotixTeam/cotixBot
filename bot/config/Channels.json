@@ -4,6 +4,7 @@
     {
         "name": "Leaderboards",
         "id": "691318868475510834",
+        "keepClean": true,
         "games": [{
                 "name": "CCS",
                 "messageId": "691591460176527361",
@@ -19,6 +20,7 @@
     {
         "name": "Ideas",
         "id": "704317078059876444",
+        "keepClean": true,
         "todo": "707228009567879181",
         "bad": "707238978234875904",
         "majority": 3
@@ -26,5 +28,6 @@
     {
         "name": "Settings",
         "id": "707993216045154362"
+        "keepClean": true
     }
 ]
