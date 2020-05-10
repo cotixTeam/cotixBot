@@ -1,20 +1,27 @@
-{
-    "MasterDev": "MasterDev",
-    "Leaderboards": {
+[{
+        "MasterDev": "MasterDev"
+    },
+    {
+        "name": "Leaderboards",
+        "keepClean": true,
         "id": "705758469780799501",
         "games": [{
             "name": "test",
-            "messageId": "706486498651930691",
-            "defaultMessage": "Test Leaderboard!"
+            "messageId": "709060138140696636",
+            "defaultMessage": "Test Leaderboard!\n<@!161848310578151424> - 0/0\n<@!705758877517479937> - 0/0"
         }]
     },
-    "Ideas": {
+    {
+        "name": "Ideas",
+        "keepClean": true,
         "id": "706937591735255070",
-        "todo": "706952681033302038",
-        "bad": "707237620723220480",
+        "todo": "709060115013173338",
+        "bad": "709060159581716510",
         "majority": 2
     },
-    "Settings": {
+    {
+        "name": "Settings",
+        "keepClean": true,
         "id": "707639167680774274"
     }
-}
+]
