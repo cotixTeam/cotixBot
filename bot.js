@@ -51,7 +51,42 @@ bot.on('ready', () => { // Run init code
     ideas = new IdeasClass.IdeasClass(bot, Channels);
     leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
     reminder = new ReminderClass.ReminderClass(bot, Channels);
+
+    // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
+    let cleanChannelDate = new Date();
+    cleanChannelDate.setSeconds(0);
+    cleanChannelDate.setMilliseconds(0);
+    cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
+    cleanChannelDate.setHours(0);
+    cleanChannelDate.setMinutes(0);
+
+
+    if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
+        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
+    else
+        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
 });
+
+// Bulk delete WIP -- uses individual endpoint to delete each message, might be seen as spam by discord or AWS, if it works will leave for now, but should try to implement the "bulkdelete" endpoint instead
+async function cleanChannels() {
+    let cleanChannelArray = bot.channels.cache.filter(channel => {
+        if (channel.type == "text") return channel;
+    })
+
+    for (let queryChannel of Channels) {
+        if (queryChannel.keepClean) {
+            await cleanChannelArray.find((item) => {
+                if (item.id == queryChannel.id) return true;
+            }).messages.fetch({
+                limit: 100
+            }).then((messageArray) => {
+                messageArray.each(message => {
+                    if (message.author.id != bot.user.id) message.delete();
+                });
+            })
+        }
+    }
+}
 
 function notImplementedCommand(messageReceived, cmd) {
     messageReceived.author
@@ -80,8 +115,13 @@ bot.on('message', (messageReceived) => {
                     messageReceived.delete();
                 }).catch(err => console.error(err));
         } else {
-            switch (messageReceived.channel.id) {
-                case Channels.Settings.id:
+            // Find the relative channel, then use to decided in the switch statement
+            let channel = Channels.find((item) => {
+                return item.id === messageReceived.channel.id
+            });
+
+            switch (channel.name) {
+                case "Settings":
                     switch (cmd) {
                         case 'listEvents':
                             console.log("Listing events that can be added to reminder!");
@@ -105,7 +145,7 @@ bot.on('message', (messageReceived) => {
                     }
                     break;
 
-                case Channels.Ideas.id:
+                case "Ideas":
                     switch (cmd) {
                         case 'add':
                             console.log("Adding idea!");
@@ -145,7 +185,7 @@ bot.on('message', (messageReceived) => {
                     break;
 
 
-                case Channels.Leaderboards.id:
+                case "Leaderboards":
                     switch (cmd) {
                         case 'reset':
                             console.log("Resetting leaderboard!");
@@ -167,6 +207,10 @@ bot.on('message', (messageReceived) => {
                             notImplementedCommand(messageReceived, cmd);
                             break;
                     }
+                    break;
+                default:
+                    console.log("Not implemented!");
+                    notImplementedCommand(messageReceived, cmd);
                     break;
             }
         }

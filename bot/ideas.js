@@ -5,7 +5,9 @@ const Discord = require('discord.js');
 class IdeasClass {
     constructor(client, channels) {
         this.bot = client;
-        this.channels = channels;
+        for (let channel of channels) {
+            if (channel.name == "Leaderboards") this.channel = channel;
+        }
     }
 
     add(messageReceived, idea) {
@@ -25,7 +27,7 @@ class IdeasClass {
                         collectorUp.on('collect', reaction => {
                             // Add to todo then delete
                             new Discord.Message(this.bot, {
-                                    id: this.channels.Ideas.todo
+                                    id: this.channel.todo
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
@@ -52,7 +54,7 @@ class IdeasClass {
                         collectorDown.on('collect', reaction => {
                             // Just delete the idea
                             new Discord.Message(this.bot, {
-                                    id: this.channels.Ideas.bad
+                                    id: this.channel.bad
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
@@ -77,7 +79,7 @@ class IdeasClass {
 
     addVeto(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: this.channels.Ideas.todo
+                id: this.channel.todo
             }, messageReceived.channel)
             .fetch()
             .then((editMessage) => {
@@ -99,7 +101,7 @@ class IdeasClass {
 
     completed(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: this.channels.Ideas.todo
+                id: this.channel.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -129,7 +131,7 @@ class IdeasClass {
 
     unfinished(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: this.channels.Ideas.todo
+                id: this.channel.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -159,7 +161,7 @@ class IdeasClass {
 
     remove(messageReceived, idea) {
         new Discord.Message(this.bot, {
-                id: this.channels.Ideas.todo
+                id: this.channel.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
@@ -190,12 +192,10 @@ class IdeasClass {
 
     reset(messageReceived) {
         new Discord.Message(this.bot, {
-                id: this.channels.Ideas.todo
+                id: this.channel.todo
             }, messageReceived.channel)
-            .fetch()
-            .then((todoMessage) => {
-                todoMessage
-                    .edit("Ideas:\n")
+            .fetch().then((editMessage) => {
+                editMessage.edit("Ideas:\n")
                     .then(() => {
                         messageReceived.delete();
                     });
