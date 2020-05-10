@@ -1,6 +1,8 @@
-{
-    "Release": "Release",
-    "Leaderboards": {
+[{
+        "Release": "Release"
+    },
+    {
+        "name": "Leaderboards",
         "id": "691318868475510834",
         "games": [{
                 "name": "CCS",
@@ -14,13 +16,15 @@
             }
         ]
     },
-    "Ideas": {
+    {
+        "name": "Ideas",
         "id": "704317078059876444",
         "todo": "707228009567879181",
         "bad": "707238978234875904",
         "majority": 3
     },
-    "Settings": {
+    {
+        "name": "Settings",
         "id": "707993216045154362"
     }
-}
+]
