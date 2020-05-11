@@ -1,12 +1,13 @@
 {
-    "name": "BKKK-Leaderboards",
+    "name": "BKKK",
     "version": "1.0.0",
     "description": "BKKK Leaderboard handler",
     "main": "bot.js",
     "author": "Eamonn Trim",
     "dependencies": {
         "discord.js": "^12.2.0",
-        "fs": "0.0.1-security"
+        "fs": "0.0.1-security",
+        "request": "^2.72.0"
     },
     "scripts": {
         "start": "node bot.js"
