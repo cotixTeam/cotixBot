@@ -100,6 +100,7 @@ function notImplementedCommand(messageReceived, cmd) {
 bot.on('message', (messageReceived) => {
     let messageContent = messageReceived.content;
 
+    let starWarsStrings = ["may the fourth", "the force", "star wars", "trooper"]
 
 
 
@@ -137,6 +138,35 @@ bot.on('message', (messageReceived) => {
                     })
                 })
                 messageReceived.delete();
+                break;
+
+            case 'camel':
+                console.log("Responding with cAmEl FoNt");
+                let camelString = "";
+                let camelIndex = 0;
+
+                for (i = 0; i < argumentString.length; i++) {
+                    if (argumentString.charAt(i) == " ") {
+                        camelString += " ";
+                    } else if (camelIndex % 2 == 0) {
+                        camelIndex++;
+                        camelString += argumentString.charAt(i).toUpperCase();
+                    } else {
+                        camelIndex++;
+                        camelString += argumentString.charAt(i).toLowerCase();
+                    }
+                }
+
+                messageReceived.channel.send("> " + camelString + "\n- <@!" + messageReceived.author.id + ">").then(() => {
+                    messageReceived.delete();
+                });
+                break;
+
+            case '8ball':
+                console.log("Responding with an 8 ball prediction");
+                let responses = ["As I see it, yes.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don’t count on it.", "It is certain.", "It is decidedly so.", "Most likely.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Outlook good.", "Reply hazy, try again.", "Signs point to yes.", "Very doubtful.", "Without a doubt.", "Yes.", "Yes – definitely.", "You may rely on it."]
+                let randomNumber = Math.floor(Math.random() * responses.length);
+                messageReceived.reply("you asked '" + argumentString + "'...\n" + responses[randomNumber]);
                 break;
             default:
 
@@ -239,14 +269,14 @@ bot.on('message', (messageReceived) => {
                         break;
                 }
         }
-    } else if (messageContent.includes(bot.user.id)) {
+    } else if (messageContent.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
         let insults = ["prick", "asshole", "dickhole", "dickhead", "melon", "airhead", "retard"]
 
         let randomNumber = Math.floor(Math.random() * insults.length);
         messageReceived.reply("Don't @ me you " + insults[randomNumber]);
-    } else if (messageContent.includes('may the fourth')) {
-        console.log("may the fourth said");
-        request('http://api.giphy.com/v1/gifs/search?q=' + "may the force" + '&rating=r&api_key=dc6zaTOxFJmzC', function (error, response, body) {
+
+    } else if (starWarsStrings.some(testString => messageContent.includes(testString))) {
+        request('http://api.giphy.com/v1/gifs/search?q=' + "star wars" + '&rating=r&api_key=dc6zaTOxFJmzC', function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 content = JSON.parse(body)
                 item = Math.floor(Math.random() * 10)
