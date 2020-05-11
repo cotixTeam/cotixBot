@@ -1,6 +1,7 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
 const FileSystem = require('fs');
+const request = require('request');
 
 // Custom classes
 const IdeasClass = require('./bot/ideas.js');
@@ -93,13 +94,16 @@ function notImplementedCommand(messageReceived, cmd) {
         .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
         .then((sentMessage) => {
             messageReceived.delete();
-        }).catch(err => console.error(err));
+        });
 }
 
 bot.on('message', (messageReceived) => {
     let messageContent = messageReceived.content;
 
-    if (messageContent.substring(0, 1) == "!") {
+
+
+
+    if (messageContent.substring(0, 1) == "!") { // If its a command
         let args = messageContent.substring(1).split(' ');
         let cmd = args[0];
 
@@ -107,113 +111,147 @@ bot.on('message', (messageReceived) => {
 
         let argumentString = args.join(' ');
 
-        if (messageContent == "!sendPlaceholder") {
-            console.log("Sending placeholder!");
-            messageReceived.channel
-                .send('Placeholder Message')
-                .then(() => {
-                    messageReceived.delete();
-                }).catch(err => console.error(err));
-        } else {
-            // Find the relative channel, then use to decided in the switch statement
-            let channel = Channels.find((item) => {
-                return item.id === messageReceived.channel.id
-            });
+        switch (cmd) { // General server wide commands
+            case "sendPlaceholder":
+                console.log("Sending placeholder!");
+                messageReceived.channel
+                    .send('Placeholder Message')
+                    .then(() => {
+                        messageReceived.delete();
+                    });
+                break;
 
-            switch (channel.name) {
-                case "Settings":
-                    switch (cmd) {
-                        case 'listEvents':
-                            console.log("Listing events that can be added to reminder!");
-                            reminder.listEvents(messageReceived);
-                            break;
+            case "toxic":
+                console.log("Marking the quoted message as toxic!");
 
-                        case 'joinReminder':
-                            console.log("Joining notification list for event!");
-                            reminder.joinReminder(messageReceived, argumentString);
-                            break;
+                let toxicMessageId = args[0].substring(70);
+                messageReceived.channel.messages.fetch(toxicMessageId).then(toxicMessage => {
+                    toxicMessage.react('🇹').then(() => {
+                        toxicMessage.react('🇴').then(() => {
+                            toxicMessage.react('🇽').then(() => {
+                                toxicMessage.react('🇮').then(() => {
+                                    toxicMessage.react('🇨')
+                                })
+                            })
+                        })
+                    })
+                })
+                messageReceived.delete();
+                break;
+            default:
 
-                        case 'leaveReminder':
-                            console.log("Leaving notification list for event!");
-                            reminder.leaveReminder(messageReceived, argumentString);
-                            break;
+                // Find the relative channel, then use to decided in the switch statement
+                let channel = Channels.find((item) => {
+                    return item.id === messageReceived.channel.id
+                });
 
-                        default:
-                            console.log("Not implemented!");
-                            notImplementedCommand(messageReceived, cmd);
-                            break;
-                    }
-                    break;
+                switch (channel.name) { // Checking the channel for the specific commands
+                    case "Settings":
+                        switch (cmd) { // Channel specific commands
+                            case 'listEvents':
+                                console.log("Listing events that can be added to reminder!");
+                                reminder.listEvents(messageReceived);
+                                break;
 
-                case "Ideas":
-                    switch (cmd) {
-                        case 'add':
-                            console.log("Adding idea!");
-                            ideas.add(messageReceived, argumentString);
-                            break;
+                            case 'joinReminder':
+                                console.log("Joining notification list for event!");
+                                reminder.joinReminder(messageReceived, argumentString);
+                                break;
 
-                        case 'addVeto':
-                            console.log("Adding (without vote) idea!");
-                            ideas.addVeto(messageReceived, argumentString);
-                            break;
+                            case 'leaveReminder':
+                                console.log("Leaving notification list for event!");
+                                reminder.leaveReminder(messageReceived, argumentString);
+                                break;
 
-                        case 'completed':
-                            console.log("Completing idea!");
-                            ideas.completed(messageReceived, argumentString);
-                            break;
+                            default:
+                                console.log("Not implemented!");
+                                notImplementedCommand(messageReceived, cmd);
+                                break;
+                        }
+                        break;
 
-                        case 'unfinished':
-                            console.log("Unfinishing idea!");
-                            ideas.unfinished(messageReceived, argumentString);
-                            break;
+                    case "Ideas":
+                        switch (cmd) { // channel specific commands
+                            case 'add':
+                                console.log("Adding idea!");
+                                ideas.add(messageReceived, argumentString);
+                                break;
 
-                        case 'remove':
-                            console.log("Removing idea!");
-                            ideas.remove(messageReceived, argumentString);
-                            break;
+                            case 'addVeto':
+                                console.log("Adding (without vote) idea!");
+                                ideas.addVeto(messageReceived, argumentString);
+                                break;
 
-                        case 'reset':
-                            console.log("Clearing todo list!");
-                            ideas.reset(messageReceived);
-                            break;
+                            case 'completed':
+                                console.log("Completing idea!");
+                                ideas.completed(messageReceived, argumentString);
+                                break;
 
-                        default:
-                            console.log("Not implemented!");
-                            notImplementedCommand(messageReceived, cmd);
-                            break;
-                    }
-                    break;
+                            case 'unfinished':
+                                console.log("Unfinishing idea!");
+                                ideas.unfinished(messageReceived, argumentString);
+                                break;
+
+                            case 'remove':
+                                console.log("Removing idea!");
+                                ideas.remove(messageReceived, argumentString);
+                                break;
+
+                            case 'reset':
+                                console.log("Clearing todo list!");
+                                ideas.reset(messageReceived);
+                                break;
+
+                            default:
+                                console.log("Not implemented!");
+                                notImplementedCommand(messageReceived, cmd);
+                                break;
+                        }
+                        break;
 
 
-                case "Leaderboards":
-                    switch (cmd) {
-                        case 'reset':
-                            console.log("Resetting leaderboard!");
-                            leaderboard.reset(messageReceived, args[0]);
-                            break;
+                    case "Leaderboards":
+                        switch (cmd) { // Channel specific commands
+                            case 'reset':
+                                console.log("Resetting leaderboard!");
+                                leaderboard.reset(messageReceived, args[0]);
+                                break;
 
-                        case 'win':
-                            console.log("Adding win to leaderboard!");
-                            leaderboard.win(messageReceived, args);
-                            break;
+                            case 'win':
+                                console.log("Adding win to leaderboard!");
+                                leaderboard.win(messageReceived, args);
+                                break;
 
-                        case 'winOther':
-                            console.log("Adding win to leaderboard for other!");
-                            leaderboard.winOther(messageReceived, args);
-                            break;
+                            case 'winOther':
+                                console.log("Adding win to leaderboard for other!");
+                                leaderboard.winOther(messageReceived, args);
+                                break;
 
-                        default:
-                            console.log("Not implemented!");
-                            notImplementedCommand(messageReceived, cmd);
-                            break;
-                    }
-                    break;
-                default:
-                    console.log("Not implemented!");
-                    notImplementedCommand(messageReceived, cmd);
-                    break;
-            }
+                            default:
+                                console.log("Not implemented!");
+                                notImplementedCommand(messageReceived, cmd);
+                                break;
+                        }
+                        break;
+                    default:
+                        console.log("Not implemented!");
+                        notImplementedCommand(messageReceived, cmd);
+                        break;
+                }
         }
-    }
+    } else if (messageContent.includes(bot.user.id)) {
+        let insults = ["prick", "asshole", "dickhole", "dickhead", "melon", "airhead", "retard"]
 
+        let randomNumber = Math.floor(Math.random() * insults.length);
+        messageReceived.reply("Don't @ me you " + insults[randomNumber]);
+    } else if (messageContent.includes('may the fourth')) {
+        console.log("may the fourth said");
+        request('http://api.giphy.com/v1/gifs/search?q=' + "may the force" + '&rating=r&api_key=dc6zaTOxFJmzC', function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                content = JSON.parse(body)
+                item = Math.floor(Math.random() * 10)
+                messageReceived.channel.send(content.data[item].bitly_gif_url);
+            }
+        });
+    }
 });
