@@ -4,13 +4,25 @@ const Discord = require('discord.js');
 const FileSystem = require('fs');
 
 
-function timeoutReminderFunction(reminder, reminderDate, bot) {
+function timeoutReminderFunction(reminder, bot) {
     for (let user of reminder.users) {
-        bot.users.fetch(user)
+        bot.users
+            .fetch(user)
             .then((userSend) => {
                 userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
             }).then(() => {
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, reminderDate, bot); // Once started once, the reminder will go weekly
+                // Recalculate how long to repeat to avoid drift in reminder time
+                let reminderDate = new Date();
+                reminderDate.setSeconds(0);
+                reminderDate.setMilliseconds(0);
+                reminderDate.setDate(reminderDate.getDate() + reminder.day - reminderDate.getDay() + 7); // Set a week from the reminder
+                reminderDate.setHours(reminder.hour);
+                reminderDate.setMinutes(reminder.minute);
+
+                if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, bot);
+                else // If any time before this time next week, set for next week
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime() + 7 * 24 * 60 * 60 * 1000, reminder, bot);
             }).catch(err => console.error(err));
     }
 }
@@ -29,6 +41,7 @@ class ReminderClass {
         }
 
         let reminderDate = new Date();
+        let now = new Date();
         reminderDate.setSeconds(0);
         reminderDate.setMilliseconds(0);
 
@@ -36,10 +49,11 @@ class ReminderClass {
             reminderDate.setDate(reminderDate.getDate() + reminder.day - reminderDate.getDay());
             reminderDate.setHours(reminder.hour);
             reminderDate.setMinutes(reminder.minute);
-            if (reminderDate.getTime() - (new Date()).getTime() >= 0) // If later today or this week
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime(), reminder, reminderDate, this.bot);
+
+            if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
             else // If any time before this time next week, set for next week
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime() + 7 * 24 * 60 * 60 * 1000, reminder, reminderDate, this.bot);
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
         }
     }
 
