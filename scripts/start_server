@@ -1,3 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu
+forever stopall
 forever start bot.js
