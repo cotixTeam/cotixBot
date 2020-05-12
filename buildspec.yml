@@ -3,7 +3,6 @@ phases:
   install:
     commands:
       - apt-get update
-      - pkill -f bot.js
 artifacts:
   files:
     - "**/*"
