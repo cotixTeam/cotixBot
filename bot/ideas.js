@@ -6,7 +6,10 @@ class IdeasClass {
     constructor(client, channels) {
         this.bot = client;
         for (let channel of channels) {
-            if (channel.name == "Leaderboards") this.channel = channel;
+            if (channel.name == "Ideas") {
+                this.channel = channel;
+                this.majority = channel.majority;
+            }
         }
     }
 
@@ -20,7 +23,10 @@ class IdeasClass {
                         messageReceived.channel.members.forEach((guildMem) => {
                             //console.log(guildMem); // for debugging
                         });
-                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.channels.Ideas.majority + 1);
+
+                        let messageAddition = '\n`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
+
+                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.majority + 1);
                         let collectorUp = messageReceived.createReactionCollector(filterUp, {
                             time: 0
                         });
@@ -33,13 +39,13 @@ class IdeasClass {
                                 .then((editMessage) => {
                                     if (editMessage.content != 'Placeholder Message') {
                                         editMessage
-                                            .edit(editMessage.content + '\n`- [ ] ' + idea + '`')
+                                            .edit(editMessage.content + messageAddition)
                                             .then(() => {
                                                 messageReceived.delete();
                                             });
                                     } else {
                                         editMessage
-                                            .edit("Ideas:\n`- [ ] " + idea + '`')
+                                            .edit("Ideas:" + messageAddition)
                                             .then(() => {
                                                 messageReceived.delete();
                                             });
@@ -47,7 +53,9 @@ class IdeasClass {
                                 });
                         });
 
-                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.channels.Ideas.majority + 1);
+
+
+                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.majority + 1);
                         let collectorDown = messageReceived.createReactionCollector(filterDown, {
                             time: 0
                         });
@@ -60,13 +68,13 @@ class IdeasClass {
                                 .then((editMessage) => {
                                     if (editMessage.content != 'Placeholder Message') {
                                         editMessage
-                                            .edit(editMessage.content.substring(0, editMessage.content.length - 2) + '\n- ' + idea + '||')
+                                            .edit(editMessage.content.substring(0, editMessage.content.length - 2) + messageAddition + '||')
                                             .then(() => {
                                                 messageReceived.delete();
                                             });
                                     } else {
                                         editMessage
-                                            .edit("||Bad Ideas:\n- " + idea + '||')
+                                            .edit("||Bad Ideas:" + messageAddition + '||')
                                             .then(() => {
                                                 messageReceived.delete();
                                             });
