@@ -91,15 +91,17 @@ class IdeasClass {
             }, messageReceived.channel)
             .fetch()
             .then((editMessage) => {
+                let messageAddition = '\n`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
+
                 if (editMessage.content != 'Placeholder Message') {
                     editMessage
-                        .edit(editMessage.content + '\n`- [ ] ' + idea + '`')
+                        .edit(editMessage.content + messageAddition)
                         .then(() => {
                             messageReceived.delete();
                         });
                 } else {
                     editMessage
-                        .edit("Ideas:\n`- [ ] " + idea + '`')
+                        .edit("Ideas:" + messageAddition)
                         .then(() => {
                             messageReceived.delete();
                         });
