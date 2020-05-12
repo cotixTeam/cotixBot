@@ -98,10 +98,11 @@ function notImplementedCommand(messageReceived, cmd) {
 }
 
 bot.on('message', (messageReceived) => {
+    if(messageReceived.author.id != bot.user.id){ // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
+
     let messageContent = messageReceived.content;
 
     let starWarsStrings = ["may the fourth", "the force", "star wars", "trooper"]
-
 
 
     if (messageContent.substring(0, 1) == "!") { // If its a command
@@ -285,5 +286,6 @@ bot.on('message', (messageReceived) => {
                 messageReceived.channel.send(content.data[item].bitly_gif_url);
             }
         });
+    }
     }
 });
