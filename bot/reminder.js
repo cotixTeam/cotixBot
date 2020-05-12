@@ -10,7 +10,7 @@ function timeoutReminderFunction(reminder, reminderDate, bot) {
             .then((userSend) => {
                 userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
             }).then(() => {
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() + 7 * 24 * 60 * 60 * 1000 - (new Date()).getTime(), reminder, reminderDate, bot); // Once started once, the reminder will go weekly
+                setTimeout(timeoutReminderFunction, reminderDate.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, reminderDate, bot); // Once started once, the reminder will go weekly
             }).catch(err => console.error(err));
     }
 }
