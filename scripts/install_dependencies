@@ -4,8 +4,7 @@ mkdir ./local/
 curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
 sudo bash nodesource_setup.sh
 sudo apt install nodejs -y
-sudo apt install build-essential
-npm install forever -g
+sudo apt install build-essential -y
+npm install forever -g -y
 rm -f nodesource_setup.sh install
-forever stopall
 pkill -f bot.js
