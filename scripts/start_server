@@ -1,4 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu
-forever stopall
+sudo pkill -f bot.js
 forever start bot.js

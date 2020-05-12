@@ -2,3 +2,4 @@
 cd /home/ubuntu/
 npm install
 forever stopall
+sudo pkill -f bot.js
