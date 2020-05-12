@@ -1,5 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu/
 npm install
-forever stopall
 pkill -f bot.js
