@@ -1,5 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu || echo "prevent cd fatal error"
 pkill -f bot.js || echo "process not running"
-export HOME=/home/ubuntu/ || echo "export failed"
-sudo -u root forever start bot.js || echo "prevent forever fatal error"
+forever start bot.js || echo "prevent forever fatal error"
