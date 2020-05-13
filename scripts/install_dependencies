@@ -1,3 +1,5 @@
 #!/bin/bash
+cd /home/ubuntu/ || echo "prevent cd fatal error"
+npm install || echo "prevent npm install fatal error"
 forever stopall || echo "prevent forever fatal error"
 pkill -f bot.js || echo "process not running"
