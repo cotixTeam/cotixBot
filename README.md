@@ -57,9 +57,9 @@ Further information on how to set up the Channels.json and other relevant config
 
 ### Process Flow
 
-#### Envrionment setup
+#### Environment setup
 
-Before running through the individual setup process you must ensure that your "./bot/Channels.json" is independant to your branch.
+Before running through the individual setup process you must ensure that your "./bot/Channels.json" is independent to your branch.
 To do this, all you have to do is run the configuration line:
 
 ```bash
@@ -96,7 +96,7 @@ Merging from the master to the release must be completed on the web side of git,
 2. Implement the solution
 3. Merge to master
 4. Request merge from master to release
-5. Assign another memeber to review the merge
+5. Assign another member to review the merge
 6. If approved, will be pushed to AWS
 7. If deploy has failed, the old version will stay live, Eamonn will look at debugging
 8. If succeeded, the bot will be live on release
@@ -109,7 +109,7 @@ Merging from the master to the release must be completed on the web side of git,
 - [ ] format the quotes automatically
 - [ ] call meta-data stats
 - [x] bot tracks ideas page
-- [ ] automatic gif replys
+- [ ] automatic gif replies
 - [ ] reminders
 - [ ] crushampton feed
 - [ ] spotify integration
@@ -140,7 +140,7 @@ Discord Bot
 
 ## Latest Addition
 
-Author: Eamonnn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
+Author: Eamonn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
 Action: Adding process flow, branches and getting started section
 
@@ -148,7 +148,7 @@ Date: 02/05/2020
 
 ## Contributing
 
-Eamonnn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
+Eamonn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
 Anurag Sahare - [aps1g17](mailto:aps1g17@soton.ac.uk)
 
