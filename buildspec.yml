@@ -4,7 +4,7 @@ phases:
   install:
     run-as: ubuntu
     commands:
-      - apt-get update
+      - sudo apt-get update
 artifacts:
   files:
     - "**/*"
