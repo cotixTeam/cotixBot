@@ -1,0 +1,11 @@
+#!/bin/bash
+cd /home/ubuntu/
+mkdir ./local/
+curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
+sudo bash nodesource_setup.sh
+sudo apt install nodejs -y
+sudo apt install build-essential
+command -v forever >/dev/null 2>&1 || { echo >&2 "I require forever but it's not installed."; npm install forever -g; }
+rm -f nodesource_setup.sh install
+forever stopall
+pkill -f bot.js

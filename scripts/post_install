@@ -1,4 +1,5 @@
 #!/bin/bash
 cd /home/ubuntu/
+mkdir ./local/
 npm install
 pkill -f bot.js

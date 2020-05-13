@@ -4,6 +4,10 @@ files:
   - source: /
     destination: /home/ubuntu/
 hooks:
+  PreInstall:
+    - location: scripts/install_dependencies
+      timeout: 300
+      runas: root
   AfterInstall:
     - location: scripts/post_install
       timeout: 300
