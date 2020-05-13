@@ -13,7 +13,7 @@
     "arguments": "[String to be formatted]",
     "description": "Replaces the message with a cAmEl FoRmAtTeD one from the bot."
 }, {
-    "chanenl": "All",
+    "channel": "All",
     "name": "!8ball",
     "arguments": "[Question to be asked]",
     "description": "Answers your question with an 8-ball response."

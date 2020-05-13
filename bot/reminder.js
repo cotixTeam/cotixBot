@@ -63,7 +63,8 @@ class ReminderClass {
         let workingStrings = []
         let index = 0;
         for (let reminder of this.Reminders) {
-            workingStrings[index++] = reminder.name;
+            if (reminder.name)
+                workingStrings[index++] = reminder.name;
         }
 
         let sendString = "The list of events are:\n" + workingStrings.join('\n');
