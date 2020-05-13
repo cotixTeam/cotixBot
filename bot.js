@@ -272,10 +272,13 @@ bot.on('message', (messageReceived) => {
             }
         } else if (messageContent.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
             console.log("Responding with insult!")
-            let insults = ["prick", "asshole", "dickhole", "dickhead", "melon", "airhead", "retard"]
 
-            let randomNumber = Math.floor(Math.random() * insults.length);
-            messageReceived.reply("Don't @ me you " + insults[randomNumber]);
+            request('https://evilinsult.com/generate_insult.php?lang=en&type=json', function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        content = JSON.parse(body)
+                        messageReceived.reply(content.insult);
+                    }
+            });
 
         } else if (starWarsStrings.some(testString => messageContent.includes(testString))) {
             console.log("Responding with star wars gif");
