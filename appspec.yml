@@ -3,6 +3,12 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu/
+  - source: /scripts/
+    desitnation: /home/ubuntu/scripts
+  - source: /bot/
+    desitnation: /home/ubuntu/bot/
+  - source: /bot/config/
+    desitnation: /home/ubuntu/bot/config/
 hooks:
   PreInstall:
     - location: scripts/install_dependencies
