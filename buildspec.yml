@@ -1,8 +1,8 @@
 version: 0.2
-run-as: ubuntu
+run-as: root
 phases:
   install:
-    run-as: ubuntu
+    run-as: root
     commands:
       - sudo apt-get update
 artifacts:
