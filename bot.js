@@ -169,8 +169,35 @@ bot.on('message', (messageReceived) => {
                     let randomNumber = Math.floor(Math.random() * responses.length);
                     messageReceived.reply("you asked '" + argumentString + "'...\n" + responses[randomNumber]);
                     break;
-                default:
 
+                case 'help':
+                    console.log("Sending a help list of all the commands to the user!");
+                    let message = "List of commands:";
+                    let commandList = null
+                    try {
+                        commandList = JSON.parse(FileSystem.readFileSync("./bot/config/Commands.json"));
+                    } catch (err) {
+                        console.error(err);
+                        bot.destroy();
+                        process.exit();
+                    }
+                    for (let command of commandList) {
+                        if (message.length + 300 < 2000)
+                            message += "\n`" + command.channel + "`-`" + command.name + " " + command.arguments + "` = " + command.description;
+                        else {
+                            messageReceived.author.send(message);
+                            message = ".\n`" + command.channel + "`-`" + command.name + " " + command.arguments + "` = " + command.description;
+                        }
+                    }
+                    messageReceived.author.send(message)
+                        .then((sentMessage) => {
+                            messageReceived.delete();
+                        })
+                    break;
+
+
+
+                default:
                     // Find the relative channel, then use to decided in the switch statement
                     let channel = Channels.find((item) => {
                         return item.id === messageReceived.channel.id
@@ -274,10 +301,10 @@ bot.on('message', (messageReceived) => {
             console.log("Responding with insult!")
 
             request('https://evilinsult.com/generate_insult.php?lang=en&type=json', function (error, response, body) {
-                    if (!error && response.statusCode == 200) {
-                        content = JSON.parse(body)
-                        messageReceived.reply(content.insult);
-                    }
+                if (!error && response.statusCode == 200) {
+                    content = JSON.parse(body)
+                    messageReceived.reply(content.insult);
+                }
             });
 
         } else if (starWarsStrings.some(testString => messageContent.includes(testString))) {
