@@ -151,10 +151,10 @@ bot.on('message', (messageReceived) => {
                             camelString += " ";
                         } else if (camelIndex % 2 == 0) {
                             camelIndex++;
-                            camelString += argumentString.charAt(i).toUpperCase();
+                            camelString += argumentString.charAt(i).toLowerCase();
                         } else {
                             camelIndex++;
-                            camelString += argumentString.charAt(i).toLowerCase();
+                            camelString += argumentString.charAt(i).toUpperCase();
                         }
                     }
 
@@ -303,7 +303,7 @@ bot.on('message', (messageReceived) => {
             request('https://evilinsult.com/generate_insult.php?lang=en&type=json', function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     content = JSON.parse(body)
-                    messageReceived.reply(content.insult);
+                    messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
                 }
             });
 
@@ -312,7 +312,7 @@ bot.on('message', (messageReceived) => {
             request('http://api.giphy.com/v1/gifs/search?q=' + "star wars" + '&rating=r&api_key=dc6zaTOxFJmzC', function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     content = JSON.parse(body)
-                    item = Math.floor(Math.random() * 10)
+                    item = Math.floor(Math.random() * 5) // The far right number is the top X results value
                     messageReceived.channel.send(content.data[item].bitly_gif_url);
                 }
             });

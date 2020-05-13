@@ -13,10 +13,14 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
       - [Environment setup](#environment-setup)
       - [Process of moving from Development to Release](#process-of-moving-from-development-to-release)
   - [Todo](#todo)
+    - [Un-implemented](#un-implemented)
+    - [Completed](#completed)
+    - [Bad Ideas](#bad-ideas)
   - [Directory Structure](#directory-structure)
-  - [Latest Addition](#latest-addition)
-  - [Contributing](#contributing)
-  - [Authors](#authors)
+  - [Readme Meta Data](#readme-meta-data)
+    - [Latest Addition](#latest-addition)
+    - [Contributing](#contributing)
+    - [Authors](#authors)
 
 ## Getting Started
 
@@ -105,28 +109,47 @@ Merging from the master to the release must be completed on the web side of git,
 
 ## Todo
 
+### Un-implemented
+
 - [ ] toxicity ranking
 - [ ] modularity in games scoreboard
 - [ ] quotes meta-data
 - [ ] format the quotes automatically
 - [ ] call meta-data stats
-- [x] bot tracks ideas page
-- [ ] automatic gif replies
 - [ ] reminders
 - [ ] crushampton feed
 - [ ] spotify integration
-- [ ] insult when you @ the bot
 - [ ] bulk remove messages
 - [ ] help for a list of commands per channel (or generally)
-- [ ] log bad ideas for a reminder
-- [ ] automatic command list message pinned to channel
-- [ ] a kind of "read" react so messages can be deleted in channels that we want to keep clean
-- [ ] test mode to see server in non-admin mode
+- [ ] create a method to interact with the channels file from settings (for approved users only)
+- [ ] game updates!!
+- [ ] A game randomizer for selecting a game to play (depending on who is available / has the games)
+- [ ] add a completed ideas list in spoiler tags (by thialfi)
+
+### Completed
+
+- [x] bot tracks ideas page
+- [x] automatic gif replys
+- [x] insult when you @ the bot
+- [x] log bad ideas for a reminder
+- [x] 8-ball messages
+- [x] Automatic reactions (using the letters) to spell out TOXIC for toxic comments, just to highlight them even more
+- [x] macro to automatically do toxic camel hump text (e.g. tHiS sHouLd bE dOnE auToMatTiCalLy)
+- [x] automatic cleaning of channels (e.g. delete messages after 24h)
+- [x] ideas accountability (by MMRREE)
+
+### Bad Ideas
+
+<details>
+<summary>Bad Ideas</summary>
+- our first bad idea
+</details>
 
 ## Directory Structure
 
+<details>
+<summary>Discord Bot</summary>
 ```notepad
-Discord Bot
 |-- package.json               [node package settings for bot]
 |-- package-lock.json          [automatically node generated file]
 |-- bot.js                     [main bot functionality code implementation]
@@ -139,8 +162,14 @@ Discord Bot
 |    `-- stop_server           [forever stop code for codedeploy AWS spin down]
 `-- node_modules               [Node modules automatically generated]
 ```
+</details>
 
-## Latest Addition
+## Readme Meta Data
+
+<details>
+<summary>Meta Data</summary>
+
+### Latest Addition
 
 Author: Eamonn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
@@ -148,13 +177,13 @@ Action: Adding process flow, branches and getting started section
 
 Date: 02/05/2020
 
-## Contributing
+### Contributing
 
 Eamonn Trim  - [ect1u17](mailto:ect1u17@soton.ac.uk)
 
 Anurag Sahare - [aps1g17](mailto:aps1g17@soton.ac.uk)
 
-## Authors
+### Authors
 
 | Name              | Actions                                     |
 | ----------------- | ------------------------------------------- |
@@ -163,3 +192,5 @@ Anurag Sahare - [aps1g17](mailto:aps1g17@soton.ac.uk)
 | **Josh Bullock**  | *Nothing yet*                               |
 | **Matt Johns**    | *Nothing yet*                               |
 | **Gavin Fish**    | *Nothing yet*                               |
+
+</details>
