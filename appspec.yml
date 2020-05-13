@@ -2,13 +2,13 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /home/ubuntu/
-  - source: /scripts/
-    destination: /home/ubuntu/scripts/
-  - source: /bot/
-    destination: /home/ubuntu/bot/
-  - source: /bot/config/
-    destination: /bot/config/
+    destination: /home/ubuntu
+  - source: /scripts
+    destination: /home/ubuntu/scripts
+  - source: /bot
+    destination: /home/ubuntu/bot
+  - source: /bot/config
+    destination: /bot/config
 hooks:
   PreInstall:
     - location: scripts/install_dependencies
