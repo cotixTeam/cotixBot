@@ -3,6 +3,7 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu
+hooks:
   PreInstall:
     - location: scripts/install_dependencies
       timeout: 300
