@@ -1,4 +1,4 @@
 #!/bin/bash
-cd /home/ubuntu
-pkill -f bot.js
-forever start bot.js
+cd /home/ubuntu || echo "prevent cd fatal error"
+pkill -f bot.js || echo "process not running"
+forever start bot.js || echo "prevent forever fatal error"
