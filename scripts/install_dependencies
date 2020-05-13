@@ -8,4 +8,4 @@ sudo apt install build-essential
 command -v forever >/dev/null 2>&1 || { echo >&2 "I require forever but it's not installed."; npm install forever -g; }
 rm -f nodesource_setup.sh install
 forever stopall
-pkill -f bot.js
+pkill -f bot.js || echo "process not running"

@@ -1,4 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu
-pkill -f bot.js
+pkill -f bot.js || echo "process not running"
 forever start bot.js
