@@ -10,7 +10,7 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
   - [Branches and Process Flow](#branches-and-process-flow)
     - [Branches](#branches)
     - [Process Flow](#process-flow)
-      - [Envrionment setup](#envrionment-setup)
+      - [Environment setup](#environment-setup)
       - [Process of moving from Development to Release](#process-of-moving-from-development-to-release)
   - [Todo](#todo)
   - [Directory Structure](#directory-structure)
@@ -66,13 +66,15 @@ To do this, all you have to do is run the configuration line:
 git config --global merge.ours.driver true
 ```
 
-In the first line of the Channels.json you should put a tag as the following:
+The first item of the channels.json should cause a merge error on each instance and so must be unique to each branch. Our example is the one used in the master branch.
 
 ```json
-{
-  "Branch_name": "Branch_name",
-  "ChannelsInfo":{...}
-}
+[{
+      "MasterDev": "MasterDev",
+      "This_is_here_to_try_and_break_diff_tool_into_seeing_an_error": "error_please"
+  },
+  {...}
+]
 ```
 
 Doing this ensure that there is a merge error on this file with any other branch (the differential can check if `"varaibleA":"a"` is changed to `"variableA":"b"` as the tag is the same, the different tag ensures the conflict). Once this is completed, you may then edit the Channels.json as you require.
