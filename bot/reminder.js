@@ -5,7 +5,7 @@ const FileSystem = require('fs');
 
 
 function timeoutReminderFunction(reminder, bot) {
-    for (let user of reminder.users) {
+    for (let reminder of reminder.users) {
         bot.users
             .fetch(user)
             .then((userSend) => {
@@ -46,14 +46,16 @@ class ReminderClass {
         reminderDate.setMilliseconds(0);
 
         for (let reminder of this.Reminders) {
-            reminderDate.setDate(reminderDate.getDate() + reminder.day - reminderDate.getDay());
-            reminderDate.setHours(reminder.hour);
-            reminderDate.setMinutes(reminder.minute);
+            if (reminder.name) {
+                reminderDate.setDate(reminderDate.getDate() + reminder.day - reminderDate.getDay());
+                reminderDate.setHours(reminder.hour);
+                reminderDate.setMinutes(reminder.minute);
 
-            if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
-            else // If any time before this time next week, set for next week
-                setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
+                if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
+                else // If any time before this time next week, set for next week
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
+            }
         }
     }
 

@@ -1,0 +1,78 @@
+[{
+    "channel": "All",
+    "name": "!sendPlaceholder",
+    "description": "Sends a placeholder message, used for development."
+}, {
+    "channel": "All",
+    "name": "!toxic",
+    "arguments": "[Link to message in this channel]",
+    "description": "Reacts to the selected message with the TOXIC letters."
+}, {
+    "channel": "All",
+    "name": "!camel",
+    "arguments": "[String to be formatted]",
+    "description": "Replaces the message with a cAmEl FoRmAtTeD one from the bot."
+}, {
+    "chanenl": "All",
+    "name": "!8ball",
+    "arguments": "[Question to be asked]",
+    "description": "Answers your question with an 8-ball response."
+}, {
+    "channel": "Settings",
+    "name": "!listEvents",
+    "description": "Lists the events available to be reminded on the server."
+}, {
+    "channel": "Settings",
+    "name": "!joinReminder",
+    "arguments": "[ReminderName]",
+    "description": "Joins a list to be reminded of an event from the server."
+}, {
+    "channel": "Settings",
+    "name": "!leaveReminder",
+    "arguments": "[ReminderName]",
+    "description": "Leaves a list, as to not be reminded of an event from the server."
+}, {
+    "channel": "Ideas",
+    "name": "!add",
+    "arguments": "[Idea to be voted on]",
+    "description": "Adds a poll to the message, if the idea passes, moves to the todo list, otherwise joins the pile of shame."
+}, {
+    "channel": "Ideas",
+    "name": "!addVeto",
+    "arguments": "[Idea to be placed into the todo without passing a vote]",
+    "description": "Do not use this unless there has been a formatting error, or the bot has missed a vote result."
+}, {
+    "channel": "Ideas",
+    "name": "!completed",
+    "arguments": "[Idea in message that is completed]",
+    "description": "Ticks a todo result on the list as complete [WIP: move it to another message under a spoiler]."
+}, {
+    "channel": "Ideas",
+    "name": "!unfinished",
+    "arguments": "[Idea in message that is not completed]",
+    "description": "Removes the tick of a todo result. [WIP: move from the completed list back to the tood list]"
+}, {
+    "channel": "Ideas",
+    "name": "!remove",
+    "arguments": "[Idea in message to be removed]",
+    "description": "Removes an item from the todo list altogether. Does not interact with either the bad ideas or the completed ideas."
+}, {
+    "channel": "Ideas",
+    "name": "!reset",
+    "description": "Resets the three message groups removing ALL THE ENTRIES! BE CAREFUL!"
+}, {
+    "channel": "Leaderboards",
+    "name": "!reset",
+    "arguments": "[Game Tag]",
+    "description": "Resets the leaderboard to the default message."
+}, {
+    "channel": "Leaderboards",
+    "name": "!win",
+    "arguments": "[Game Tag] [Other Player] [Other Player] ...",
+    "description": "Adds a win for the sender of the message, and a loss for those @'d in the arguments."
+}, {
+    "channel": "Leaderboards",
+    "name": "!winOther",
+    "arguments": "[Game Tag] [Winning Player] [Other Player] [Other Player] ...",
+    "description": "Adds a win for the @'d 'Winning Player' argument, and a loss for the others @'d in the arguments."
+}]
