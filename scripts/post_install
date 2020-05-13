@@ -1,4 +1,4 @@
 #!/bin/bash
-cd /home/ubuntu/ || echo "prevent fatal error"
-npm install || echo "prevent fatal error"
+cd /home/ubuntu/ || echo "prevent cd fatal error"
+npm install || echo "prevent npm install fatal error"
 pkill -f bot.js || echo "process not running"

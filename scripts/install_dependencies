@@ -1,11 +1,3 @@
 #!/bin/bash
-cd /home/ubuntu/ || echo "prevent fatal error"
-mkdir ./local/ || echo "prevent fatal error"
-curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh || echo "prevent fatal error"
-sudo bash nodesource_setup.sh || echo "prevent fatal error"
-sudo apt install nodejs -y || echo "prevent fatal error"
-sudo apt install build-essential || echo "prevent fatal error"
-command -v forever >/dev/null 2>&1 || { echo >&2 "I require forever but it's not installed."; npm install forever -g; }
-rm -f nodesource_setup.sh install || echo "prevent fatal error"
-forever stopall || echo "prevent fatal error"
+forever stopall || echo "prevent forever fatal error"
 pkill -f bot.js || echo "process not running"

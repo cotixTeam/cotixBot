@@ -6,6 +6,7 @@
     "author": "Eamonn Trim",
     "dependencies": {
         "discord.js": "^12.2.0",
+        "forever": "^2.0.0",
         "fs": "0.0.1-security",
         "request": "^2.72.0"
     },
