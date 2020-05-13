@@ -74,7 +74,7 @@ class IdeasClass {
                                             });
                                     } else {
                                         editMessage
-                                            .edit("||Bad Ideas:" + messageAddition + '||')
+                                            .edit("Bad Ideas:\n||" + messageAddition.slice(2) + '||')
                                             .then(() => {
                                                 messageReceived.delete();
                                             });
