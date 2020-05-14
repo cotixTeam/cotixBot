@@ -126,18 +126,26 @@ bot.on('message', (messageReceived) => {
                 case "toxic":
                     console.log("Marking the quoted message as toxic!");
 
-                    let toxicMessageId = args[0].substring(70);
-                    messageReceived.channel.messages.fetch(toxicMessageId).then(toxicMessage => {
-                        toxicMessage.react('🇹').then(() => {
-                            toxicMessage.react('🇴').then(() => {
-                                toxicMessage.react('🇽').then(() => {
-                                    toxicMessage.react('🇮').then(() => {
-                                        toxicMessage.react('🇨')
+                    // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
+                    let regexURI = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
+
+                    let match = args[0].match(regexURI)
+
+                    if (match) {
+                        messageReceived.channel.messages.fetch(match[match.length - 1]).then(toxicMessage => {
+                            toxicMessage.react('🇹').then(() => {
+                                toxicMessage.react('🇴').then(() => {
+                                    toxicMessage.react('🇽').then(() => {
+                                        toxicMessage.react('🇮').then(() => {
+                                            toxicMessage.react('🇨')
+                                        })
                                     })
                                 })
                             })
+                        }).catch((err) => {
+                            console.error(err)
                         })
-                    })
+                    }
                     messageReceived.delete();
                     break;
 
