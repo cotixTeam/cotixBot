@@ -1,7 +1,6 @@
 "use strict";
 
 const Discord = require('discord.js');
-
 class IdeasClass {
     constructor(client, channels) {
         this.bot = client;
@@ -11,6 +10,8 @@ class IdeasClass {
                 this.majority = channel.majority;
             }
         }
+
+        this.ideaRegex = / (\w+[\w\S ]*)`/g;
     }
 
     add(messageReceived, ideaArg) {
@@ -85,13 +86,12 @@ class IdeasClass {
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
-                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
                 let ideasMatch;
 
                 let todoStringsArray = [];
                 let completedStringsArray = [];
 
-                while (ideasMatch = ideasRegex.exec(todoMessage.content)) {
+                while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
                     if (ideasMatch[1].includes(queryIdea)) {
                         completedStringsArray.push("||`- [x] " + ideasMatch[1] + "`||\n");
                     } else {
@@ -124,13 +124,12 @@ class IdeasClass {
             }, messageReceived.channel)
             .fetch()
             .then((completedMessage) => {
-                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
                 let ideasMatch;
 
                 let todoStringsArray = [];
                 let completedStringsArray = [];
 
-                while (ideasMatch = ideasRegex.exec(completedMessage.content)) {
+                while (ideasMatch = this.ideaRegex.exec(completedMessage.content)) {
                     if (ideasMatch[1].includes(queryIdea)) {
                         todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
                     } else {
@@ -162,12 +161,11 @@ class IdeasClass {
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
-                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
                 let ideasMatch;
 
                 let todoStringsArray = []
 
-                while (ideasMatch = ideasRegex.exec(todoMessage.content)) {
+                while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
                     if (!ideasMatch[1].includes(queryIdea)) {
                         todoStringsArray.push("`- [x] " + ideasMatch[1] + "`\n");
                     }

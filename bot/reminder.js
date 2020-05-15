@@ -1,6 +1,5 @@
 "use strict";
 
-const Discord = require('discord.js');
 const FileSystem = require('fs');
 
 
@@ -10,19 +9,6 @@ function timeoutReminderFunction(reminder, bot) {
             .fetch(user)
             .then((userSend) => {
                 userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
-            }).then(() => {
-                // Recalculate how long to repeat to avoid drift in reminder time
-                let reminderDate = new Date();
-                reminderDate.setSeconds(0);
-                reminderDate.setMilliseconds(0);
-                reminderDate.setDate(reminderDate.getDate() + reminder.day - reminderDate.getDay() + 7); // Set a week from the reminder
-                reminderDate.setHours(reminder.hour);
-                reminderDate.setMinutes(reminder.minute);
-
-                if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
-                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, bot);
-                else // If any time before this time next week, set for next week
-                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - (new Date()).getTime() + 7 * 24 * 60 * 60 * 1000, reminder, bot);
             }).catch(err => console.error(err));
     }
 }
@@ -52,9 +38,9 @@ class ReminderClass {
                 reminderDate.setMinutes(reminder.minute);
 
                 if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
-                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
+                    setInterval(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
                 else // If any time before this time next week, set for next week
-                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
+                    setInterval(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
             }
         }
     }
