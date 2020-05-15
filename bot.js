@@ -55,7 +55,7 @@ bot.on('ready', () => { // Run init code
 
     // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
     let cleanChannelDate = new Date();
-    cleanChannelDate.setSeconds(0);
+    cleanChannelDate.setSeconds(cleanChannelDate.getSeconds() + 10);
     cleanChannelDate.setMilliseconds(0);
     cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
     cleanChannelDate.setHours(0);
@@ -68,7 +68,8 @@ bot.on('ready', () => { // Run init code
         setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
 });
 
-// Bulk delete WIP -- uses individual endpoint to delete each message, might be seen as spam by discord or AWS, if it works will leave for now, but should try to implement the "bulkdelete" endpoint instead
+// Bulk delete, by filtering - will not delete any bot messages, so these will still have to be deleted manually
+// TODO: add a !cleanChannels command ONLY accessible by admins / moderators (not too hard to check permissions like that)
 async function cleanChannels() {
     let cleanChannelArray = bot.channels.cache.filter(channel => {
         if (channel.type == "text") return channel;
@@ -76,6 +77,7 @@ async function cleanChannels() {
 
     for (let queryChannel of Channels) {
         if (queryChannel.keepClean) {
+            console.log("Cleaning channel " + queryChannel.name + " (" + queryChannel.id + ")!");
             await cleanChannelArray.find((item) => {
                 if (item.id == queryChannel.id) return true;
             }).messages.fetch({
@@ -84,7 +86,9 @@ async function cleanChannels() {
                 messageArray.each(message => {
                     if (message.author.id != bot.user.id) message.delete();
                 });
-            })
+            }).catch((err) => {
+                console.error(err);
+            });
         }
     }
 }
@@ -126,18 +130,26 @@ bot.on('message', (messageReceived) => {
                 case "toxic":
                     console.log("Marking the quoted message as toxic!");
 
-                    let toxicMessageId = args[0].substring(70);
-                    messageReceived.channel.messages.fetch(toxicMessageId).then(toxicMessage => {
-                        toxicMessage.react('🇹').then(() => {
-                            toxicMessage.react('🇴').then(() => {
-                                toxicMessage.react('🇽').then(() => {
-                                    toxicMessage.react('🇮').then(() => {
-                                        toxicMessage.react('🇨')
+                    // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
+                    let regexURI = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
+
+                    let match = args[0].match(regexURI)
+
+                    if (match) {
+                        messageReceived.channel.messages.fetch(match[match.length - 1]).then(toxicMessage => {
+                            toxicMessage.react('🇹').then(() => {
+                                toxicMessage.react('🇴').then(() => {
+                                    toxicMessage.react('🇽').then(() => {
+                                        toxicMessage.react('🇮').then(() => {
+                                            toxicMessage.react('🇨')
+                                        })
                                     })
                                 })
                             })
+                        }).catch((err) => {
+                            console.error(err)
                         })
-                    })
+                    }
                     messageReceived.delete();
                     break;
 
