@@ -10,9 +10,15 @@ const ReminderClass = require('./bot/reminder.js');
 
 
 // Parsed JSON files & prevent fatal crashes with catches
-let Channels = null
+let Channels;
 try {
-    Channels = JSON.parse(FileSystem.readFileSync("./bot/config/Channels.json"));
+    if (FileSystem.existsSync("./local/Channels.json")) {
+        console.log("Using local Channels file!");
+        Channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
+    } else {
+        console.log("Using ./bot/config/ Channels file!")
+        Channels = JSON.parse(FileSystem.readFileSync("./bot/config/Channels.json"));
+    }
 } catch (err) {
     console.error(err);
     process.exit();
@@ -39,8 +45,8 @@ var leaderboard = null;
 var reminder = null;
 
 bot.on('ready', () => { // Run init code
-    console.log('Connected');
-    console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')');
+    console.log('Connected!');
+    console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
     bot.user.setPresence({
         activity: {
@@ -63,9 +69,9 @@ bot.on('ready', () => { // Run init code
 
 
     if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
+        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     else
-        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
+        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
 });
 
 // Bulk delete, by filtering - will not delete any bot messages, so these will still have to be deleted manually
