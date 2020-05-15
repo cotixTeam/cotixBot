@@ -1,8 +1,4 @@
 [{
-        "Release": "Release",
-        "error_please": "This_is_here_to_try_and_break_diff_tool_into_seeing_an_error"
-    },
-    {
         "name": "Leaderboards",
         "id": "691318868475510834",
         "keepClean": true,
