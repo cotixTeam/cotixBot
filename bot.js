@@ -16,9 +16,9 @@ try {
         console.log("Using local Channels file!");
         Channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
     } else {
+        require('log-timestamp');
         console.log("Using ./bot/config/ Channels file!")
         Channels = JSON.parse(FileSystem.readFileSync("./bot/config/Channels.json"));
-        require('log-timestamp');
     }
 } catch (err) {
     console.error(err);

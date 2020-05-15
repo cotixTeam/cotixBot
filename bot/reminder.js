@@ -7,6 +7,7 @@ function timeoutReminderFunction(reminderEvent, bot) {
         bot.users
             .fetch(userId)
             .then((userSend) => {
+                console.log("Sending message to " + userSend.username + " for reminder " + reminderEvent.name);
                 userSend.send("Hi " + userSend.username + ",\nThis is your reminder for: '" + reminderEvent.name + "'\n" + reminderEvent.text)
                     .then(() => {
                         setTimeout(timeoutReminderFunction, 7 * 24 * 60 * 60 * 1000, reminderEvent, this.bot);
