@@ -13,72 +13,51 @@ class IdeasClass {
         }
     }
 
-    add(messageReceived, idea) {
+    add(messageReceived, ideaArg) {
         messageReceived
             .react('👍')
             .then(() => {
                 messageReceived
                     .react('👎')
                     .then(() => {
-                        messageReceived.channel.members.forEach((guildMem) => {
-                            //console.log(guildMem); // for debugging
-                        });
+                        let ideaAndAuthorString = ideaArg + ' (by ' + messageReceived.author.username + ')';
 
-                        let messageAddition = '\n`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
-
-                        let filterUp = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.majority + 1);
-                        let collectorUp = messageReceived.createReactionCollector(filterUp, {
+                        let addFilter = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.majority + 1);
+                        let addListener = messageReceived.createReactionCollector(addFilter, {
                             time: 0
                         });
-                        collectorUp.on('collect', reaction => {
-                            // Add to todo then delete
+                        addListener.on('collect', reaction => {
                             new Discord.Message(this.bot, {
                                     id: this.channel.todo
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
-                                    if (editMessage.content != 'Placeholder Message') {
-                                        editMessage
-                                            .edit(editMessage.content + messageAddition)
-                                            .then(() => {
-                                                messageReceived.delete();
-                                            });
-                                    } else {
-                                        editMessage
-                                            .edit("Ideas:" + messageAddition)
-                                            .then(() => {
-                                                messageReceived.delete();
-                                            });
-                                    }
+                                    editMessage
+                                        .edit(editMessage.content + '\n`- [ ] ' + ideaAndAuthorString + '`')
+                                        .then(() => {
+                                            messageReceived.delete();
+                                        });
                                 });
                         });
 
 
 
-                        let filterDown = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.majority + 1);
-                        let collectorDown = messageReceived.createReactionCollector(filterDown, {
+                        let rejectFilter = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.majority + 1);
+                        let rejectListener = messageReceived.createReactionCollector(rejectFilter, {
                             time: 0
                         });
-                        collectorDown.on('collect', reaction => {
-                            // Just delete the idea
+
+                        rejectListener.on('collect', reaction => {
                             new Discord.Message(this.bot, {
                                     id: this.channel.bad
                                 }, messageReceived.channel)
                                 .fetch()
                                 .then((editMessage) => {
-                                    if (editMessage.content != 'Placeholder Message') {
-                                        editMessage
-                                            .edit(editMessage.content.substring(0, editMessage.content.length - 2) + messageAddition + '||')
-                                            .then(() => {
-                                                messageReceived.delete();
-                                            });
-                                    } else {
-                                        editMessage
-                                            .edit("Bad Ideas:\n||" + messageAddition.slice(2) + '||')
-                                            .then(() => {
-                                                messageReceived.delete();
-                                            });
-                                    }
+                                    editMessage
+                                        .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
+                                        .then(() => {
+                                            messageReceived.delete();
+                                        });
                                 });
                         });
                     });
@@ -92,107 +71,109 @@ class IdeasClass {
             .fetch()
             .then((editMessage) => {
                 let messageAddition = '\n`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
+                editMessage
+                    .edit(editMessage.content + messageAddition)
+                    .then(() => {
+                        messageReceived.delete();
+                    });
+            });
+    }
 
-                if (editMessage.content != 'Placeholder Message') {
-                    editMessage
-                        .edit(editMessage.content + messageAddition)
-                        .then(() => {
-                            messageReceived.delete();
-                        });
-                } else {
-                    editMessage
-                        .edit("Ideas:" + messageAddition)
-                        .then(() => {
-                            messageReceived.delete();
-                        });
+    completed(messageReceived, queryIdea) {
+        new Discord.Message(this.bot, {
+                id: this.channel.todo
+            }, messageReceived.channel)
+            .fetch()
+            .then((todoMessage) => {
+                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
+                let ideasMatch;
+
+                let todoStringsArray = [];
+                let completedStringsArray = [];
+
+                while (ideasMatch = ideasRegex.exec(todoMessage.content)) {
+                    if (ideasMatch[1].includes(queryIdea)) {
+                        completedStringsArray.push("||`- [x] " + ideasMatch[1] + "`||\n");
+                    } else {
+                        todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
+                    }
                 }
-            });
-    }
-
-    completed(messageReceived, idea) {
-        new Discord.Message(this.bot, {
-                id: this.channel.todo
-            }, messageReceived.channel)
-            .fetch()
-            .then((todoMessage) => {
-                let lines = todoMessage.content.split('\n');
-                let titleString = lines[0];
-                lines = lines.splice(1);
-                let workingStrings = [];
-
-                lines.forEach((line, index) => {
-                    if (idea + '`' == line.substring(7)) {
-                        workingStrings[index] = "`- [x] " + line.substring(7);
-                    } else {
-                        workingStrings[index] = line;
-                    }
-                });
-
-                workingStrings = (titleString + '\n').concat(workingStrings.join('\n'));
 
                 todoMessage
-                    .edit(workingStrings)
+                    .edit('Ideas:\n' + todoStringsArray.join(""))
                     .then(() => {
-                        messageReceived.delete();
-                    })
+                        new Discord.Message(this.bot, {
+                                id: this.channel.completed
+                            }, messageReceived.channel)
+                            .fetch()
+                            .then((completedMessage) => {
+                                completedMessage
+                                    .edit(completedMessage.content + '\n' + completedStringsArray.join(""))
+                                    .then(() => {
+                                        messageReceived.delete();
+                                    });
 
-            });
+                            })
+                    })
+            })
     }
 
-    unfinished(messageReceived, idea) {
+    unfinished(messageReceived, queryIdea) {
         new Discord.Message(this.bot, {
-                id: this.channel.todo
+                id: this.channel.completed
             }, messageReceived.channel)
             .fetch()
-            .then((todoMessage) => {
-                let lines = todoMessage.content.split('\n');
-                let titleString = lines[0];
-                lines = lines.splice(1);
-                let workingStrings = [];
+            .then((completedMessage) => {
+                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
+                let ideasMatch;
 
-                lines.forEach((line, index) => {
-                    if (idea + '`' == line.substring(7)) {
-                        workingStrings[index] = "`- [ ] " + line.substring(7);
+                let todoStringsArray = [];
+                let completedStringsArray = [];
+
+                while (ideasMatch = ideasRegex.exec(completedMessage.content)) {
+                    if (ideasMatch[1].includes(queryIdea)) {
+                        todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
                     } else {
-                        workingStrings[index] = line;
+                        completedStringsArray.push("||`- [x] " + ideasMatch[1] + "`||\n");
                     }
-                });
+                }
 
-                workingStrings = (titleString + '\n').concat(workingStrings.join('\n'));
-
-                todoMessage
-                    .edit(workingStrings)
+                completedMessage
+                    .edit("Completed:\n" + completedStringsArray.join(""))
                     .then(() => {
-                        messageReceived.delete();
+                        new Discord.Message(this.bot, {
+                                id: this.channel.todo
+                            }, messageReceived.channel)
+                            .fetch()
+                            .then((todoMessage) => {
+                                todoMessage
+                                    .edit(todoMessage.content + "\n" + todoStringsArray.join(""))
+                                    .then(() => {
+                                        messageReceived.delete();
+                                    });
+                            })
                     })
-
             });
     }
 
-    remove(messageReceived, idea) {
+    remove(messageReceived, queryIdea) {
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
             .fetch()
             .then((todoMessage) => {
-                let lines = todoMessage.content.split('\n');
-                let titleString = lines[0];
-                lines = lines.splice(1);
-                let workingStrings = [];
-                let indexOffset = 0;
+                let ideasRegex = / ([A-Za-z]+[A-Za-z() ]*)/g;
+                let ideasMatch;
 
-                lines.forEach((line, index) => {
-                    if (idea + '`' == line.substring(7)) {
-                        indexOffset++;
-                    } else {
-                        workingStrings[index - indexOffset] = line;
+                let todoStringsArray = []
+
+                while (ideasMatch = ideasRegex.exec(todoMessage.content)) {
+                    if (!ideasMatch[1].includes(queryIdea)) {
+                        todoStringsArray.push("`- [x] " + ideasMatch[1] + "`\n");
                     }
-                });
-
-                workingStrings = (titleString + '\n').concat(workingStrings.join('\n'));
-
+                }
                 todoMessage
-                    .edit(workingStrings)
+                    .edit("Ideas:\n" + todoStringsArray.join(''))
                     .then(() => {
                         messageReceived.delete();
                     })
@@ -204,12 +185,25 @@ class IdeasClass {
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
-            .fetch().then((editMessage) => {
-                editMessage.edit("Ideas:\n")
-                    .then(() => {
-                        messageReceived.delete();
-                    });
+            .fetch().then((todoMessage) => {
+                todoMessage.edit("Ideas:")
             });
+
+        new Discord.Message(this.bot, {
+                id: this.channel.bad
+            }, messageReceived.channel)
+            .fetch().then((badIdeasMessage) => {
+                badIdeasMessage.edit("Bad Ideas:");
+            })
+
+        new Discord.Message(this.bot, {
+                id: this.channel.completed
+            }, messageReceived.channel)
+            .fetch().then((completedMessage) => {
+                completedMessage.edit("Completed:");
+            })
+
+        messageReceived.delete();
     }
 }
 
