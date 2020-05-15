@@ -1,29 +1,31 @@
 [{
-        "MasterDev": "MasterDev",
-        "This_is_here_to_try_and_break_diff_tool_into_seeing_an_error": "error_please"
-    },
-    {
         "name": "Leaderboards",
+        "id": "691318868475510834",
         "keepClean": true,
-        "id": "705758469780799501",
         "games": [{
-            "name": "test",
-            "messageId": "709060138140696636",
-            "defaultMessage": "Test Leaderboard!\n<@!161848310578151424> - 0/0\n<@!705758877517479937> - 0/0"
-        }]
+                "name": "CCS",
+                "messageId": "691591460176527361",
+                "defaultMessage": "Carcassonne! Wins (Ranked) [!win CCS (@opponent1) (@opponent2)]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
+            },
+            {
+                "name": "UCH",
+                "messageId": "691591631329296434",
+                "defaultMessage": "Ultimate Chicken Horse (Ranked) [!win UCH command to add win]\n<@!161848310578151424> - 0/0\n<@!264106235681308673> - 0/0\n<@!381175528847310851> - 0/0\n<@!140452063111806976> - 0/0\n"
+            }
+        ]
     },
     {
         "name": "Ideas",
+        "id": "704317078059876444",
         "keepClean": true,
-        "id": "706937591735255070",
-        "todo": "709060115013173338",
-        "bad": "709060159581716510",
-        "completed": "710526845459759217",
-        "majority": 1
+        "todo": "710810463558172693",
+        "bad": "710810452803715094",
+        "completed": "710810458537459762",
+        "majority": 3
     },
     {
         "name": "Settings",
-        "keepClean": true,
-        "id": "707639167680774274"
+        "id": "707993216045154362",
+        "keepClean": true
     }
 ]

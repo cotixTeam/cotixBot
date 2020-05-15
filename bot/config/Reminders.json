@@ -1,7 +1,4 @@
 [{
-		"MasterDev": "MasterDev",
-		"This_is_here_to_try_and_break_diff_tool_into_seeing_an_error": "error_please"
-	}, {
 		"name": "Non-toxic Tuesday",
 		"text": "You have to be non-toxic all day today!",
 		"hour": 10,
@@ -26,13 +23,5 @@
 			"140452063111806976",
 			"149912215409917952"
 		]
-	},
-	{
-		"name": "Test",
-		"text": "A test text",
-		"hour": 12,
-		"minute": 16,
-		"day": 2,
-		"users": ["161848310578151424"]
 	}
 ]
