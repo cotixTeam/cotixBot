@@ -69,9 +69,9 @@ bot.on('ready', () => { // Run init code
 
 
     if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
+        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     else
-        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
+        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
 });
 
 // Bulk delete, by filtering - will not delete any bot messages, so these will still have to be deleted manually
