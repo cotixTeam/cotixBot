@@ -2,13 +2,15 @@
 
 const FileSystem = require('fs');
 
-
-function timeoutReminderFunction(reminder, bot) {
-    for (let reminder of reminder.users) {
+function timeoutReminderFunction(reminderEvent, bot) {
+    for (let userId of reminderEvent.users) {
         bot.users
-            .fetch(user)
+            .fetch(userId)
             .then((userSend) => {
-                userSend.send("Hi " + userSend.username + ",\n This is your reminder for: '" + reminder.name + "'\n" + reminder.text);
+                userSend.send("Hi " + userSend.username + ",\nThis is your reminder for: '" + reminderEvent.name + "'\n" + reminderEvent.text)
+                    .then(() => {
+                        setTimeout(timeoutReminderFunction, 7 * 24 * 60 * 60 * 1000, reminderEvent, this.bot);
+                    });
             }).catch(err => console.error(err));
     }
 }
@@ -16,8 +18,6 @@ class ReminderClass {
     constructor(client, channels) {
         this.bot = client;
         this.channels = channels;
-
-        this.Reminders = null;
         try {
             this.Reminders = JSON.parse(FileSystem.readFileSync("./bot/config/Reminders.json"));
         } catch (err) {
@@ -38,9 +38,9 @@ class ReminderClass {
                 reminderDate.setMinutes(reminder.minute);
 
                 if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
-                    setInterval(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime(), reminder, this.bot);
                 else // If any time before this time next week, set for next week
-                    setInterval(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
+                    setTimeout(timeoutReminderFunction, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, this.bot);
             }
         }
     }

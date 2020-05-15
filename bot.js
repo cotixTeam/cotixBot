@@ -70,9 +70,9 @@ bot.on('ready', () => { // Run init code
 
 
     if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
+        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     else
-        setInterval(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
+        setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
 });
 
 // Bulk delete, by filtering - will not delete any bot messages, so these will still have to be deleted manually
@@ -93,6 +93,9 @@ async function cleanChannels() {
                 messageArray.each(message => {
                     if (message.author.id != bot.user.id) message.delete();
                 });
+            }).then(() => {
+                // Create a timer for 24 hours to repeat the task
+                setTimeout(cleanChannels, 24 * 60 * 60 * 1000);
             }).catch((err) => {
                 console.error(err);
             });
