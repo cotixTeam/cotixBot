@@ -7,11 +7,12 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
 - [~BKKK Discord Bot](#bkkk-discord-bot)
   - [Contents](#contents)
   - [Getting Started](#getting-started)
+    - [Adding bot authentication token](#adding-bot-authentication-token)
+    - [Creating the configuration files](#creating-the-configuration-files)
+    - [Local environment setup](#local-environment-setup)
   - [Branches and Process Flow](#branches-and-process-flow)
     - [Branches](#branches)
-    - [Process Flow](#process-flow)
-      - [Environment setup](#environment-setup)
-      - [Process of moving from Development to Release](#process-of-moving-from-development-to-release)
+    - [Pushing to release](#pushing-to-release)
   - [Todo](#todo)
     - [Un-implemented](#un-implemented)
     - [Completed](#completed)
@@ -24,33 +25,40 @@ This repository is used for the Discord Bot used in ~BKKK Server. The server is 
 
 ## Getting Started
 
-This is a discord bot that uses "[discord.js](https://discord.js.org/#/)" library. To get started, you will need node and npm installed. Then install discord.js by using the command
+### Adding bot authentication token
 
-```bash
-npm install discord.js
-```
+This is a discord bot that uses "[`discord.js`](https://discord.js.org/#/)" library. It also uses `require` for some external api calls, `fs` for accesing files locally, and `log-timestamps` for creating clear logs on the published server. If the git is downloaded, you do not need to install these manually.
 
-You will then need you discord bot's authentication token (found under the "click to reveal token" on the [https://discordapp.com/developers/applications/${YOUR_APPLICATION_ID}/bot/](https://discordapp.com/developers/applications/)). Once you have this, create a folder in the bots location named "local" and place you key in a file named `auth.json` formatted as follows (this prevents others for stealing your bot):
+You will need to find your bot authentication token from the [discord developper dashboard](https://discordapp.com/developers/applications/). Find your bot and take the authentication token and place it in a file `./local/auth.json` formatted as follows:
 
 ```json
 {
-  "token": "authentication_token"
+  "token": "${authentication_token}"
 }
 ```
 
-Once you have done this, and configured the Channels.json file to your server, you are ready to run the bot with
+### Creating the configuration files
 
-```bash
-node bot.js
+You will need to create your own `./bot/config/Channels.json` that follows an array format as follows:
+
+```json
+[
+  {
+        "name": "${channel_name}",
+        "id": "${channel_id}",
+        "keepClean": bool,
+        ... Channel specific configs ...  
+  }
+]
 ```
 
-or
+This will be the file used on your released server. To see how to create a local environment, see [below](#local-environment-setup).
 
-```bash
-npm start
-```
+### Local environment setup
 
-Further information on how to set up the Channels.json and other relevant configuration files will be produced later in the project.
+To set up a development bot, create a new server and add a new bot to it. In `./local/auth.json` place the as the token as indicated above.
+
+Create a `./local/Channels.json` and this will override the `./bot/config/Channels.json` when you run the bot, but will not affect the Release envrionment as it will not be pushed to the git repository.
 
 ## Branches and Process Flow
 
@@ -59,22 +67,14 @@ Further information on how to set up the Channels.json and other relevant config
 - Release (Default)
 - master
 
-### Process Flow
+### Pushing to release
 
-#### Environment setup
-
-
-
-#### Process of moving from Development to Release
-
-1. Create a branch from master of the implementation you want to implement
-2. Implement the solution
-3. Merge to master
-4. Request merge from master to release
+1. Create a branch from master for your implementation
+2. Complete the changes and push to your branch
+3. Merge the branch into master
+4. Request merge from master to release via [the web client](https://github.com/BkBotDevTeam/BKKKDiscordBot/compare/master?expand=1)
 5. Assign another member to review the merge
-6. If approved, will be pushed to AWS
-7. If deploy has failed, the old version will stay live, Eamonn will look at debugging
-8. If succeeded, the bot will be live on release
+6. If approved, will be pushed to AWS (assuming it works)
 
 ## Todo
 
@@ -88,7 +88,6 @@ Further information on how to set up the Channels.json and other relevant config
 - [ ] reminders (by MMRREE)
 - [ ] crushampton feed (by MMRREE)
 - [ ] spotify integration (by MMRREE)
-- [ ] bulk remove messages (by MMRREE)
 - [ ] create a method to interact with the channels file for admins (by MMRREE)
 - [ ] game updates (by MMRREE)
 - [ ] a game randomizer based on who is available (by MMRREE)
@@ -107,18 +106,24 @@ Further information on how to set up the Channels.json and other relevant config
 - [x] insults when you at the bot (by MMRREE)
 - [x] help command (by MMRREE)
 - [x] add a completed ideas list in spoiler tags (by MMRREE)
+- [x] bulk remove messages (by MMRREE)
 
 ### Bad Ideas
 
 <details>
+
 <summary>Bad Ideas</summary>
+
 - our first bad idea
+
 </details>
 
 ## Directory Structure
 
 <details>
+
 <summary>Discord Bot</summary>
+
 ```notepad
 |-- package.json               [node package settings for bot]
 |-- package-lock.json          [automatically node generated file]
@@ -132,11 +137,13 @@ Further information on how to set up the Channels.json and other relevant config
 |    `-- stop_server           [forever stop code for codedeploy AWS spin down]
 `-- node_modules               [Node modules automatically generated]
 ```
+
 </details>
 
 ## Readme Meta Data
 
 <details>
+
 <summary>Meta Data</summary>
 
 ### Latest Addition

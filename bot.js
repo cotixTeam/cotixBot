@@ -79,19 +79,20 @@ async function cleanChannels() {
             console.log("Cleaning channel " + queryChannel.name + " (" + queryChannel.id + ")!");
 
             await cleanChannelArray.find((item) => {
-                if (item.id == queryChannel.id) return true;
-            }).messages.fetch({
-                limit: 100
-            }).then((messageArray) => {
-                messageArray.each(message => {
-                    if (!message.pinned) message.delete();
+                    if (item.id == queryChannel.id) return true;
+                }).messages.fetch({
+                    limit: 100
+                })
+                .then((messageArray) => {
+                    messageArray.each(message => {
+                        if (!message.pinned) message.delete();
+                    });
+                }).then(() => {
+                    // Create a timer for 24 hours to repeat the task
+                    setTimeout(cleanChannels, 24 * 60 * 60 * 1000);
+                }).catch((err) => {
+                    console.error(err);
                 });
-            }).then(() => {
-                // Create a timer for 24 hours to repeat the task
-                setTimeout(cleanChannels, 24 * 60 * 60 * 1000);
-            }).catch((err) => {
-                console.error(err);
-            });
         }
     }
 }
@@ -131,8 +132,30 @@ bot.on('message', (messageReceived) => {
                         });
                     break;
 
-                case "toxic":
-                    console.log("Marking the quoted message as toxic!");
+                case 'toxic':
+                    console.log("Searching for the message to mark as toxic!");
+
+                    messageReceived.channel.messages
+                        .fetch({
+                            limit: 20
+                        })
+                        .then((messageArray) => {
+                            messageArray.each(async (message) => {
+                                if (message.content.includes(argumentString) && message != messageReceived) {
+                                    await message.react('🇹');
+                                    await message.react('🇴');
+                                    await message.react('🇽');
+                                    await message.react('🇮');
+                                    await message.react('🇨');
+                                }
+                            });
+                        }).then(() => {
+                            messageReceived.delete();
+                        }).catch(err => console.error(err));
+                    break;
+
+                case "toxicId":
+                    console.log("Marking the id'd message as toxic!");
 
                     // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
                     let regexURI = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
@@ -232,7 +255,8 @@ bot.on('message', (messageReceived) => {
                         messageReceived.channel.messages
                             .fetch({
                                 limit: messageCount
-                            }).then((messageArray) => {
+                            })
+                            .then((messageArray) => {
                                 messageArray.each(message => {
                                     if (!message.pinned) message.delete();
                                 });
