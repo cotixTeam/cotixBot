@@ -216,7 +216,7 @@ bot.on('message', (messageReceived) => {
                     break;
 
                 case 'bulkDelete':
-                    let adminRoles = ["705760947721076756"]
+                    let adminRoles = ["668465816894832641"]
                     let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
                     let messageCount = args[0];
                     if (messageCount > 100) messageCount = 100;
