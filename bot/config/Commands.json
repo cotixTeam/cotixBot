@@ -5,6 +5,11 @@
 }, {
     "channel": "All",
     "name": "!toxic",
+    "arguments": "[unique string the the message]",
+    "description": "Reacts to the selected message with the TOXIC letters (if within the last 20 messages)."
+}, {
+    "channel": "All",
+    "name": "!toxicId",
     "arguments": "[Link to message in this channel]",
     "description": "Reacts to the selected message with the TOXIC letters."
 }, {
