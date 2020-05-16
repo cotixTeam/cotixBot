@@ -219,21 +219,30 @@ bot.on('message', (messageReceived) => {
                     let adminRoles = ["668465816894832641"]
                     let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
                     let messageCount = args[0];
-                    if (messageCount > 100) messageCount = 100;
-                    else if (messageCount < 0) messageCount = 0;
+
+                    // Plus one to the message count to INCLUDE the message just sent
+                    if (messageCount + 1 > 100) messageCount = 100;
+                    else if (messageCount <= 0) messageCount = 1;
+                    else messageCount = messageCount + 1;
 
                     if (permissionsFound) {
                         console.log("Bulk deleting messages!");
 
                         messageReceived.channel.messages
                             .fetch({
-                                limit: args[0]
+                                limit: messageCount
                             }).then((messageArray) => {
                                 messageArray.each(message => {
                                     if (!message.pinned) message.delete();
                                 });
                             }).catch((err) => {
                                 console.error(err);
+                            });
+                    } else {
+                        messageReceived.author
+                            .send("Hi " + messageReceived.author.username + ",\nYou do not have the permissions for the bulkDelete command!")
+                            .then(() => {
+                                messageReceived.delete();
                             });
                     }
                     break;
