@@ -11,7 +11,6 @@ class LeaderboardClass {
     }
 
     reset(messageReceived, gameCheck) {
-        console.log(this.channel);
         for (let game of this.channel.games) {
             if (gameCheck == game.name) {
                 new Discord.Message(this.bot, {
