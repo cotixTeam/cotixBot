@@ -63,38 +63,7 @@ Further information on how to set up the Channels.json and other relevant config
 
 #### Environment setup
 
-Before running through the individual setup process you must ensure that your "./bot/Channels.json" is independent to your branch.
-To do this, all you have to do is run the configuration line:
 
-```bash
-git config --global merge.ours.driver true
-```
-
-The first item of the channels.json should cause a merge error on each instance and so must be unique to each branch. Our example is the one used in the master branch.
-
-```json
-[{
-      "MasterDev": "MasterDev",
-      "This_is_here_to_try_and_break_diff_tool_into_seeing_an_error": "error_please"
-  },
-  {...}
-]
-```
-
-Doing this ensure that there is a merge error on this file with any other branch (the differential can check if `"varaibleA":"a"` is changed to `"variableA":"b"` as the tag is the same, the different tag ensures the conflict). Once this is completed, you may then edit the Channels.json as you require.
-
-When it is time to merge to the master dev branch DO NOT merge via the web or any VCS, instead open the terminal and run the following (where "x" are your relevant variables):
-
-```bash
-git checkout master
-git merge "your_branch"
-```
-
-If you have completed the steps correctly, and there are no other conflicts in your merge that you have not resolved, then the merge will retain the branch-specific Channels.json, enabling for a local and release development environment. Make sure that once you are finished, you run `git checkout "your_branch"` to return to your dev environment, otherwise you will be trying to change either the master directly (this is not a good idea).
-
-Another important part of the code is checking if `process.env.botToken` is set DO NOT REMOVE IT. In the release environment it is, in yours it should not be, for your local key, following the [Getting Started](#getting-started) guide for authentication.
-
-Merging from the master to the release must be completed on the web side of git, this ensures another person reviews it before it is released. Unfortunately this removes the automatic resolution of Channels.json, but this can be handled manually in the conflict resolution (as the review has to happen anyway).
 
 #### Process of moving from Development to Release
 
@@ -111,32 +80,33 @@ Merging from the master to the release must be completed on the web side of git,
 
 ### Un-implemented
 
-- [ ] toxicity ranking
-- [ ] modularity in games scoreboard
-- [ ] quotes meta-data
-- [ ] format the quotes automatically
-- [ ] call meta-data stats
-- [ ] reminders
-- [ ] crushampton feed
-- [ ] spotify integration
-- [ ] bulk remove messages
-- [ ] help for a list of commands per channel (or generally)
-- [ ] create a method to interact with the channels file from settings (for approved users only)
-- [ ] game updates!!
-- [ ] A game randomizer for selecting a game to play (depending on who is available / has the games)
-- [ ] add a completed ideas list in spoiler tags (by thialfi)
+- [ ] toxicity ranking (by MMRREE)
+- [ ] modularity in games scoreboard (by MMRREE)
+- [ ] quotes meta data (by MMRREE)
+- [ ] format the quotes automatically (by MMRREE)
+- [ ] call meta data stats (by MMRREE)
+- [ ] reminders (by MMRREE)
+- [ ] crushampton feed (by MMRREE)
+- [ ] spotify integration (by MMRREE)
+- [ ] bulk remove messages (by MMRREE)
+- [ ] create a method to interact with the channels file for admins (by MMRREE)
+- [ ] game updates (by MMRREE)
+- [ ] a game randomizer based on who is available (by MMRREE)
+- [ ] public humiliation for incorrect command (by MMRREE)
 
 ### Completed
 
-- [x] bot tracks ideas page
-- [x] automatic gif replys
-- [x] insult when you @ the bot
-- [x] log bad ideas for a reminder
-- [x] 8-ball messages
-- [x] Automatic reactions (using the letters) to spell out TOXIC for toxic comments, just to highlight them even more
-- [x] macro to automatically do toxic camel hump text (e.g. tHiS sHouLd bE dOnE auToMatTiCalLy)
-- [x] automatic cleaning of channels (e.g. delete messages after 24h)
+- [x] automatic gif replies (by MMRREE)
+- [x] bot tracks ideas (by MMRREE)
 - [x] ideas accountability (by MMRREE)
+- [x] clean channels (by MMRREE)
+- [x] macro for cAmEl CaSe (by MMRREE)
+- [x] automatic reactions for TOXIC (by MMRREE)
+- [x] eight ball messages (by MMRREE)
+- [x] log bad ideas (by MMRREE)
+- [x] insults when you at the bot (by MMRREE)
+- [x] help command (by MMRREE)
+- [x] add a completed ideas list in spoiler tags (by MMRREE)
 
 ### Bad Ideas
 

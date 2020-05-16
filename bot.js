@@ -84,7 +84,7 @@ async function cleanChannels() {
                 limit: 100
             }).then((messageArray) => {
                 messageArray.each(message => {
-                    if (message.author.id != bot.user.id) message.delete();
+                    if (!message.pinned) message.delete();
                 });
             }).then(() => {
                 // Create a timer for 24 hours to repeat the task
@@ -215,6 +215,28 @@ bot.on('message', (messageReceived) => {
                         })
                     break;
 
+                case 'bulkDelete':
+                    let adminRoles = ["705760947721076756"]
+                    let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
+                    let messageCount = args[0];
+                    if (messageCount > 100) messageCount = 100;
+                    else if (messageCount < 0) messageCount = 0;
+
+                    if (permissionsFound) {
+                        console.log("Bulk deleting messages!");
+
+                        messageReceived.channel.messages
+                            .fetch({
+                                limit: args[0]
+                            }).then((messageArray) => {
+                                messageArray.each(message => {
+                                    if (!message.pinned) message.delete();
+                                });
+                            }).catch((err) => {
+                                console.error(err);
+                            });
+                    }
+                    break;
                 default:
                     // Find the relative channel, then use to decided in the switch statement
                     let channel = Channels

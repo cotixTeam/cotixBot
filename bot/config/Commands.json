@@ -18,6 +18,11 @@
     "arguments": "[Question to be asked]",
     "description": "Answers your question with an 8-ball response."
 }, {
+    "channel": "All",
+    "name": "!bulkDelete",
+    "arguments": "[Number <=100]",
+    "description": "Deletes all unpinned messages (up to 100 in the chat) (needs moderator/admin permissions)."
+}, {
     "channel": "Settings",
     "name": "!listEvents",
     "description": "Lists the events available to be reminded on the server."
