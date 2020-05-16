@@ -8,7 +8,8 @@ function timeoutReminderFunction(reminderEvent, bot) {
             .fetch(userId)
             .then((userSend) => {
                 console.log("Sending message to " + userSend.username + " for reminder " + reminderEvent.name);
-                userSend.send("Hi " + userSend.username + ",\nThis is your reminder for: '" + reminderEvent.name + "'\n" + reminderEvent.text)
+                userSend
+                    .send("Hi " + userSend.username + ",\nThis is your reminder for: '" + reminderEvent.name + "'\n" + reminderEvent.text)
                     .then(() => {
                         setTimeout(timeoutReminderFunction, 7 * 24 * 60 * 60 * 1000, reminderEvent, this.bot);
                     });
@@ -20,12 +21,12 @@ class ReminderClass {
         this.bot = client;
         this.channels = channels;
         try {
-            this.Reminders = JSON.parse(FileSystem.readFileSync("./bot/config/Reminders.json"));
+            this.Reminders = JSON.parse(FileSystem.readFileSync("./bot/config/Reminders.json"))
         } catch (err) {
             console.error(err);
             this.bot.destroy();
             process.exit();
-        }
+        };
 
         let reminderDate = new Date();
         let now = new Date();
@@ -76,9 +77,13 @@ class ReminderClass {
                 if (addFlag) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.push(messageReceived.author.id)
                     FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
-                    messageReceived.author.send("You have been added to the reminder: " + reminder.name).catch(err => console.error(err));
+                    messageReceived.author
+                        .send("You have been added to the reminder: " + reminder.name)
+                        .catch(err => console.error(err));
                 } else {
-                    messageReceived.author.send("You are already registerd to the reminder: " + reminder.name).catch(err => console.error(err));
+                    messageReceived.author
+                        .send("You are already registerd to the reminder: " + reminder.name)
+                        .catch(err => console.error(err));
                 }
             }
         }
@@ -101,9 +106,13 @@ class ReminderClass {
                 if (userExists) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.splice(userIndex, 1);
                     FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
-                    messageReceived.author.send("You have been removed from the reminder: " + reminder.name).catch(err => console.error(err));
+                    messageReceived.author.
+                    send("You have been removed from the reminder: " + reminder.name)
+                        .catch(err => console.error(err));
                 } else {
-                    messageReceived.author.send("You are not registerd to the reminder: " + reminder.name).catch(err => console.error(err));
+                    messageReceived.author
+                        .send("You are not registerd to the reminder: " + reminder.name)
+                        .catch(err => console.error(err));
                 }
             }
         }

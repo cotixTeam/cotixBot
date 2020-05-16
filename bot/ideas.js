@@ -14,55 +14,49 @@ class IdeasClass {
         this.ideaRegex = / (\w+[\w\S ]*)`/g;
     }
 
-    add(messageReceived, ideaArg) {
-        messageReceived
-            .react('👍')
-            .then(() => {
-                messageReceived
-                    .react('👎')
-                    .then(() => {
-                        let ideaAndAuthorString = ideaArg + ' (by ' + messageReceived.author.username + ')';
+    async add(messageReceived, ideaArg) {
+        await messageReceived.react('👍');
+        messageReceived.react('👎');
 
-                        let addFilter = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.majority + 1);
-                        let addListener = messageReceived.createReactionCollector(addFilter, {
-                            time: 0
+        let ideaAndAuthorString = ideaArg + ' (by ' + messageReceived.author.username + ')';
+
+        let addFilter = (reaction, user) => reaction.emoji.name == '👍' && reaction.count == (this.majority + 1);
+        let addListener = messageReceived.createReactionCollector(addFilter, {
+            time: 0
+        });
+
+        let rejectFilter = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.majority + 1);
+        let rejectListener = messageReceived.createReactionCollector(rejectFilter, {
+            time: 0
+        });
+
+        addListener.on('collect', reaction => {
+            new Discord.Message(this.bot, {
+                    id: this.channel.todo
+                }, messageReceived.channel)
+                .fetch()
+                .then((editMessage) => {
+                    editMessage
+                        .edit(editMessage.content + '\n`- [ ] ' + ideaAndAuthorString + '`')
+                        .then(() => {
+                            messageReceived.delete();
                         });
-                        addListener.on('collect', reaction => {
-                            new Discord.Message(this.bot, {
-                                    id: this.channel.todo
-                                }, messageReceived.channel)
-                                .fetch()
-                                .then((editMessage) => {
-                                    editMessage
-                                        .edit(editMessage.content + '\n`- [ ] ' + ideaAndAuthorString + '`')
-                                        .then(() => {
-                                            messageReceived.delete();
-                                        });
-                                });
+                });
+        });
+
+        rejectListener.on('collect', reaction => {
+            new Discord.Message(this.bot, {
+                    id: this.channel.bad
+                }, messageReceived.channel)
+                .fetch()
+                .then((editMessage) => {
+                    editMessage
+                        .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
+                        .then(() => {
+                            messageReceived.delete();
                         });
-
-
-
-                        let rejectFilter = (reaction, user) => reaction.emoji.name == '👎' && reaction.count == (this.majority + 1);
-                        let rejectListener = messageReceived.createReactionCollector(rejectFilter, {
-                            time: 0
-                        });
-
-                        rejectListener.on('collect', reaction => {
-                            new Discord.Message(this.bot, {
-                                    id: this.channel.bad
-                                }, messageReceived.channel)
-                                .fetch()
-                                .then((editMessage) => {
-                                    editMessage
-                                        .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
-                                        .then(() => {
-                                            messageReceived.delete();
-                                        });
-                                });
-                        });
-                    });
-            });
+                });
+        });
     }
 
     addVeto(messageReceived, idea) {
@@ -183,21 +177,24 @@ class IdeasClass {
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
-            .fetch().then((todoMessage) => {
+            .fetch()
+            .then((todoMessage) => {
                 todoMessage.edit("Ideas:")
             });
 
         new Discord.Message(this.bot, {
                 id: this.channel.bad
             }, messageReceived.channel)
-            .fetch().then((badIdeasMessage) => {
+            .fetch()
+            .then((badIdeasMessage) => {
                 badIdeasMessage.edit("Bad Ideas:");
             })
 
         new Discord.Message(this.bot, {
                 id: this.channel.completed
             }, messageReceived.channel)
-            .fetch().then((completedMessage) => {
+            .fetch()
+            .then((completedMessage) => {
                 completedMessage.edit("Completed:");
             })
 
