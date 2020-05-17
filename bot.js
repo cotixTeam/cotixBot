@@ -109,6 +109,25 @@ function notImplementedCommand(messageReceived, cmd) {
         });
 }
 
+function quoteMessage(quoteMessageContent, userId) {
+    for (let channel of Channels) {
+        if (channel.name == "Quotes") {
+            new Discord.Channel(bot, {
+                    id: channel.id
+                })
+                .fetch()
+                .then((quotesChannel) => {
+                    let today = new Date();
+                    let dateString = today.getHours() + ":" + today.getMinutes() + " on " + today.getDate() + "/" + (today.getMonth() + 1) + "/" + today.getFullYear();
+                    quoteMessageContent = quoteMessageContent.split("\n").join("\n> "); // Looks dumb, is the best way to replace all instances of "\n" by something else strangely
+                    quotesChannel.send("> " + quoteMessageContent + "\nBy <@!" + userId + "> at " + dateString);
+                }).catch(err => {
+                    console.log(err);
+                })
+        }
+    }
+}
+
 bot.on('message', (messageReceived) => {
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
         let starWarsStrings = ["fourth", "force", "star", "wars", "trooper"]
@@ -158,25 +177,77 @@ bot.on('message', (messageReceived) => {
                     console.log("Marking the id'd message as toxic!");
 
                     // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
-                    let regexURI = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
+                    let regexURIToxic = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
 
-                    let match = args[0].match(regexURI)
+                    let matchToxic = args[0].match(regexURIToxic)
 
-                    if (match) {
+                    if (matchToxic) {
                         messageReceived.channel.messages
-                            .fetch(match[match.length - 1])
+                            .fetch(matchToxic[matchToxic.length - 1])
                             .then(async (toxicMessage) => {
                                 await toxicMessage.react('🇹');
                                 await toxicMessage.react('🇴');
                                 await toxicMessage.react('🇽');
                                 await toxicMessage.react('🇮');
                                 await toxicMessage.react('🇨');
-                                await messageReceived.delete();
+                            }).then(() => {
+                                messageReceived.delete();
                             }).catch((err) => {
                                 console.error(err)
                                 messageReceived.delete();
                             })
                     }
+                    break;
+
+                case 'quoteMessage':
+                    console.log("Searching for the message to quote!");
+
+                    messageReceived.channel.messages
+                        .fetch({
+                            limit: 20
+                        })
+                        .then((messageArray) => {
+                            messageArray.each((message) => {
+                                if (message.content.includes(argumentString) && message != messageReceived) {
+                                    quoteMessage(message.content, message.author.id);
+                                }
+                            });
+                        }).then(() => {
+                            messageReceived.delete();
+                        }).catch(err => console.error(err));
+                    break;
+
+                case 'quoteId':
+                    console.log("Quoting the id'd message!");
+
+                    // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
+                    let regexURIQuote = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
+
+                    let quoteMatch = args[0].match(regexURIQuote)
+
+                    if (quoteMatch) {
+                        messageReceived.channel.messages
+                            .fetch(quoteMatch[quoteMatch.length - 1])
+                            .then((toxicMessage) => {
+                                quoteMessage(toxicMessage.content, toxicMessage.author.id);
+                            }).then(() => {
+                                messageReceived.delete();
+                            }).catch((err) => {
+                                console.error(err)
+                                messageReceived.delete();
+                            })
+                    }
+                    break;
+
+                case 'quote':
+                    console.log("Quote the string (not mentioned by anyone)!");
+
+                    let userId = args[0].substring(3, 21);
+                    args = args.splice(1);
+                    let quoteString = args.join(' ');
+
+                    quoteMessage(quoteString, userId);
+                    messageReceived.delete();
                     break;
 
                 case 'camel':
@@ -271,6 +342,7 @@ bot.on('message', (messageReceived) => {
                             });
                     }
                     break;
+
                 default:
                     // Find the relative channel, then use to decided in the switch statement
                     let channel = Channels
@@ -381,6 +453,7 @@ bot.on('message', (messageReceived) => {
                                     break;
                             }
                             break;
+
                         default:
                             console.log("Not implemented!");
 
