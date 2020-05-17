@@ -1,10 +1,10 @@
-# ~BKKK Discord Bot
+# cotix Discord Bot
 
-This repository is used for the Discord Bot used in ~BKKK Server. The server is dedicated to friends of the Authors. The bot is used for any features that we wanted to implement into our server without including other bots, to have a fully customisable experience.
+This repository is used for the Discord Bot used in cotix Server. The server is dedicated to friends of the Authors. The bot is used for any features that we wanted to implement into our server without including other bots, to have a fully customisable experience.
 
 ## Contents
 
-- [~BKKK Discord Bot](#bkkk-discord-bot)
+- [cotix Discord Bot](#cotix-discord-bot)
   - [Contents](#contents)
   - [Getting Started](#getting-started)
     - [Adding bot authentication token](#adding-bot-authentication-token)
@@ -72,7 +72,7 @@ Create a `./local/Channels.json` and this will override the `./bot/config/Channe
 1. Create a branch from master for your implementation
 2. Complete the changes and push to your branch
 3. Merge the branch into master
-4. Request merge from master to release via [the web client](https://github.com/BkBotDevTeam/BKKKDiscordBot/compare/master?expand=1)
+4. Request merge from master to release via [the web client](https://github.com/cotixTeam/cotixBot/compare/master?expand=1)
 5. Assign another member to review the merge
 6. If approved, will be pushed to AWS (assuming it works)
 
