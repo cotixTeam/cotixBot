@@ -129,7 +129,14 @@ function quoteMessage(quoteMessageContent, userId) {
     }
 }
 
-var spotifyData;
+var spotifyData = {
+    voiceChannel: null,
+    connection: null,
+    player: null,
+    songs: [],
+    volume: 5,
+    playing: false
+};
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
@@ -345,25 +352,13 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
 
                             try {
-
-                                if (!spotifyData) {
-                                    spotifyData = {
-                                        voiceChannel: voiceChannel,
-                                        connection: null,
-                                        player: null,
-                                        songs: [],
-                                        volume: 5,
-                                        playing: false
-                                    }
-                                }
-                                spotifyData.songs.push("https://www.youtube.com/watch?v=gGdGFtwCNBE");
-
                                 spotifyData.connection = await voiceChannel.join();
+
+                                spotifyData.playing = true;
 
                                 spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0], {
                                     quality: "highestaudio",
-                                    filter: "audioonly",
-                                    liveBuffer: 60000
+                                    filter: "audioonly"
                                 })).on("finish", () => {
                                     spotifyData.songs.shift();
                                     if (!spotifyData.songs[0]) {
@@ -374,6 +369,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                                 });
                                 spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
                             } catch (err) {
+                                spotifyData.playing = false;
                                 console.error(err);
                             }
                         } else {
@@ -386,7 +382,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'skip':
-                    console.log("Wip!");
+                    console.log("Skipping the current song!");
                     if (!messageReceived.member.voice.channel)
                         return messageReceived.channel.send(
                             "You have to be in a voice channel to stop the music!"
@@ -398,13 +394,62 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'stop':
-                    console.log("Wip!");
+                    console.log("Stopping the music playing!");
                     if (!messageReceived.member.voice.channel)
                         return messageReceived.channel.send(
                             "You have to be in a voice channel to stop the music!"
                         );
                     spotifyData.songs = [];
                     spotifyData.connection.dispatcher.end();
+                    messageReceived.delete();
+                    break;
+
+                case 'qUrl':
+                    console.log("Adding the youtube url to queue (if valid)!");
+
+                    if (ytdl.validateURL(args[0])) spotifyData.songs.push(args[0]);
+                    messageReceived.delete();
+                    break;
+
+                case 'qSearch':
+                    console.log("Searching for term on youtube!");
+
+                    let options = {
+                        part: "id",
+                        type: "video",
+                        q: argumentString,
+                        key: "AIzaSyBLcgTO_R6eyZKbTaZBtXUtY0geBxh3zvA"
+                    }
+
+                    let queryString = Object.keys(options)
+                        .map(param => encodeURIComponent(param) + "=" + encodeURIComponent(options[param])).join('&');
+
+                    request('https://www.googleapis.com/youtube/v3/search?' + queryString, (error, response, body) => {
+                        if (!error && response.statusCode == 200) {
+                            content = JSON.parse(body);
+                            spotifyData.songs.push(content.items[0].id.videoId);
+                        } else {
+                            console.error(error);
+                        }
+                    })
+                    messageReceived.delete();
+                    break;
+
+                case 'qClear':
+                    console.log("Clearing the queue!");
+                    spotifyData.songs = [];
+                    messageReceived.delete();
+                    break;
+
+                case 'qList':
+                    console.log("Showing the songs in the queue!");
+
+                    Promise.all(spotifyData.songs.map(song => ytdl.getInfo(song)))
+                        .then(songArray => {
+                            let songTitles = songArray.map(songObject => songObject.title);
+                            messageReceived.channel.send("The songs in the queue are:\n" + songTitles.join('\n'))
+                        })
+
                     messageReceived.delete();
                     break;
 
@@ -415,7 +460,9 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             return item.id === messageReceived.channel.id
                         });
 
-                    if(!channel) channel= {"name": "this is a failsafe - go to default!"};
+                    if (!channel) channel = {
+                        "name": "this is a failsafe - go to default!"
+                    };
 
                     switch (channel.name) { // Checking the channel for the specific commands
                         case "Settings":

@@ -27,5 +27,10 @@
         "name": "Settings",
         "id": "707993216045154362",
         "keepClean": true
+    },
+    {
+        "name": "Quotes",
+        "keepClean": false,
+        "id": "668528585098657805"
     }
 ]
