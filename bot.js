@@ -2,6 +2,7 @@
 const Discord = require('discord.js');
 const FileSystem = require('fs');
 const request = require('request');
+const ytdl = require('ytdl-core');
 
 // Custom classes
 const IdeasClass = require('./bot/ideas.js');
@@ -128,9 +129,11 @@ function quoteMessage(quoteMessageContent, userId) {
     }
 }
 
-bot.on('message', (messageReceived) => {
+var spotifyData;
+
+bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
-        let starWarsStrings = ["fourth", "force", "star", "wars", "trooper"]
+        let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/]
 
         if (messageReceived.content.substring(0, 1) == "!") { // If its a command
             let args = messageReceived.content.substring(1).split(' ');
@@ -144,11 +147,8 @@ bot.on('message', (messageReceived) => {
                 case "sendPlaceholder":
                     console.log("Sending placeholder!");
 
-                    messageReceived.channel
-                        .send('Placeholder Message')
-                        .then(() => {
-                            messageReceived.delete();
-                        });
+                    messageReceived.channel.send('Placeholder Message');
+                    messageReceived.delete();
                     break;
 
                 case 'toxic':
@@ -168,9 +168,8 @@ bot.on('message', (messageReceived) => {
                                     await message.react('🇨');
                                 }
                             });
-                        }).then(() => {
-                            messageReceived.delete();
                         }).catch(err => console.error(err));
+                    messageReceived.delete();
                     break;
 
                 case "toxicId":
@@ -190,13 +189,11 @@ bot.on('message', (messageReceived) => {
                                 await toxicMessage.react('🇽');
                                 await toxicMessage.react('🇮');
                                 await toxicMessage.react('🇨');
-                            }).then(() => {
-                                messageReceived.delete();
                             }).catch((err) => {
                                 console.error(err)
-                                messageReceived.delete();
                             })
                     }
+                    messageReceived.delete();
                     break;
 
                 case 'quoteMessage':
@@ -212,9 +209,8 @@ bot.on('message', (messageReceived) => {
                                     quoteMessage(message.content, message.author.id);
                                 }
                             });
-                        }).then(() => {
-                            messageReceived.delete();
                         }).catch(err => console.error(err));
+                    messageReceived.delete();
                     break;
 
                 case 'quoteId':
@@ -230,13 +226,12 @@ bot.on('message', (messageReceived) => {
                             .fetch(quoteMatch[quoteMatch.length - 1])
                             .then((toxicMessage) => {
                                 quoteMessage(toxicMessage.content, toxicMessage.author.id);
-                            }).then(() => {
-                                messageReceived.delete();
                             }).catch((err) => {
                                 console.error(err)
-                                messageReceived.delete();
                             })
                     }
+
+                    messageReceived.delete();
                     break;
 
                 case 'quote':
@@ -269,10 +264,9 @@ bot.on('message', (messageReceived) => {
                     }
 
                     messageReceived.channel
-                        .send("> " + camelString + "\n- <@!" + messageReceived.author.id + ">")
-                        .then(() => {
-                            messageReceived.delete();
-                        });
+                        .send("> " + camelString + "\n- <@!" + messageReceived.author.id + ">");
+
+                    messageReceived.delete();
                     break;
 
                 case '8ball':
@@ -303,15 +297,14 @@ bot.on('message', (messageReceived) => {
                         }
                     }
                     messageReceived.author
-                        .send(message)
-                        .then((sentMessage) => {
-                            messageReceived.delete();
-                        })
+                        .send(message);
+                    messageReceived.delete();
                     break;
 
                 case 'bulkDelete':
                     let adminRoles = ["668465816894832641", "705760947721076756"]
                     let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
+
 
                     if (permissionsFound) {
                         let messageCount = parseInt(args[0]);
@@ -325,7 +318,8 @@ bot.on('message', (messageReceived) => {
 
                         messageReceived.channel.messages
                             .fetch({
-                                limit: messageCount
+                                limit: messageCount,
+                                before: messageReceived.id
                             })
                             .then((messageArray) => {
                                 messageArray.each(message => {
@@ -336,11 +330,82 @@ bot.on('message', (messageReceived) => {
                             });
                     } else {
                         messageReceived.author
-                            .send("Hi " + messageReceived.author.username + ",\nYou do not have the permissions for the bulkDelete command!")
-                            .then(() => {
-                                messageReceived.delete();
-                            });
+                            .send("Hi " + messageReceived.author.username + ",\nYou do not have the permissions for the bulkDelete command!");
                     }
+                    messageReceived.delete();
+                    break;
+
+                case 'streamMusic':
+                    console.log("Joining the channel of the user!");
+
+                    let voiceChannel = messageReceived.member.voice.channel;
+
+                    if (voiceChannel) {
+                        let permissions = voiceChannel.permissionsFor(messageReceived.client.user);
+                        if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
+
+                            try {
+
+                                if (!spotifyData) {
+                                    spotifyData = {
+                                        voiceChannel: voiceChannel,
+                                        connection: null,
+                                        player: null,
+                                        songs: [],
+                                        volume: 5,
+                                        playing: false
+                                    }
+                                }
+                                spotifyData.songs.push("https://www.youtube.com/watch?v=gGdGFtwCNBE");
+
+                                spotifyData.connection = await voiceChannel.join();
+
+                                spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0], {
+                                    quality: "highestaudio",
+                                    filter: "audioonly",
+                                    liveBuffer: 60000
+                                })).on("finish", () => {
+                                    spotifyData.songs.shift();
+                                    if (!spotifyData.songs[0]) {
+                                        voiceChannel.leave();
+                                    } else {
+                                        // play the next song and attach the same listener
+                                    }
+                                });
+                                spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+                            } catch (err) {
+                                console.error(err);
+                            }
+                        } else {
+                            messageReceived.send("I need permissions to be able to join the voice channel!");
+                        }
+                    } else {
+                        messageReceived.send("You need to be in a voice channel for me to join!");
+                    }
+                    messageReceived.delete();
+                    break;
+
+                case 'skip':
+                    console.log("Wip!");
+                    if (!messageReceived.member.voice.channel)
+                        return messageReceived.channel.send(
+                            "You have to be in a voice channel to stop the music!"
+                        );
+                    if (!spotifyData)
+                        return messageReceived.channel.send("There is no song that I could skip!");
+                    spotifyData.connection.dispatcher.end();
+                    messageReceived.delete();
+                    break;
+
+                case 'stop':
+                    console.log("Wip!");
+                    if (!messageReceived.member.voice.channel)
+                        return messageReceived.channel.send(
+                            "You have to be in a voice channel to stop the music!"
+                        );
+                    spotifyData.songs = [];
+                    spotifyData.connection.dispatcher.end();
+                    messageReceived.delete();
                     break;
 
                 default:
@@ -349,6 +414,8 @@ bot.on('message', (messageReceived) => {
                         .find((item) => {
                             return item.id === messageReceived.channel.id
                         });
+
+                    if(!channel) channel= {"name": "this is a failsafe - go to default!"};
 
                     switch (channel.name) { // Checking the channel for the specific commands
                         case "Settings":
@@ -468,17 +535,21 @@ bot.on('message', (messageReceived) => {
                 if (!error && response.statusCode == 200) {
                     content = JSON.parse(body)
                     messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
+                } else {
+                    console.error(error + " " + response)
                 }
             });
 
-        } else if (starWarsStrings.some(testString => messageReceived.content.includes(testString))) { // checks if any starWarsString is in messageReceived.content
+        } else if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
             console.log("Responding with star wars gif");
 
-            request('http://api.giphy.com/v1/gifs/search?q=' + "star wars" + '&rating=r&api_key=dc6zaTOxFJmzC', (error, response, body) => {
+            request('https://api.tenor.com/v1/search?q=' + "star wars" + '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU', (error, response, body) => {
                 if (!error && response.statusCode == 200) {
                     content = JSON.parse(body)
-                    item = Math.floor(Math.random() * 5) // The far right number is the top X results value
-                    messageReceived.channel.send(content.data[item].bitly_gif_url);
+                    item = Math.floor(Math.random() * content.results.length) // The far right number is the top X results value
+                    messageReceived.channel.send("Star wars!\n" + content.results[item].url);
+                } else {
+                    console.error(error + " " + response);
                 }
             });
         }
