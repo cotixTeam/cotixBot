@@ -3,12 +3,48 @@ const Discord = require('discord.js');
 const FileSystem = require('fs');
 const request = require('request');
 const ytdl = require('ytdl-core');
+const express = require('express');
 
 // Custom classes
 const IdeasClass = require('./bot/ideas.js');
 const LeaderboardClass = require('./bot/leaderboard.js');
 const ReminderClass = require('./bot/reminder.js');
+const GeneralClass = require('./bot/general.js');
+const webHook = express();
 
+webHook.listen('3000', () => console.log(`🚀 Server running on port 3000`))
+webHook.use(express.urlencoded());
+
+webHook.get('/spotifyCallback', (req, res) => {
+    console.log(req.query);
+    res.status(200).send('<!DOCTYPE html>\
+    <html>\
+    <head>\
+    <title>Link your discord account!</title>\
+    </head>\
+    <h1>To link your discord account enter it below, otherwise it will not work!</h1>\
+    <form method="POST" action="/spotifySubmit">\
+    <input type="hidden" id="code" name="code" value="' + req.query.code + '">\
+    <label>DiscordId: </label>\
+    <input type="text" id="discordId" name="discordId">\
+    <input type="submit">\
+    </form>');
+});
+
+var spotifyData = {
+    voiceChannel: null,
+    connection: null,
+    player: null,
+    songs: [],
+    volume: 5,
+    playing: false,
+    accesses: []
+};
+
+webHook.post('/spotifySubmit', (req, res) => {
+    // do the thing to link the account to the user
+    res.status(200).end();
+});
 
 // Parsed JSON files & prevent fatal crashes with catches
 let Channels;
@@ -35,8 +71,9 @@ const bot = new Discord.Client();
 var ideas = null;
 var leaderboard = null;
 var reminder = null;
+var general = null;
 
-bot.login(auth.token);
+bot.login(auth.discordToken);
 
 bot.on('ready', () => { // Run init code
     console.log('Connected!');
@@ -52,6 +89,7 @@ bot.on('ready', () => { // Run init code
     ideas = new IdeasClass.IdeasClass(bot, Channels);
     leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
     reminder = new ReminderClass.ReminderClass(bot, Channels);
+    general = new GeneralClass.GeneralClass(bot);
 
     // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
     let cleanChannelDate = new Date();
@@ -66,6 +104,21 @@ bot.on('ready', () => { // Run init code
         setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     else
         setTimeout(cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
+
+    let authString = Buffer.from(auth.spotifyClientId + ":" + auth.spotifyClientSecret).toString('base64');
+
+    /*request.post({
+        url: 'https://accounts.spotify.com/api/token',
+        headers: {
+            Authorization: 'Basic ' + authString
+        },
+        form: {
+            grant_type: "client_credentials"
+        }
+    }, (error, response, body) => {
+        spotifyData.accesses['General'] = JSON.parse(body).access_token;
+    });*/
+
 });
 
 // Bulk delete, by filtering - will not delete any bot messages, so these will still have to be deleted manually
@@ -98,18 +151,6 @@ async function cleanChannels() {
     }
 }
 
-function notImplementedCommand(messageReceived, cmd) {
-    messageReceived.author
-        .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
-        .then((sentMessage) => {
-            messageReceived
-                .reply("is an idiot, he wrote the command: " + messageReceived.content)
-                .then(() => {
-                    messageReceived.delete();
-                });
-        });
-}
-
 function quoteMessage(quoteMessageContent, userId) {
     for (let channel of Channels) {
         if (channel.name == "Quotes") {
@@ -128,15 +169,6 @@ function quoteMessage(quoteMessageContent, userId) {
         }
     }
 }
-
-var spotifyData = {
-    voiceChannel: null,
-    connection: null,
-    player: null,
-    songs: [],
-    volume: 5,
-    playing: false
-};
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
@@ -289,10 +321,13 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     console.log("Sending a help list of all the commands to the user!");
 
                     let message = "List of commands:";
+                    let commandList;
 
-                    let commandList = JSON.parse(FileSystem.readFileSync("./bot/config/Commands.json")).catch((err) => {
-                        console.log(err)
-                    });
+                    try {
+                        commandList = JSON.parse(FileSystem.readFileSync("./bot/config/Commands.json"));
+                    } catch (err) {
+                        console.error(err)
+                    }
 
                     for (let command of commandList) {
                         if (message.length + 300 < 2000)
@@ -342,7 +377,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     messageReceived.delete();
                     break;
 
-                case 'streamMusic':
+                case 'playMusic':
                     console.log("Joining the channel of the user!");
 
                     let voiceChannel = messageReceived.member.voice.channel;
@@ -356,18 +391,22 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                                 spotifyData.playing = true;
 
-                                spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0], {
-                                    quality: "highestaudio",
-                                    filter: "audioonly"
-                                })).on("finish", () => {
-                                    spotifyData.songs.shift();
-                                    if (!spotifyData.songs[0]) {
-                                        voiceChannel.leave();
-                                    } else {
-                                        // play the next song and attach the same listener
-                                    }
-                                });
-                                spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+                                function play() {
+                                    spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0], {
+                                        quality: "highestaudio",
+                                        filter: "audioonly"
+                                    })).on("finish", () => {
+                                        spotifyData.songs.shift();
+                                        if (!spotifyData.songs[0]) {
+                                            voiceChannel.leave();
+                                        } else {
+                                            play();
+                                        }
+                                    });
+                                    spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+                                }
+                                play();
+
                             } catch (err) {
                                 spotifyData.playing = false;
                                 console.error(err);
@@ -381,7 +420,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     messageReceived.delete();
                     break;
 
-                case 'skip':
+                case 'qSkip':
                     console.log("Skipping the current song!");
                     if (!messageReceived.member.voice.channel)
                         return messageReceived.channel.send(
@@ -393,7 +432,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     messageReceived.delete();
                     break;
 
-                case 'stop':
+                case 'qStop':
                     console.log("Stopping the music playing!");
                     if (!messageReceived.member.voice.channel)
                         return messageReceived.channel.send(
@@ -418,7 +457,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         part: "id",
                         type: "video",
                         q: argumentString,
-                        key: "AIzaSyBLcgTO_R6eyZKbTaZBtXUtY0geBxh3zvA"
+                        key: auth.googleToken
                     }
 
                     let queryString = Object.keys(options)
@@ -452,6 +491,25 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                     messageReceived.delete();
                     break;
+
+                /*case 'qSpotify':
+                    console.log("Queuing spotify if the user has a token, if not, then request one!");
+                    let auth = "Bearer " + spotifyApi.getAccessToken();
+                    request.get({
+                        url: 'https://api.spotify.com/v1/users/11131862133/tracks',
+                        headers: {
+                            Authorization: auth
+                        }
+                    }, (error, response, body) => {
+                        console.log(body);
+                    })
+                    /*spotifyApi.getUserPlaylists('11131862133', {
+                        limit: 50
+                    }).then((data) => {
+                        console.log(data.body.items);
+                    });
+                    messageReceived.delete();
+                    break;*/
 
                 default:
                     // Find the relative channel, then use to decided in the switch statement
@@ -488,7 +546,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                                 default:
                                     console.log("Not implemented!");
 
-                                    notImplementedCommand(messageReceived, cmd);
+                                    general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
                             break;
@@ -534,7 +592,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                                 default:
                                     console.log("Not implemented!");
 
-                                    notImplementedCommand(messageReceived, cmd);
+                                    general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
                             break;
@@ -563,7 +621,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                                 default:
                                     console.log("Not implemented!");
 
-                                    notImplementedCommand(messageReceived, cmd);
+                                    general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
                             break;
@@ -571,7 +629,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         default:
                             console.log("Not implemented!");
 
-                            notImplementedCommand(messageReceived, cmd);
+                            general.notImplementedCommand(messageReceived, cmd);
                             break;
                     }
             }
