@@ -37,8 +37,8 @@ class MusicClass {
             accesses: new Map()
         };
 
-        /*
-        WIP spotify and discord integration for music
+        var self = this;
+
         const webhook = Express();
 
         webhook.listen('3000', () => console.log(`Server running on port 3000`))
@@ -47,34 +47,41 @@ class MusicClass {
         webhook.get('/spotifyCallback', (req, res) => {
             console.log(req.query);
             // This is ugly, but i need it to be able to pass in the query code, I have tried to look for other ways to do it like php, but none have worked so far
-            res.redirect("https://discord.com/api/oauth2/authorize?client_id=" + auth.discordClientId + "&redirect_uri=" + encodeURIComponent(auth.discordCallback) + "&response_type=code&scope=identify&state=" + req.query.code)
+            res.redirect("https://discord.com/api/v6/oauth2/authorize?client_id=" + auth.discordClientId + "&redirect_uri=" + encodeURIComponent(auth.discordCallback) + "&response_type=code&scope=identify&prompt=none&state=" + req.query.code)
         });
 
         webhook.get('/discordCallback', (req, res) => {
-            console.log(req);
-
             request.post({
-                url: 'https://discord.com/api/oauth2/token',
+                url: 'https://discord.com/api/v6/oauth2/token',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                form: {
-                    client_id: auth.discordclientId,
-                    client_secret: auth.discordClientSecret,
-                    grant_type: "authorization_code",
-                    code: req.body.code,
-                    redirect_uri: auth.discordCallback,
-                    scope: 'identity'
+                formData: {
+                    'client_id': auth.discordClientId,
+                    'client_secret': auth.discordClientSecret,
+                    'grant_type': 'authorization_code',
+                    'code': req.query.code,
+                    'redirect_uri': auth.discordCallback,
+                    'scope': 'identify'
                 }
             }, (error, response, body) => {
-                console.error(error);
-                console.log(response);
-                if (!error && response.statusCode == 200) {
-                    console.log(body);
+                if (!error & response.statusCode == 200) {
+                    let content = JSON.parse(body);
+                    request.get('https://discord.com/api/v6/users/@me', {
+                        headers: {
+                            Authorization: "Bearer " + content.access_token
+                        }
+                    }, (error, response, body) => {
+                        if (!error & response.statusCode == 200) {
+                            let content = JSON.parse(body);
+                            self.spotifyData.accesses.set(content.id, req.query.state);
+                        }
+                    })
+
                 }
             });
 
-            // This is ugly, but i need it to be able to pass in the query code, I have tried to look for other ways to do it like php, but none have worked so far
+            // Hopefully by using discord callback I'm able to avoid using this direct html
             res.status(200).send('  <!DOCTYPE html>\
                                     <html>\
                                         <head>\
@@ -92,7 +99,6 @@ class MusicClass {
             this.spotifyData.accesses.set(req.body.discordId, req.body.code);
             res.status(200).end();
         });
-        */
     }
 
     async play(messageReceived) {
