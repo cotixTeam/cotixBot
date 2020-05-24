@@ -81,20 +81,6 @@
     "name": "!qSpotify",
     "description": "A WIP command for adding a few songs from a playlist into the queue, with authentication from spotify."
 }, {
-    "channel": "Settings",
-    "name": "!listEvents",
-    "description": "Lists the events available to be reminded on the server."
-}, {
-    "channel": "Settings",
-    "name": "!joinReminder",
-    "arguments": "[ReminderName]",
-    "description": "Joins a list to be reminded of an event from the server."
-}, {
-    "channel": "Settings",
-    "name": "!leaveReminder",
-    "arguments": "[ReminderName]",
-    "description": "Leaves a list, as to not be reminded of an event from the server."
-}, {
     "channel": "Ideas",
     "name": "!add",
     "arguments": "[Idea to be voted on]",
@@ -138,4 +124,18 @@
     "name": "!winOther",
     "arguments": "[Game Tag] [Winning Player] [Other Player] [Other Player] ...",
     "description": "Adds a win for the @'d 'Winning Player' argument, and a loss for the others @'d in the arguments."
+}, {
+    "channel": "Settings",
+    "name": "!listEvents",
+    "description": "Lists the events available to be reminded on the server."
+}, {
+    "channel": "Settings",
+    "name": "!joinReminder",
+    "arguments": "[ReminderName]",
+    "description": "Joins a list to be reminded of an event from the server."
+}, {
+    "channel": "Settings",
+    "name": "!leaveReminder",
+    "arguments": "[ReminderName]",
+    "description": "Leaves a list, as to not be reminded of an event from the server."
 }]

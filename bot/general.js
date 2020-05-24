@@ -135,13 +135,19 @@ class GeneralClass {
             console.error(err)
         }
 
+        let lastChannel = commandList[0].channel;
+
         for (let command of commandList) {
-            if (message.length + 300 < 2000)
+            if (message.length + 250 < 2000) {
+                if (command.channel != lastChannel) {
+                    message += "\n";
+                    lastChannel = command.channel;
+                }
                 message += "\n`" + command.channel + "`-`" + command.name + " " + command.arguments + "` = " + command.description;
-            else {
+            } else {
                 messageReceived.author
                     .send(message);
-                message = ".\n`" + command.channel + "`-`" + command.name + " " + command.arguments + "` = " + command.description;
+                message = "`" + command.channel + "`-`" + command.name + " " + command.arguments + "` = " + command.description;
             }
         }
         messageReceived.author
