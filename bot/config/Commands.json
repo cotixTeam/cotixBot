@@ -5,13 +5,28 @@
 }, {
     "channel": "All",
     "name": "!toxic",
-    "arguments": "[unique string the the message]",
+    "arguments": "[Unique string the the message]",
     "description": "Reacts to the selected message with the TOXIC letters (if within the last 20 messages)."
 }, {
     "channel": "All",
     "name": "!toxicId",
     "arguments": "[Link to message in this channel]",
     "description": "Reacts to the selected message with the TOXIC letters."
+}, {
+    "channel": "All",
+    "name": "!quoteMessage",
+    "arguments": "[Unique string the the message]",
+    "description": "Formats the message to the quotes page with the time and date appended (if within the last 20 messages)."
+}, {
+    "channel": "All",
+    "name": "!quoteId",
+    "arguments": "[Link to message in this channel]",
+    "description": "Formats the message to the quotes page with the time and date appended."
+}, {
+    "channel": "All",
+    "name": "!quote",
+    "arguments": "[@User] [The quote to format]",
+    "description": "Quotes the message of the tagged user with the current date and time."
 }, {
     "channel": "All",
     "name": "!camel",
@@ -24,9 +39,47 @@
     "description": "Answers your question with an 8-ball response."
 }, {
     "channel": "All",
+    "name": "!help",
+    "description": "This command to get information about commands."
+}, {
+    "channel": "All",
     "name": "!bulkDelete",
     "arguments": "[Number <=100]",
     "description": "Deletes all unpinned messages (up to 100 in the chat) (needs moderator/admin permissions)."
+}, {
+    "channel": "All",
+    "name": "!qPlay",
+    "description": "Joins your voice channel and plays the song at the top of the queue."
+}, {
+    "channel": "All",
+    "name": "!qSkip",
+    "description": "Skips the current song in the queue."
+}, {
+    "channel": "All",
+    "name": "!qStop",
+    "description": "Removes all entires in the queue and disconnects the bot from your channel."
+}, {
+    "channel": "All",
+    "name": "!qUrl",
+    "arguments": "[YouTube URL]",
+    "description": "Adds the youtube url video to the queue for songs played."
+}, {
+    "channel": "All",
+    "name": "!qSearch",
+    "arguments": "[Search query]",
+    "description": "Searches youtube for your query and adds it to the song queue."
+}, {
+    "channel": "All",
+    "name": "!qClear",
+    "description": "Clears the queue (similar to !qStop, but does not have the bot leave immediately)."
+}, {
+    "channel": "All",
+    "name": "!qList",
+    "description": "Sends a message to the channel with the current list of songs in the queue."
+}, {
+    "channel": "All",
+    "name": "!qSpotify",
+    "description": "A WIP command for adding a few songs from a playlist into the queue, with authentication from spotify."
 }, {
     "channel": "Settings",
     "name": "!listEvents",
@@ -50,7 +103,7 @@
     "channel": "Ideas",
     "name": "!addVeto",
     "arguments": "[Idea to be placed into the todo without passing a vote]",
-    "description": "Do not use this unless there has been a formatting error, or the bot has missed a vote result."
+    "description": "Used to bypass the voting procedure and add an idea to the list, only to be used for bot errors."
 }, {
     "channel": "Ideas",
     "name": "!completed",
