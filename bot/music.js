@@ -3,10 +3,11 @@
 const request = require('request');
 const ytdl = require('ytdl-core');
 const Express = require('express');
+const Path = require('path');
 
 function play(spotifyData) {
     console.log(spotifyData);
-    spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0], {
+    spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0].id, {
         quality: "highestaudio",
         filter: "audioonly"
     })).on("finish", () => {
@@ -27,6 +28,7 @@ class MusicClass {
         this.spotifyClientSecret = auth.spotifyClientSecret;
         this.spotifyClientId = auth.spotifyClientId;
         this.googleToken = auth.googleToken;
+        this.discordShortUrl = auth.discordShortUrl
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -45,12 +47,18 @@ class MusicClass {
         webhook.use(Express.urlencoded());
 
         webhook.get('/spotifyCallback', (req, res) => {
-            console.log(req.query);
-            // This is ugly, but i need it to be able to pass in the query code, I have tried to look for other ways to do it like php, but none have worked so far
-            res.redirect("https://discord.com/api/v6/oauth2/authorize?client_id=" + auth.discordClientId + "&redirect_uri=" + encodeURIComponent(auth.discordCallback) + "&response_type=code&scope=identify&prompt=none&state=" + req.query.code)
+            res.redirect("https://discord.com/api/v6/oauth2/authorize?" +
+                "client_id=" + auth.discordClientId +
+                "&redirect_uri=" + encodeURIComponent(auth.discordCallback) +
+                "&response_type=code" +
+                "&scope=identify" +
+                "&prompt=none" +
+                "&state=" + req.query.code)
         });
 
         webhook.get('/discordCallback', (req, res) => {
+            var localReq = req;
+
             request.post({
                 url: 'https://discord.com/api/v6/oauth2/token',
                 headers: {
@@ -66,38 +74,26 @@ class MusicClass {
                 }
             }, (error, response, body) => {
                 if (!error & response.statusCode == 200) {
-                    let content = JSON.parse(body);
+                    var authContent = JSON.parse(body);
+
                     request.get('https://discord.com/api/v6/users/@me', {
                         headers: {
-                            Authorization: "Bearer " + content.access_token
+                            Authorization: "Bearer " + authContent.access_token
                         }
                     }, (error, response, body) => {
                         if (!error & response.statusCode == 200) {
-                            let content = JSON.parse(body);
-                            self.spotifyData.accesses.set(content.id, req.query.state);
-                        }
-                    })
+                            let userContent = JSON.parse(body);
 
+                            self.spotifyData.accesses.set(userContent.id, {
+                                spotifyCode: localReq.query.state,
+                                discordCode: localReq.query.code,
+                                discordRefresh: authContent.refresh_token
+                            });
+                        }
+                    });
                 }
             });
-
-            // Hopefully by using discord callback I'm able to avoid using this direct html
-            res.status(200).send('  <!DOCTYPE html>\
-                                    <html>\
-                                        <head>\
-                                            <title>You have succesfully linked your spotify and discord account!</title>\
-                                        </head>\
-                                        <body>\
-                                            <h1>You have succesfully linked your spotify and discord account!</h1>\
-                                        </body>\
-                                    </html>');
-        });
-
-        webhook.post('/spotifySubmit', (req, res) => {
-            console.log(req.body);
-            // TODO: verifiy the user is in the server
-            this.spotifyData.accesses.set(req.body.discordId, req.body.code);
-            res.status(200).end();
+            res.status(200).sendFile(Path.join(__dirname + "/config/spotifyLink.html"));
         });
     }
 
@@ -148,7 +144,15 @@ class MusicClass {
     }
 
     addByUrl(messageReceived, args) {
-        if (ytdl.validateURL(args[0])) this.spotifyData.songs.push(args[0]);
+        if (ytdl.validateURL(args[0])) {
+            ytdl.getInfo(args[0], (err, data) => {
+                console.log("\t-\tAdding " + data.title + " to the queue!");
+                this.spotifyData.songs.push({
+                    id: data.video_id,
+                    title: data.title
+                });
+            });
+        }
         messageReceived.delete();
     }
 
@@ -175,7 +179,10 @@ class MusicClass {
             if (!error && response.statusCode == 200) {
                 let content = JSON.parse(body);
                 console.log("\t-\tAdding " + content.items[0].snippet.title + " to the queue!");
-                this.spotifyData.songs.push(content.items[0].id.videoId);
+                this.spotifyData.songs.push({
+                    id: content.items[0].id.videoId,
+                    title: content.items[0].snippet.title
+                });
             } else {
                 console.error(error);
             }
@@ -190,20 +197,29 @@ class MusicClass {
 
     // TODO: rather than show the queue like this, edit a message when the queue is changed!  (At the moment there is a small improvement to how it shows)
     qList(messageReceived) {
-        messageReceived.channel.send("The songs in the queue are:\n... LOADING ...").then((sentMessage) => {
-            Promise.all(this.spotifyData.songs.map(song => ytdl.getInfo(song)))
-                .then(songArray => {
-                    let songTitles = songArray.map(songObject => songObject.title);
-                    console.log("\t\t" + songTitles.join('\n\t\t'));
-                    sentMessage.edit("The songs in the queue are:\n" + songTitles.join('\n'))
-                })
-        })
+        let songTitles = this.spotifyData.songs.map(song => song.title);
+        console.log("\t\t" + songTitles.join('\n\t\t'));
+        messageReceived.channel.send("The songs in the queue are:\n" + songTitles.join('\n'))
         messageReceived.delete();
     }
 
-    qSpotify(messageReceived) {
-
-
+    qSpotify(messageReceived) { // STILL WIP, can get codes but does nothing with it
+        if (this.spotifyData.accesses.has(messageReceived.author.id)) {
+            console.log("\tThe user already has a token!");
+            console.log(this.spotifyData.accesses.get(messageReceived.author.id));
+        } else {
+            console.log("\tRequesting the token for the user!");
+            messageReceived.author.send(".", {
+                embed: {
+                    "title": "Connect your spotify account",
+                    "description": "[Click here to link your spotify account](" + this.discordShortUrl + ")",
+                    "thumbnail": {
+                        "url": "https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif"
+                    },
+                    "url": this.discordShortUrl
+                }
+            });
+        }
         messageReceived.delete();
     }
 }

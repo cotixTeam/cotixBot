@@ -155,7 +155,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'qSpotify': // WIP
-                    console.log("Queuing spotify if the user has a token, if not, then request one!");
+                    console.log("\tQueuing spotify!");
                     music.qSpotify(messageReceived);
                     break;
 
