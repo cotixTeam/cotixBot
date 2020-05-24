@@ -76,7 +76,7 @@ class ReminderClass {
 
                 if (addFlag) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.push(messageReceived.author.id)
-                    FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
+                    FileSystem.writeFile("./bot/config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
                     messageReceived.author
                         .send("You have been added to the reminder: " + reminder.name)
                         .catch(err => console.error(err));
@@ -105,7 +105,7 @@ class ReminderClass {
 
                 if (userExists) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.splice(userIndex, 1);
-                    FileSystem.writeFile("./bot/config/this.Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
+                    FileSystem.writeFile("./bot/config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
                     messageReceived.author.
                     send("You have been removed from the reminder: " + reminder.name)
                         .catch(err => console.error(err));

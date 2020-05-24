@@ -161,7 +161,7 @@ class IdeasClass {
 
                 while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
                     if (!ideasMatch[1].includes(queryIdea)) {
-                        todoStringsArray.push("`- [x] " + ideasMatch[1] + "`\n");
+                        todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
                     }
                 }
                 todoMessage

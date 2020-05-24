@@ -16,12 +16,10 @@ class LeaderboardClass {
                 new Discord.Message(this.bot, {
                         id: game.messageId
                     }, messageReceived.channel)
-                    .edit(game.defaultMessage)
-                    .then(() => {
-                        messageReceived.delete();
-                    });
+                    .edit(game.defaultMessage);
             }
         }
+        messageReceived.delete();
     }
 
     win(messageReceived, args) {
@@ -55,13 +53,11 @@ class LeaderboardClass {
                         workingStrings = titleString.concat(workingStrings.join(''));
 
                         editMessage
-                            .edit(workingStrings)
-                            .then(() => {
-                                messageReceived.delete();
-                            });
+                            .edit(workingStrings);
                     });
             }
         }
+        messageReceived.delete();
     }
 
 
@@ -100,13 +96,11 @@ class LeaderboardClass {
                         workingStrings = titleString.concat(workingStrings.join(''));
 
                         editMessage
-                            .edit(workingStrings)
-                            .then(() => {
-                                messageReceived.delete();
-                            });
+                            .edit(workingStrings);
                     });
             }
         }
+        messageReceived.delete();
     }
 }
 

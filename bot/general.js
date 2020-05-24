@@ -1,6 +1,9 @@
 "use strict";
 
 const Discord = require('discord.js');
+const FileSystem = require('fs');
+const request = require('request');
+
 class GeneralClass {
     constructor(client, Channels) {
         this.bot = client;
@@ -22,8 +25,8 @@ class GeneralClass {
     starWarsResponse(messageReceived) {
         request('https://api.tenor.com/v1/search?q=' + "star wars" + '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU', (error, response, body) => {
             if (!error && response.statusCode == 200) {
-                content = JSON.parse(body)
-                item = Math.floor(Math.random() * content.results.length) // The far right number is the top X results value
+                let content = JSON.parse(body)
+                let item = Math.floor(Math.random() * content.results.length) // The far right number is the top X results value
                 messageReceived.channel.send("Star wars!\n" + content.results[item].url);
             } else {
                 console.error(error + " " + response);
@@ -34,7 +37,7 @@ class GeneralClass {
     insultResponse(messageReceived) {
         request('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
             if (!error && response.statusCode == 200) {
-                content = JSON.parse(body)
+                let content = JSON.parse(body)
                 messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
             } else {
                 console.error(error + " " + response)
@@ -146,18 +149,18 @@ class GeneralClass {
         messageReceived.delete();
     }
 
-    eightBall(messageReceived) {
+    eightBall(messageReceived, argumentString) {
         let responses = ["As I see it, yes.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don’t count on it.", "It is certain.", "It is decidedly so.", "Most likely.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Outlook good.", "Reply hazy, try again.", "Signs point to yes.", "Very doubtful.", "Without a doubt.", "Yes.", "Yes – definitely.", "You may rely on it."]
         let randomNumber = Math.floor(Math.random() * responses.length);
         messageReceived
             .reply("you asked '" + argumentString + "'...\n" + responses[randomNumber]);
     }
 
-    camel(messageReceived) {
+    camel(messageReceived, argumentString) {
         let camelString = "";
         let camelIndex = 0;
 
-        for (i = 0; i < argumentString.length; i++) {
+        for (let i = 0; i < argumentString.length; i++) {
             if (argumentString.charAt(i) == " ") {
                 camelString += " ";
             } else if (camelIndex % 2 == 0) {
@@ -203,7 +206,7 @@ class GeneralClass {
         messageReceived.delete();
     }
 
-    quoteMessage(messageReceived) {
+    quoteMessage(messageReceived, argumentString) {
         messageReceived.channel.messages
             .fetch({
                 limit: 20
@@ -259,7 +262,7 @@ class GeneralClass {
         messageReceived.delete();
     }
 
-    toxic(messageReceived) {
+    toxic(messageReceived, argumentString) {
         messageReceived.channel.messages
             .fetch({
                 limit: 20

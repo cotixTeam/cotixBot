@@ -147,12 +147,12 @@ class MusicClass {
         messageReceived.delete();
     }
 
-    qUrl(messageReceived) {
+    addByUrl(messageReceived, args) {
         if (ytdl.validateURL(args[0])) this.spotifyData.songs.push(args[0]);
         messageReceived.delete();
     }
 
-    qSearch(messageReceived, argumentString) {
+    addBySearch(messageReceived, argumentString) {
         let options = {
             part: "id,snippet",
             type: "video",
@@ -183,39 +183,27 @@ class MusicClass {
         messageReceived.delete();
     }
 
-    qClear() {
+    qClear(messageReceived) {
         this.spotifyData.songs = [];
         messageReceived.delete();
     }
 
-    // TODO: rather than show the queue like this, edit a message when the queue is changed!
+    // TODO: rather than show the queue like this, edit a message when the queue is changed!  (At the moment there is a small improvement to how it shows)
     qList(messageReceived) {
-        Promise.all(this.spotifyData.songs.map(song => ytdl.getInfo(song)))
-            .then(songArray => {
-                let songTitles = songArray.map(songObject => songObject.title);
-                console.log("\t\t" + sontTitles.join('\n\t\t'));
-                messageReceived.channel.send("The songs in the queue are:\n" + songTitles.join('\n'))
-            })
-
+        messageReceived.channel.send("The songs in the queue are:\n... LOADING ...").then((sentMessage) => {
+            Promise.all(this.spotifyData.songs.map(song => ytdl.getInfo(song)))
+                .then(songArray => {
+                    let songTitles = songArray.map(songObject => songObject.title);
+                    console.log("\t\t" + songTitles.join('\n\t\t'));
+                    sentMessage.edit("The songs in the queue are:\n" + songTitles.join('\n'))
+                })
+        })
         messageReceived.delete();
     }
 
     qSpotify(messageReceived) {
-        // Big changes needed to this section wow!
-        let auth = "Bearer " + spotifyApi.getAccessToken();
-        request.get({
-            url: 'https://api.spotify.com/v1/users/11131862133/tracks',
-            headers: {
-                Authorization: auth
-            }
-        }, (error, response, body) => {
-            console.log(body);
-        })
-        spotifyApi.getUserPlaylists('11131862133', {
-            limit: 50
-        }).then((data) => {
-            console.log(data.body.items);
-        });
+
+
         messageReceived.delete();
     }
 }

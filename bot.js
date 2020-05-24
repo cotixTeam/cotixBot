@@ -76,7 +76,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'toxic':
                     console.log("\tSearching for the message to mark as toxic!");
-                    general.toxic(messageReceived);
+                    general.toxic(messageReceived, argumentString);
                     break;
 
                 case "toxicId":
@@ -86,7 +86,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'quoteMessage':
                     console.log("\tSearching for the message to quote!");
-                    general.quoteMessage(messageReceived);
+                    general.quoteMessage(messageReceived, argumentString);
                     break;
 
                 case 'quoteId':
@@ -101,12 +101,12 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'camel':
                     console.log("\tResponding with cAmEl FoNt!");
-                    general.camel(messageReceived);
+                    general.camel(messageReceived, argumentString);
                     break;
 
                 case '8ball':
                     console.log("\tResponding with an 8 ball prediction!");
-                    general.eightBall(messageReceived);
+                    general.eightBall(messageReceived, argumentString);
                     break;
 
                 case 'help':
@@ -119,7 +119,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     general.bulkDelete(messageReceived, args);
                     break;
 
-                case 'playMusic':
+                case 'qPlay':
                     console.log("\tJoining the channel of the user!");
                     music.play(messageReceived);
                     break;
@@ -136,17 +136,17 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'qUrl':
                     console.log("\tAdding the youtube url to queue (if valid)!");
-                    music.qUrl(messageReceived);
+                    music.addByUrl(messageReceived, args);
                     break;
 
                 case 'qSearch':
                     console.log("\tRunning qSearch!");
-                    music.qSearch(messageReceived, argumentString);
+                    music.addBySearch(messageReceived, argumentString);
                     break;
 
                 case 'qClear':
                     console.log("\tClearing the queue!");
-                    music.qClear();
+                    music.qClear(messageReceived);
                     break;
 
                 case 'qList':
@@ -154,7 +154,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     music.qList(messageReceived);
                     break;
 
-                case 'qSpotify':
+                case 'qSpotify': // WIP
                     console.log("Queuing spotify if the user has a token, if not, then request one!");
                     music.qSpotify(messageReceived);
                     break;
@@ -266,11 +266,11 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     }
             }
         } else if (messageReceived.content.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
-            console.log("\tResponding with insult!")
+            console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") mentioned the bot!\n\tResponding with insult");
             general.insultResponse(messageReceived);
 
         } else if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
-            console.log("\tResponding with star wars gif");
+            console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") included a star wars string!\n\tResponding with star wars gif");
             general.starWarsResponse(messageReceived);
         }
     }
