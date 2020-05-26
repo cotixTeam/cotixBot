@@ -50,7 +50,7 @@ bot.on('ready', () => { // Run init code
     reminder = new ReminderClass.ReminderClass(bot, Channels);
     music = new MusicClass.MusicClass(bot, Channels, auth);
 
-    general.initCleanChannelsTimouts();
+    general.initCleanChannelsTimouts(bot);
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in

@@ -45,7 +45,7 @@ class GeneralClass {
         });
     }
 
-    initCleanChannelsTimouts() {
+    initCleanChannelsTimouts(bot) {
         // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
         let cleanChannelDate = new Date();
         cleanChannelDate.setSeconds(cleanChannelDate.getSeconds() + 10);
@@ -56,14 +56,14 @@ class GeneralClass {
 
 
         if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
+            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime(), bot);
         else
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000);
+            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000, bot);
     }
 
     // Bulk delete, by filtering - will not delete any pinned
-    async cleanChannels() {
-        let cleanChannelArray = this.bot.channels.cache.filter(channel => {
+    async cleanChannels(bot) {
+        let cleanChannelArray = bot.channels.cache.filter(channel => {
             if (channel.type == "text") return channel;
         })
 

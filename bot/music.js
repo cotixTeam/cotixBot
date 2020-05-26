@@ -4,6 +4,7 @@ const request = require('request');
 const ytdl = require('ytdl-core');
 const Express = require('express');
 const Path = require('path');
+const FileSystem = require('fs');
 
 function play(spotifyData) {
     console.log(spotifyData);
@@ -39,12 +40,20 @@ class MusicClass {
             accesses: new Map()
         };
 
+        if (FileSystem.existsSync(Path.join(__dirname + "/config/AccessMaps.json"))) {
+            this.spotifyData.accesses = new Map(JSON.parse(FileSystem.readFileSync(Path.join(__dirname + "/config/AccessMaps.json"))))
+        }
+
         var self = this;
 
         const webhook = Express();
 
         webhook.listen('3000', () => console.log(`Server running on port 3000`))
         webhook.use(Express.urlencoded());
+
+        webhook.get('/', (req, res) => {
+            res.send("You have connected to the server!");
+        })
 
         webhook.get('/spotifyCallback', (req, res) => {
             res.redirect("https://discord.com/api/v6/oauth2/authorize?" +
@@ -74,20 +83,42 @@ class MusicClass {
                 }
             }, (error, response, body) => {
                 if (!error & response.statusCode == 200) {
-                    var authContent = JSON.parse(body);
+                    var discordAuthContent = JSON.parse(body);
 
                     request.get('https://discord.com/api/v6/users/@me', {
                         headers: {
-                            Authorization: "Bearer " + authContent.access_token
+                            Authorization: "Bearer " + discordAuthContent.access_token
                         }
                     }, (error, response, body) => {
                         if (!error & response.statusCode == 200) {
-                            let userContent = JSON.parse(body);
+                            var discordUserContent = JSON.parse(body);
 
-                            self.spotifyData.accesses.set(userContent.id, {
-                                spotifyCode: localReq.query.state,
-                                discordCode: localReq.query.code,
-                                discordRefresh: authContent.refresh_token
+                            request.post({
+                                url: 'https://accounts.spotify.com/api/token',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    Authorization: "Basic " + Buffer.from(auth.spotifyClientId + ":" + auth.spotifyClientSecret).toString('base64')
+                                },
+                                form: {
+                                    grant_type: "authorization_code",
+                                    code: localReq.query.state,
+                                    redirect_uri: auth.spotifyCallback
+                                }
+                            }, (error, response, body) => {
+                                if (!error & response.statusCode == 200) {
+                                    let spotifyAuthContent = JSON.parse(body);
+
+                                    self.spotifyData.accesses.set(discordUserContent.id, {
+                                        spotifyCode: localReq.query.state,
+                                        spotifyRefresh: spotifyAuthContent.refresh_token,
+                                        spotifyAccess: spotifyAuthContent.access_token,
+                                        discordCode: localReq.query.code,
+                                        discordRefresh: discordAuthContent.refresh_token,
+                                        discordAccess: discordAuthContent.access_token
+                                    });
+
+                                    FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+                                }
                             });
                         }
                     });
@@ -206,6 +237,7 @@ class MusicClass {
     qSpotify(messageReceived) { // STILL WIP, can get codes but does nothing with it
         if (this.spotifyData.accesses.has(messageReceived.author.id)) {
             console.log("\tThe user already has a token!");
+
             console.log(this.spotifyData.accesses.get(messageReceived.author.id));
         } else {
             console.log("\tRequesting the token for the user!");
@@ -216,7 +248,7 @@ class MusicClass {
                     "thumbnail": {
                         "url": "https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif"
                     },
-                    "url": this.discordShortUrl
+                    "url": this.spotifyDiscordConnectUrl
                 }
             });
         }
