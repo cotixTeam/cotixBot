@@ -1,10 +1,10 @@
 version: 0.2
-run-as: root
+run-as: ec2-user
 phases:
   install:
-    run-as: root
+    run-as: ec2-user
     commands:
-      - yum update -y
+      - sudo yum update -y
 artifacts:
   files:
     - "**/*"
