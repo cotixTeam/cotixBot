@@ -4,7 +4,7 @@ phases:
   install:
     run-as: root
     commands:
-      - yum update
+      - yum update -y
 artifacts:
   files:
     - "**/*"

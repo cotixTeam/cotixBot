@@ -1,3 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu/ || echo "prevent cd fatal error"
+sudo yum install tmux
 pkill -f bot.js || echo "process not running"
