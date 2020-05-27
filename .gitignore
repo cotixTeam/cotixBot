@@ -1,4 +1,12 @@
 /local
-/node_modules
+/node_modules/
 /.vscode
+/.ssh
 /bot/config/AccessMaps.json
+/.elasticbeanstalk
+.ebignore
+BotDevelopment.code-workspace
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

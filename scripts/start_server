@@ -1,4 +1,4 @@
 #!/bin/bash
 cd /home/ubuntu || echo "prevent cd fatal error"
 pkill -f bot.js || echo "process not running"
-forever start bot.js || echo "prevent forever fatal error"
+tmux new -d -s cotixBot 'node bot.js' || echo "prevent tmux fatal error"
