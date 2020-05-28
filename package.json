@@ -10,7 +10,6 @@
         "ffmpeg": "0.0.4",
         "fluent-ffmpeg": "^2.1.2",
         "fs": "0.0.1-security",
-        "log-timestamp": "^0.3.0",
         "request": "^2.72.0",
         "ytdl-core": "^2.1.3"
     },

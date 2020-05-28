@@ -14,13 +14,26 @@ const MusicClass = require('./bot/music.js');
 let Channels;
 let auth;
 try {
-    auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
+    if (FileSystem.existsSync("./local/auth.json")) auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
+    else {
+        auth = {
+            "discordBotToken": process.env.DISCORD_BOT_TOKEN,
+            "discordClientId": process.env.DISCORD_CLIENT_ID,
+            "discordClientSecret": process.env.DISCORD_CLIENT_SECRET,
+            "discordCallback": process.env.DISCORD_CALLBACK,
+            "spotifyDiscordConnectUrl": process.env.SPOTIFY_DISCORD_CONNECT_URL,
+            "googleToken": process.env.YOUTUBE_KEY,
+            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
+            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
+            "spotifyCallback": process.env.SPOTIFY_CALLBACK
+        }
+    }
+    console.log(auth);
 
     if (FileSystem.existsSync("./local/Channels.json")) {
         console.log("Using local Channels file!");
         Channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
     } else {
-        require('log-timestamp');
         console.log("Using ./bot/config/ Channels file!")
         Channels = JSON.parse(FileSystem.readFileSync("./bot/config/Channels.json"));
     }

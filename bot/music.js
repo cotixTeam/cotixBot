@@ -5,6 +5,7 @@ const ytdl = require('ytdl-core');
 const Express = require('express');
 const Path = require('path');
 const FileSystem = require('fs');
+const http = require('http');
 
 function play(spotifyData) {
     console.log(spotifyData);
@@ -46,10 +47,9 @@ class MusicClass {
 
         var self = this;
 
-        const webhook = Express();
+        var webhook = Express();
 
-        webhook.listen('3000', () => console.log(`Server running on port 3000`))
-        webhook.use(Express.urlencoded());
+        webhook.set('port', process.env.PORT || 3000);
 
         webhook.get('/', (req, res) => {
             res.send("You have connected to the server!");
@@ -126,6 +126,10 @@ class MusicClass {
             });
             res.status(200).sendFile(Path.join(__dirname + "/config/spotifyLink.html"));
         });
+
+        http.createServer(webhook).listen(webhook.get('port'), () => {
+            console.log("Express server listening on port " + webhook.get("port"));
+        })
     }
 
     async play(messageReceived) {

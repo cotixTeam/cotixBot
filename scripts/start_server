@@ -1,4 +1,5 @@
 #!/bin/bash
 cd /home/ubuntu || echo "prevent cd fatal error"
 pkill -f bot.js || echo "process not running"
+PATH=$PATH:`ls -td /opt/elasticbeanstalk/node-install/node-* | head -1`/bin
 tmux new -d -s cotixBot 'node bot.js' || echo "prevent tmux fatal error"
