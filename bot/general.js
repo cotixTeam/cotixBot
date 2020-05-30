@@ -45,49 +45,52 @@ class GeneralClass {
         });
     }
 
-    initCleanChannelsTimouts(bot) {
+    initCleanChannelsTimouts(bot, Channels) {
         // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
         let cleanChannelDate = new Date();
-        cleanChannelDate.setSeconds(cleanChannelDate.getSeconds() + 10);
         cleanChannelDate.setMilliseconds(0);
-        cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
-        cleanChannelDate.setHours(0);
+        cleanChannelDate.setSeconds(0);
         cleanChannelDate.setMinutes(0);
+        cleanChannelDate.setHours(0);
+        cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
 
 
         if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime(), bot);
+            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime(), bot, Channels);
         else
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000, bot);
+            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000, bot, Channels);
     }
 
     // Bulk delete, by filtering - will not delete any pinned
-    async cleanChannels(bot) {
-        let cleanChannelArray = bot.channels.cache.filter(channel => {
-            if (channel.type == "text") return channel;
-        })
+    cleanChannels(bot, Channels) {
+        async function clean(bot, Channels) {
+            let cleanChannelArray = bot.channels.cache.filter(channel => {
+                if (channel.type == "text") return channel;
+            });
 
-        for (let queryChannel of Channels) {
-            if (queryChannel.keepClean) {
-                console.log("Cleaning channel " + queryChannel.name + " (" + queryChannel.id + ")!");
+            for (let queryChannel of Channels) {
+                if (queryChannel.keepClean) {
+                    console.log("Cleaning channel " + queryChannel.name + " (" + queryChannel.id + ")!");
 
-                await cleanChannelArray.find((item) => {
-                        if (item.id == queryChannel.id) return true;
-                    }).messages.fetch({
-                        limit: 100
-                    })
-                    .then((messageArray) => {
-                        messageArray.each(message => {
-                            if (!message.pinned) message.delete();
+                    await cleanChannelArray.find((item) => {
+                            if (item.id == queryChannel.id) return true;
+                        }).messages.fetch({
+                            limit: 100
+                        })
+                        .then((messageArray) => {
+                            messageArray.each(message => {
+                                if (!message.pinned) message.delete();
+                            });
+                        }).then(() => {
+                            // Create a timer for 24 hours to repeat the task
+                            setTimeout(clean, 24 * 60 * 60 * 1000, bot, Channels);
+                        }).catch((err) => {
+                            console.error(err);
                         });
-                    }).then(() => {
-                        // Create a timer for 24 hours to repeat the task
-                        setTimeout(cleanChannels, 24 * 60 * 60 * 1000);
-                    }).catch((err) => {
-                        console.error(err);
-                    });
+                }
             }
         }
+        clean(bot, Channels);
     }
 
     bulkDelete(messageReceived, args) {

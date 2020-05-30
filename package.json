@@ -5,6 +5,7 @@
     "main": "bot.js",
     "author": "Eamonn Trim",
     "dependencies": {
+        "@discordjs/opus": "^0.3.2",
         "discord.js": "^12.2.0",
         "express": "^4.17.1",
         "ffmpeg": "0.0.4",

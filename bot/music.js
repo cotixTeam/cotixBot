@@ -27,10 +27,8 @@ class MusicClass {
     constructor(client, Channels, auth) {
         this.bot = client;
         this.Channels = Channels;
-        this.spotifyClientSecret = auth.spotifyClientSecret;
-        this.spotifyClientId = auth.spotifyClientId;
         this.googleToken = auth.googleToken;
-        this.discordShortUrl = auth.discordShortUrl
+        this.spotifyRedirect = auth.spotifyRedirect;
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -50,22 +48,28 @@ class MusicClass {
         var webhook = Express();
 
         webhook.set('port', process.env.PORT || 3000);
+        webhook.use(Express.static('public'));
+        webhook.use(Express.static('files'));
+        webhook.use('/', Express.static(Path.join(__dirname + "/landing/")));
 
-        webhook.get('/', (req, res) => {
-            res.send("You have connected to the server!");
+        webhook.get('/spotifyAuthenticate', (req, res) => {
+            console.log("/spotifyAuthenticate accessed!");
+            res.redirect(auth.spotifyDiscordConnectUrl);
         })
 
         webhook.get('/spotifyCallback', (req, res) => {
+            console.log("/spotifyCallback accessed!");
             res.redirect("https://discord.com/api/v6/oauth2/authorize?" +
                 "client_id=" + auth.discordClientId +
                 "&redirect_uri=" + encodeURIComponent(auth.discordCallback) +
                 "&response_type=code" +
                 "&scope=identify" +
                 "&prompt=none" +
-                "&state=" + req.query.code)
+                "&state=" + req.query.code);
         });
 
         webhook.get('/discordCallback', (req, res) => {
+            console.log("/discordCallback accessed!");
             var localReq = req;
 
             request.post({
@@ -157,7 +161,7 @@ class MusicClass {
         messageReceived.delete();
     }
 
-    skip(messageReceived) {
+    qSkip(messageReceived) {
         if (!messageReceived.member.voice.channel)
             return messageReceived.channel.send(
                 "You have to be in a voice channel to stop the music!"
@@ -168,7 +172,7 @@ class MusicClass {
         messageReceived.delete();
     }
 
-    stop(messageReceived) {
+    qStop(messageReceived) {
         if (!messageReceived.member.voice.channel)
             return messageReceived.channel.send(
                 "You have to be in a voice channel to stop the music!"
@@ -248,7 +252,7 @@ class MusicClass {
             messageReceived.author.send(".", {
                 embed: {
                     "title": "Connect your spotify account",
-                    "description": "[Click here to link your spotify account](" + this.discordShortUrl + ")",
+                    "description": "[Click here to link your spotify account](" + this.spotifyRedirect + ")",
                     "thumbnail": {
                         "url": "https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif"
                     },

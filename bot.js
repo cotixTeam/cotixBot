@@ -18,14 +18,15 @@ try {
     else {
         auth = {
             "discordBotToken": process.env.DISCORD_BOT_TOKEN,
+            "discordCallback": process.env.DISCORD_CALLBACK,
             "discordClientId": process.env.DISCORD_CLIENT_ID,
             "discordClientSecret": process.env.DISCORD_CLIENT_SECRET,
-            "discordCallback": process.env.DISCORD_CALLBACK,
+            "spotifyCallback": process.env.SPOTIFY_CALLBACK,
+            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
+            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
             "spotifyDiscordConnectUrl": process.env.SPOTIFY_DISCORD_CONNECT_URL,
             "googleToken": process.env.YOUTUBE_KEY,
-            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
-            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
-            "spotifyCallback": process.env.SPOTIFY_CALLBACK
+            "spotifyRedirect": process.env.SPOTIFY_REDIRECT
         }
     }
     console.log(auth);
@@ -63,7 +64,7 @@ bot.on('ready', () => { // Run init code
     reminder = new ReminderClass.ReminderClass(bot, Channels);
     music = new MusicClass.MusicClass(bot, Channels, auth);
 
-    general.initCleanChannelsTimouts(bot);
+    general.initCleanChannelsTimouts(bot, Channels);
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
@@ -139,12 +140,12 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'qSkip':
                     console.log("\tSkipping the current song!");
-                    music.skip(messageReceived);
+                    music.qSkip(messageReceived);
                     break;
 
                 case 'qStop':
                     console.log("\tStopping the music playing!");
-                    music.stop(messageReceived);
+                    music.qStop(messageReceived);
                     break;
 
                 case 'qUrl':
@@ -288,3 +289,13 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
         }
     }
 });
+
+// catch uncaught exceptions
+process
+    .on('unhandledRejection', (reason, p) => {
+        console.error(reason, 'Unhandled Rejection at Promise', p);
+    })
+    .on('uncaughtException', err => {
+        console.error(err, 'Uncaught Exception thrown');
+        process.exit(1);
+    });
