@@ -1,7 +1,7 @@
 {
-    "name": "BKKK",
+    "name": "cotixbot",
     "version": "1.0.0",
-    "description": "BKKK Leaderboard handler",
+    "description": "cotix Discord bot",
     "main": "bot.js",
     "author": "Eamonn Trim",
     "dependencies": {
