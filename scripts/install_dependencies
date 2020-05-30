@@ -1,4 +1,3 @@
 #!/bin/bash
-cd /home/ubuntu/ || echo "prevent cd fatal error"
 sudo yum install tmux || echo "tmux not installed"
 pkill -f bot.js || echo "process not running"
