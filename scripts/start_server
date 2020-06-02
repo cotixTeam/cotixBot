@@ -1,3 +1,0 @@
-#!/bin/bash
-PATH=$PATH:`ls -td /opt/elasticbeanstalk/node-install/node-* | head -1`/bin || echo "path not set"
-tmux new -d -s cotixBot 'node bot.js' || echo "prevent tmux fatal error"

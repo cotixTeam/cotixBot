@@ -170,7 +170,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'qSpotify': // WIP
                     console.log("\tQueuing spotify!");
-                    music.qSpotify(messageReceived);
+                    music.qSpotify(messageReceived, argumentString);
                     break;
 
                 default:

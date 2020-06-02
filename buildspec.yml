@@ -1,13 +1,18 @@
 version: 0.2
 phases:
   install:
+    runtime-versions:
+      nodejs: latest
     commands:
       - echo "Installing phase..."
 artifacts:
   files:
-    - "**/*"
+    - "bot/*"
+    - "bot.js"
+    - "package.json"
+    - "package-lock.json"
 eb_codebuild_settings:
   CodeBuildServiceRole: arn:aws:iam::886723564473:role/service-role/codebuild-BKKKBot-service-role
   ComputeType: BUILD_GENERAL1_LARGE
   Image: aws/codebuild/standard:4.0
-  Timeout: 60
+  Timeout: 10

@@ -29,6 +29,10 @@ class MusicClass {
         this.Channels = Channels;
         this.googleToken = auth.googleToken;
         this.spotifyRedirect = auth.spotifyRedirect;
+
+        this.spotifyClientId = auth.spotifyClientId;
+        this.spotifyClientSecret = auth.spotifyClientSecret;
+
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -242,11 +246,90 @@ class MusicClass {
         messageReceived.delete();
     }
 
-    qSpotify(messageReceived) { // STILL WIP, can get codes but does nothing with it
-        if (this.spotifyData.accesses.has(messageReceived.author.id)) {
+    qSpotify(messageReceived, argumentString) {
+        var self = this;
+
+        function addPlaylistToQ(playlistUrl) {
+
+            request.get(playlistUrl, {
+                headers: {
+                    Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
+                }
+            }, (error, response, body) => {
+                if (!error & response.statusCode == 200) {
+                    let playlistObject = JSON.parse(body);
+                    for (let track of playlistObject.tracks.items) {
+
+                        var options = {
+                            part: "id,snippet",
+                            type: "video",
+                            q: track.track.name + " " + track.track.artists[0].name,
+                            key: self.googleToken,
+                            maxResults: 1, // To keep the quota search low for the key
+                            type: "video", // Set to only return videos
+                            videoCategoryId: 10 // The code for music
+                        }
+
+                        function fixedEncodeURIComponent(str) {
+                            return encodeURIComponent(str).replace(/[-_.!~*'()]/g, function (c) {
+                                return '%' + c.charCodeAt(0).toString(16);
+                            });
+                        }
+
+                        let queryString = Object.keys(options)
+                            .map(param => fixedEncodeURIComponent(param) + "=" + fixedEncodeURIComponent(options[param])).join('&');
+
+                        request('https://www.googleapis.com/youtube/v3/search?' + queryString, (error, response, body) => {
+                            if (!error && response.statusCode == 200) {
+                                let content = JSON.parse(body);
+                                console.log("\t-\tAdding " + content.items[0].snippet.title + " to the queue!");
+                                self.spotifyData.songs.push({
+                                    id: content.items[0].id.videoId,
+                                    title: content.items[0].snippet.title
+                                });
+                            } else {
+                                console.error(error);
+                                console.log(body);
+                            }
+                        })
+                    }
+                }
+            })
+        }
+
+        if (self.spotifyData.accesses.has(messageReceived.author.id)) {
             console.log("\tThe user already has a token!");
 
-            console.log(this.spotifyData.accesses.get(messageReceived.author.id));
+            function getPlaylists(offset) {
+                console.log("getPlaylists ran!");
+                request.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
+                    headers: {
+                        Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
+                    }
+                }, (error, response, body) => {
+                    if (!error & response.statusCode == 200) {
+                        console.log("\tAdding songs to queue!");
+
+                        let playlistsContent = JSON.parse(body);
+
+                        let result = playlistsContent.items.find((playlist) => {
+                            if (playlist.name.includes(argumentString)) return playlist;
+                        });
+
+                        if (result) addPlaylistToQ(result.href);
+                        else getPlaylist(offset + 50);
+                    } else if (response.statusCode == 401) {
+                        console.log("\tToken expired, refreshing!");
+                        self.refreshToken(messageReceived, self);
+                    } else {
+                        console.error(error);
+                        console.log(body);
+                    }
+                });
+            }
+
+            getPlaylists(0);
+
         } else {
             console.log("\tRequesting the token for the user!");
             messageReceived.author.send(".", {
@@ -261,6 +344,40 @@ class MusicClass {
             });
         }
         messageReceived.delete();
+    }
+
+    refreshToken(messageReceived, self) {
+        request.post('https://accounts.spotify.com/api/token', {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Authorization: "Basic " + Buffer.from(self.spotifyClientId + ":" + self.spotifyClientSecret).toString('base64')
+            },
+            form: {
+                grant_type: "refresh_token",
+                refresh_token: self.spotifyData.accesses.get(messageReceived.author.id).spotifyRefresh
+            }
+        }, (error, response, body) => {
+            if (!error & response.statusCode == 200) {
+                // Refresh access token
+                let spotifyAuthContent = JSON.parse(body);
+
+                console.log(spotifyAuthContent);
+
+                self.spotifyData.accesses.set(messageReceived.author.id, {
+                    spotifyCode: self.spotifyData.accesses.get(messageReceived.author.id).spotifyCode,
+                    spotifyRefresh: self.spotifyData.accesses.get(messageReceived.author.id).spotifyRefresh,
+                    spotifyAccess: spotifyAuthContent.access_token,
+                    discordCode: self.spotifyData.accesses.get(messageReceived.author.id).discordCode,
+                    discordRefresh: self.spotifyData.accesses.get(messageReceived.author.id).discordRefresh,
+                    discordAccess: self.spotifyData.accesses.get(messageReceived.author.id).discordAccess
+                });
+
+                FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+            } else {
+                console.error(error);
+                console.log(body);
+            }
+        });
     }
 }
 
