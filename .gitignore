@@ -3,6 +3,7 @@
 /.ssh
 /.git
 /.git/*
+/node_modules
 /.gitignore
 /bot/config/AccessMaps.json
 BotDevelopment.code-workspace
