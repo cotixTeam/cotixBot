@@ -31,8 +31,6 @@ function play(spotifyData, bot, Channels) {
         }
     }
 
-    console.log(spotifyData)
-
     songLists.push({
         "name": "Now Playing:",
         "value": spotifyData.songs[0].title
