@@ -32,5 +32,11 @@
         "name": "Quotes",
         "id": "668528585098657805",
         "keepClean": false
+    },
+    {
+        "name": "Music",
+        "id": "717716439976378378",
+        "embedMessage": "717716475053342782",
+        "keepClean": true
     }
 ]

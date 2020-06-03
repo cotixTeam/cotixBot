@@ -135,7 +135,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'qPlay':
                     console.log("\tJoining the channel of the user!");
-                    music.play(messageReceived);
+                    music.qPlay(messageReceived);
                     break;
 
                 case 'qSkip':

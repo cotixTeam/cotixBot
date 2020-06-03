@@ -6,18 +6,69 @@ const Express = require('express');
 const Path = require('path');
 const FileSystem = require('fs');
 const http = require('http');
+const ytSearch = require('yt-search');
+const Discord = require('discord.js')
 
-function play(spotifyData) {
-    console.log(spotifyData);
+function play(spotifyData, bot, Channels) {
+    var musicChannel = Channels.find((chan) => {
+        if (chan.name == "Music") return chan;
+    });
+
+    let songLists = [];
+    let workingString = "";
+
+    for (let song of spotifyData.songs) {
+        if (song != spotifyData.songs[0]) {
+            if (workingString.length + song.title.length + 5 < 1024) {
+                workingString += "`- " + song.title + "`\n";
+            } else {
+                songLists.push({
+                    "name": "Up Next:",
+                    "value": workingString
+                });
+                workingString = "";
+            }
+        }
+    }
+
+    console.log(spotifyData)
+
+    songLists.push({
+        "name": "Now Playing:",
+        "value": spotifyData.songs[0].title
+    });
+
+    new Discord.Message(bot, {
+            id: musicChannel.embedMessage
+        }, new Discord.Channel(bot, {
+            id: musicChannel.id
+        }))
+        .edit({
+            "content": "Player",
+            "embed": {
+                "title": "Music Player",
+                "description": "Showing the Queue...",
+                "footer": {
+                    "text": "The queue is " + spotifyData.songs.length + " songs long!"
+                },
+                "image": {
+                    "url": spotifyData.songs[0].image
+                },
+                "fields": songLists
+            }
+        });
+
+
     spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0].id, {
         quality: "highestaudio",
         filter: "audioonly"
     })).on("finish", () => {
         spotifyData.songs.shift();
+
         if (!spotifyData.songs[0]) {
             spotifyData.voiceChannel.leave();
         } else {
-            play(spotifyData);
+            play(spotifyData, bot, Channels);
         }
     });
     spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
@@ -140,7 +191,7 @@ class MusicClass {
         })
     }
 
-    async play(messageReceived) {
+    async qPlay(messageReceived) {
         let voiceChannel = messageReceived.member.voice.channel;
 
         if (voiceChannel) {
@@ -151,7 +202,7 @@ class MusicClass {
                     this.spotifyData.voiceChannel = voiceChannel;
                     this.spotifyData.connection = await voiceChannel.join();
                     this.spotifyData.playing = true;
-                    play(this.spotifyData);
+                    play(this.spotifyData, this.bot, this.Channels);
                 } catch (err) {
                     this.spotifyData.playing = false;
                     console.error(err);
@@ -200,12 +251,34 @@ class MusicClass {
     }
 
     addBySearch(messageReceived, argumentString) {
+        console.log("\t\tSearching for term on youtube (" + argumentString + ")!");
+
+        ytSearch({
+            query: argumentString,
+            pageStart: 1,
+            pageEnd: 1,
+            category: "music"
+        }, (err, r) => {
+            if (!err) {
+                console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
+                self.spotifyData.songs.push({
+                    id: r.videos[0].videoId,
+                    title: r.videos[0].title
+                });
+            }
+        });
+
+        /*
+        Rate limited youtube api method
+
         let options = {
             part: "id,snippet",
             type: "video",
             q: argumentString,
             key: this.googleToken
         }
+
+        var self = this;
 
         function fixedEncodeURIComponent(str) {
             return encodeURIComponent(str).replace(/[-_.!~*'()]/g, function (c) {
@@ -215,8 +288,6 @@ class MusicClass {
 
         let queryString = Object.keys(options)
             .map(param => fixedEncodeURIComponent(param) + "=" + fixedEncodeURIComponent(options[param])).join('&');
-
-        console.log("\t\tSearching for term on youtube (" + argumentString + ")!");
 
         request('https://www.googleapis.com/youtube/v3/search?' + queryString, (error, response, body) => {
             if (!error && response.statusCode == 200) {
@@ -229,7 +300,7 @@ class MusicClass {
             } else {
                 console.error(error);
             }
-        })
+        })*/
         messageReceived.delete();
     }
 
@@ -260,6 +331,25 @@ class MusicClass {
                     let playlistObject = JSON.parse(body);
                     for (let track of playlistObject.tracks.items) {
 
+                        ytSearch({
+                            query: track.track.name + " " + track.track.artists[0].name,
+                            pageStart: 1,
+                            pageEnd: 1,
+                            category: "music"
+                        }, (err, r) => {
+                            if (!err) {
+                                console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
+                                self.spotifyData.songs.push({
+                                    id: r.videos[0].videoId,
+                                    title: r.videos[0].title,
+                                    image: track.track.album.images[1].url
+                                });
+                            }
+                        });
+
+                        /*
+                        Old api method
+                        
                         var options = {
                             part: "id,snippet",
                             type: "video",
@@ -291,7 +381,7 @@ class MusicClass {
                                 console.error(error);
                                 console.log(body);
                             }
-                        })
+                        })*/
                     }
                 }
             })
