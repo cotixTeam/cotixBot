@@ -10,25 +10,29 @@ const ytSearch = require('yt-search');
 const Discord = require('discord.js');
 
 function play(spotifyData, bot, musicChannel, musicClass) {
-    musicClass.updateList(spotifyData, bot, musicChannel);
     if (spotifyData.songs.length == 0) {
         spotifyData.voiceChannel.leave();
     } else {
-        spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0].id, {
+        spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[spotifyData.songs.length-1].id, {
             quality: "highestaudio",
             filter: "audioonly"
         })).on("finish", () => {
-            spotifyData.songs.shift();
-
-            if (!spotifyData.songs[0]) {
-                spotifyData.playing = false;
-                spotifyData.voiceChannel.leave();
-            } else {
+            if(spotifyData.skipped) {
+                spotifyData.skipped = false;
                 play(spotifyData, bot, musicChannel, musicClass);
+            } else {
+                spotifyData.oldSongs.push(spotifyData.songs.pop());    
+                if (!spotifyData.songs[spotifyData.songs.length-1]) {
+                    spotifyData.playing = false;
+                    spotifyData.voiceChannel.leave();
+                } else {
+                    play(spotifyData, bot, musicChannel, musicClass);
+                }
             }
         });
         spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
     }
+    musicClass.updateList(spotifyData, bot, musicChannel);
 }
 
 class MusicClass {
@@ -54,9 +58,11 @@ class MusicClass {
             connection: null,
             player: null,
             songs: [],
+            oldSongs: [],
             volume: 5,
             playing: false,
             repeat: false,
+            skipped: false,
             accesses: new Map()
         };
 
@@ -143,6 +149,8 @@ class MusicClass {
                                     });
 
                                     FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+                                    console.log("Added access to Map:");
+                                    console.log(self.spotifyData.accesses.get(discordUserContent.id));
                                 }
                             });
                         }
@@ -184,12 +192,12 @@ class MusicClass {
         });
 
         await qMessage.reactions.removeAll();
-        //await qMessage.react('◀️');
+        await qMessage.react('◀️');
         await qMessage.react('⏯️');
-        //await qMessage.react('⏹️');
-        //await qMessage.react('▶️');
-        //await qMessage.react('🔉');
-        //qMessage.react('🔊');
+        await qMessage.react('⏹️');
+        await qMessage.react('▶️');
+        await qMessage.react('🔉');
+        qMessage.react('🔊');
 
         let backFilter = (reaction, user) => reaction.emoji.name == '◀️' && reaction.count == 2;
 
@@ -222,7 +230,15 @@ class MusicClass {
 
         backListener.on('collect', reaction => {
             console.log("Music player, back pressed!");
-            //self.qPause();
+            let lastSong = this.spotifyData.oldSongs.pop();
+            if(lastSong) {
+                this.spotifyData.songs.push(lastSong);
+                if (this.spotifyData.connection.dispatcher) {
+                    this.updateList(this.spotifyData, this.bot, this.musicChannel);
+                    this.spotifyData.skipped = true;
+                    this.spotifyData.connection.dispatcher.end();
+                }
+            }
         });
 
         playPauseListener.on('collect', async reaction => {
@@ -235,7 +251,6 @@ class MusicClass {
 
             } else {
                 // Play
-
                 if (this.spotifyData.player) {
                     this.spotifyData.player.resume();
                     this.spotifyData.playing = true;
@@ -264,24 +279,41 @@ class MusicClass {
                     } else {
                         user.send("You need to be in a voice channel for me to join!");
                     }
+                    this.updateList(this.spotifyData, this.bot, this.musicChannel);
                 }
             }
         });
 
         stopListener.on('collect', reaction => {
             console.log("Music player, stop pressed!");
+            this.spotifyData.songs = [];
+            if (this.spotifyData.connection) {
+                this.spotifyData.connection.dispatcher.end();
+            }
+
+            this.updateList(this.spotifyData, this.bot, this.musicChannel);
         });
 
         skipListener.on('collect', reaction => {
             console.log("Music player, skip pressed!");
+            if (this.spotifyData.connection.dispatcher) {
+                this.spotifyData.connection.dispatcher.end();
+            }
+            this.updateList(this.spotifyData, this.bot, this.musicChannel);
         });
 
         decrVolListener.on('collect', reaction => {
             console.log("Music player, decrVol pressed!");
+            this.spotifyData.volume -= 1;
+            if(this.spotifyData.player)
+            this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
 
         incrVolListener.on('collect', reaction => {
             console.log("Music player, incrVol pressed!");
+            this.spotifyData.volume += 1;
+            if(this.spotifyData.player)
+            this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
 
     }
@@ -322,10 +354,10 @@ class MusicClass {
                     },
                     "fields": [{
                         "name": "Now Playing:",
-                        "value": spotifyData.songs[0].title
+                        "value": spotifyData.songs[spotifyData.songs.length-1].title
                     }],
                     "image": {
-                        "url": spotifyData.songs[0].image
+                        "url": spotifyData.songs[spotifyData.songs.length-1].image
                     }
                 }
             });
@@ -334,7 +366,7 @@ class MusicClass {
             let workingString = "";
 
             for (let song of spotifyData.songs) {
-                if (song != spotifyData.songs[0]) {
+                if (song != spotifyData.songs[spotifyData.songs.length-1]) {
                     if (workingString.length + song.title.length + 5 < 1024) {
                         workingString += "`- " + song.title + "`\n";
                     } else {
@@ -356,7 +388,7 @@ class MusicClass {
             // Append with the currently playing
             songLists.push({
                 "name": "Now Playing:",
-                "value": spotifyData.songs[0].title
+                "value": spotifyData.songs[spotifyData.songs.length-1].title
             });
 
             qMessage
@@ -370,7 +402,7 @@ class MusicClass {
                         },
                         "fields": songLists,
                         "image": {
-                            "url": spotifyData.songs[0].image
+                            "url": spotifyData.songs[spotifyData.songs.length-1].image
                         }
                     }
                 });
@@ -442,7 +474,7 @@ class MusicClass {
         if (ytdl.validateURL(args[0])) {
             ytdl.getInfo(args[0], (err, data) => {
                 console.log("\t-\tAdding " + data.title + " to the queue!");
-                this.spotifyData.songs.push({
+                this.spotifyData.songs.unshift({
                     id: data.video_id,
                     title: data.title,
                     image: "https://i.ytimg.com/vi/" + data.video_id + "/default.jpg"
@@ -464,7 +496,7 @@ class MusicClass {
         }, (err, r) => {
             if (!err) {
                 console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
-                this.spotifyData.songs.push({
+                this.spotifyData.songs.unshift({
                     id: r.videos[0].videoId,
                     title: r.videos[0].title,
                     image: "https://i.ytimg.com/vi/" + r.videos[0].videoId + "/default.jpg"
@@ -503,7 +535,7 @@ class MusicClass {
                         }, (err, r) => {
                             if (!err) {
                                 console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
-                                self.spotifyData.songs.push({
+                                self.spotifyData.songs.unshift({
                                     id: r.videos[0].videoId,
                                     title: r.videos[0].title,
                                     image: track.track.album.images[1].url

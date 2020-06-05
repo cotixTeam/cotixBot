@@ -1,4 +1,8 @@
 [{
+        "name": "General",
+        "id": "704313907220840538"
+    },
+    {
         "name": "Leaderboards",
         "id": "691318868475510834",
         "keepClean": true,
