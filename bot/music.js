@@ -13,18 +13,19 @@ function play(spotifyData, bot, musicChannel, musicClass) {
     if (spotifyData.songs.length == 0) {
         spotifyData.voiceChannel.leave();
     } else {
-        spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[spotifyData.songs.length-1].id, {
+        spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[spotifyData.songs.length - 1].id, {
             quality: "highestaudio",
             filter: "audioonly"
         })).on("finish", () => {
-            if(spotifyData.skipped) {
+            if (spotifyData.skipped) {
                 spotifyData.skipped = false;
                 play(spotifyData, bot, musicChannel, musicClass);
             } else {
-                spotifyData.oldSongs.push(spotifyData.songs.pop());    
-                if (!spotifyData.songs[spotifyData.songs.length-1]) {
+                spotifyData.oldSongs.push(spotifyData.songs.pop());
+                if (!spotifyData.songs[spotifyData.songs.length - 1]) {
                     spotifyData.playing = false;
                     spotifyData.voiceChannel.leave();
+                    this.spotifyData.oldSongs = [];
                 } else {
                     play(spotifyData, bot, musicChannel, musicClass);
                 }
@@ -124,6 +125,8 @@ class MusicClass {
                         if (!error & response.statusCode == 200) {
                             var discordUserContent = JSON.parse(body);
 
+                            console.log()
+
                             request.post({
                                 url: 'https://accounts.spotify.com/api/token',
                                 headers: {
@@ -151,10 +154,19 @@ class MusicClass {
                                     FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
                                     console.log("Added access to Map:");
                                     console.log(self.spotifyData.accesses.get(discordUserContent.id));
+                                } else {
+                                    console.log("Failed at https://accounts.spotify.com/api/token");
+                                    console.error(error);
                                 }
                             });
+                        } else {
+                            console.log("Failed at https://discord.com/api/v6/users/@me");
+                            console.error(error);
                         }
                     });
+                } else {
+                    console.log("Failed at https://discord.com/api/v6/oauth2/token");
+                    console.error(error);
                 }
             });
             res.status(200).sendFile(Path.join(__dirname + "/config/spotifyLink.html"));
@@ -231,7 +243,7 @@ class MusicClass {
         backListener.on('collect', reaction => {
             console.log("Music player, back pressed!");
             let lastSong = this.spotifyData.oldSongs.pop();
-            if(lastSong) {
+            if (lastSong) {
                 this.spotifyData.songs.push(lastSong);
                 if (this.spotifyData.connection.dispatcher) {
                     this.updateList(this.spotifyData, this.bot, this.musicChannel);
@@ -287,6 +299,7 @@ class MusicClass {
         stopListener.on('collect', reaction => {
             console.log("Music player, stop pressed!");
             this.spotifyData.songs = [];
+            this.spotifyData.oldSongs = [];
             if (this.spotifyData.connection) {
                 this.spotifyData.connection.dispatcher.end();
             }
@@ -305,15 +318,15 @@ class MusicClass {
         decrVolListener.on('collect', reaction => {
             console.log("Music player, decrVol pressed!");
             this.spotifyData.volume -= 1;
-            if(this.spotifyData.player)
-            this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            if (this.spotifyData.player)
+                this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
 
         incrVolListener.on('collect', reaction => {
             console.log("Music player, incrVol pressed!");
             this.spotifyData.volume += 1;
-            if(this.spotifyData.player)
-            this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            if (this.spotifyData.player)
+                this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
 
     }
@@ -354,10 +367,10 @@ class MusicClass {
                     },
                     "fields": [{
                         "name": "Now Playing:",
-                        "value": spotifyData.songs[spotifyData.songs.length-1].title
+                        "value": spotifyData.songs[spotifyData.songs.length - 1].title
                     }],
                     "image": {
-                        "url": spotifyData.songs[spotifyData.songs.length-1].image
+                        "url": spotifyData.songs[spotifyData.songs.length - 1].image
                     }
                 }
             });
@@ -366,7 +379,7 @@ class MusicClass {
             let workingString = "";
 
             for (let song of spotifyData.songs) {
-                if (song != spotifyData.songs[spotifyData.songs.length-1]) {
+                if (song != spotifyData.songs[spotifyData.songs.length - 1]) {
                     if (workingString.length + song.title.length + 5 < 1024) {
                         workingString += "`- " + song.title + "`\n";
                     } else {
@@ -388,7 +401,7 @@ class MusicClass {
             // Append with the currently playing
             songLists.push({
                 "name": "Now Playing:",
-                "value": spotifyData.songs[spotifyData.songs.length-1].title
+                "value": spotifyData.songs[spotifyData.songs.length - 1].title
             });
 
             qMessage
@@ -402,7 +415,7 @@ class MusicClass {
                         },
                         "fields": songLists,
                         "image": {
-                            "url": spotifyData.songs[spotifyData.songs.length-1].image
+                            "url": spotifyData.songs[spotifyData.songs.length - 1].image
                         }
                     }
                 });
@@ -462,6 +475,7 @@ class MusicClass {
             return;
         }
         this.spotifyData.songs = [];
+        this.spotifyData.oldSongs = [];
         if (this.spotifyData.connection) {
             this.spotifyData.connection.dispatcher.end();
         }
@@ -509,6 +523,7 @@ class MusicClass {
 
     qClear(messageReceived) {
         this.spotifyData.songs = [];
+        this.spotifyData.oldSongs = [];
         this.updateList(this.spotifyData, this.bot, this.musicChannel);
         messageReceived.delete();
     }
