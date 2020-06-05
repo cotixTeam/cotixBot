@@ -135,6 +135,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 case 'qPlay':
                     console.log("\tJoining the channel of the user!");
+                    console.log(messageReceived.member.voice);
                     music.qPlay(messageReceived);
                     break;
 

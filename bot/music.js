@@ -7,69 +7,28 @@ const Path = require('path');
 const FileSystem = require('fs');
 const http = require('http');
 const ytSearch = require('yt-search');
-const Discord = require('discord.js')
+const Discord = require('discord.js');
 
-function play(spotifyData, bot, Channels) {
-    var musicChannel = Channels.find((chan) => {
-        if (chan.name == "Music") return chan;
-    });
+function play(spotifyData, bot, musicChannel, musicClass) {
+    musicClass.updateList(spotifyData, bot, musicChannel);
+    if (spotifyData.songs.length == 0) {
+        spotifyData.voiceChannel.leave();
+    } else {
+        spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0].id, {
+            quality: "highestaudio",
+            filter: "audioonly"
+        })).on("finish", () => {
+            spotifyData.songs.shift();
 
-    let songLists = [];
-    let workingString = "";
-
-    for (let song of spotifyData.songs) {
-        if (song != spotifyData.songs[0]) {
-            if (workingString.length + song.title.length + 5 < 1024) {
-                workingString += "`- " + song.title + "`\n";
+            if (!spotifyData.songs[0]) {
+                spotifyData.playing = false;
+                spotifyData.voiceChannel.leave();
             } else {
-                songLists.push({
-                    "name": "Up Next:",
-                    "value": workingString
-                });
-                workingString = "";
-            }
-        }
-    }
-
-    songLists.push({
-        "name": "Now Playing:",
-        "value": spotifyData.songs[0].title
-    });
-
-    new Discord.Message(bot, {
-            id: musicChannel.embedMessage
-        }, new Discord.Channel(bot, {
-            id: musicChannel.id
-        }))
-        .edit({
-            "content": "Player",
-            "embed": {
-                "title": "Music Player",
-                "description": "Showing the Queue...",
-                "footer": {
-                    "text": "The queue is " + spotifyData.songs.length + " songs long!"
-                },
-                "image": {
-                    "url": spotifyData.songs[0].image
-                },
-                "fields": songLists
+                play(spotifyData, bot, musicChannel, musicClass);
             }
         });
-
-
-    spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[0].id, {
-        quality: "highestaudio",
-        filter: "audioonly"
-    })).on("finish", () => {
-        spotifyData.songs.shift();
-
-        if (!spotifyData.songs[0]) {
-            spotifyData.voiceChannel.leave();
-        } else {
-            play(spotifyData, bot, Channels);
-        }
-    });
-    spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+        spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+    }
 }
 
 class MusicClass {
@@ -82,6 +41,14 @@ class MusicClass {
         this.spotifyClientId = auth.spotifyClientId;
         this.spotifyClientSecret = auth.spotifyClientSecret;
 
+        this.generalChannel = Channels.find((channel) => {
+            if (channel.name == "General") return channel;
+        });
+
+        this.musicChannel = Channels.find((channel) => {
+            if (channel.name == "Music") return channel;
+        });
+
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -89,6 +56,7 @@ class MusicClass {
             songs: [],
             volume: 5,
             playing: false,
+            repeat: false,
             accesses: new Map()
         };
 
@@ -186,7 +154,232 @@ class MusicClass {
 
         http.createServer(webhook).listen(webhook.get('port'), () => {
             console.log("Express server listening on port " + webhook.get("port"));
-        })
+        });
+
+        this.initList(this.spotifyData, this.bot, this.musicChannel);
+    }
+
+    async initList(spotifyData, bot, musicChannel) {
+        let Channel = await new Discord.Channel(bot, {
+            id: musicChannel.id
+        }).fetch();
+
+        var qMessage = await new Discord.Message(bot, {
+            id: musicChannel.embedMessage
+        }, Channel).fetch();
+
+        await qMessage.edit({
+            "content": "Player",
+            "embed": {
+                "title": "Music Player",
+                "description": "Showing the Queue...",
+                "footer": {
+                    "text": "The queue is " + spotifyData.songs.length + " songs long!"
+                },
+                "fields": [{
+                    "name": "There are no songs in the queue!",
+                    "value": "Add one by using !qSearch or !qSpotify"
+                }]
+            }
+        });
+
+        await qMessage.reactions.removeAll();
+        //await qMessage.react('◀️');
+        await qMessage.react('⏯️');
+        //await qMessage.react('⏹️');
+        //await qMessage.react('▶️');
+        //await qMessage.react('🔉');
+        //qMessage.react('🔊');
+
+        let backFilter = (reaction, user) => reaction.emoji.name == '◀️' && reaction.count == 2;
+
+        let backListener = qMessage.createReactionCollector(backFilter, {
+            time: 0
+        });
+        let playPauseFilter = (reaction, user) => reaction.emoji.name == '⏯️' && reaction.count == 2;
+        let playPauseListener = qMessage.createReactionCollector(playPauseFilter, {
+            time: 0
+        });
+        let stopFilter = (reaction, user) => reaction.emoji.name == '⏹️' && reaction.count == 2;
+        let stopListener = qMessage.createReactionCollector(stopFilter, {
+            time: 0
+        });
+        let skipFilter = (reaction, user) => reaction.emoji.name == '▶️' && reaction.count == 2;
+        let skipListener = qMessage.createReactionCollector(skipFilter, {
+            time: 0
+        });
+        let decrVolFilter = (reaction, user) => reaction.emoji.name == '🔉' && reaction.count == 2;
+        let decrVolListener = qMessage.createReactionCollector(decrVolFilter, {
+            time: 0
+        });
+        let incrVolFilter = (reaction, user) => reaction.emoji.name == '🔊' && reaction.count == 2;
+        let incrVolListener = qMessage.createReactionCollector(incrVolFilter, {
+            time: 0
+        });
+
+
+        // TODO: Find a way to delete the users reaction automatically without re-ordering the whole message, for now, have the bot check only on adding a react
+
+        backListener.on('collect', reaction => {
+            console.log("Music player, back pressed!");
+            //self.qPause();
+        });
+
+        playPauseListener.on('collect', async reaction => {
+            console.log("Music player, playPause pressed! (currently playing: " + this.spotifyData.playing + ")");
+
+            if (this.spotifyData.playing) {
+                // Pause
+                this.spotifyData.player.pause();
+                this.spotifyData.playing = false;
+
+            } else {
+                // Play
+
+                if (this.spotifyData.player) {
+                    this.spotifyData.player.resume();
+                    this.spotifyData.playing = true;
+                } else {
+                    let user = this.bot.channels.cache
+                        .get(this.generalChannel.id).guild.members.cache
+                        .get(reaction.users.cache.last().id);
+
+                    let voiceChannel = user.voice.channel;
+                    if (voiceChannel) {
+                        let permissions = voiceChannel.permissionsFor(this.bot.user);
+                        if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
+
+                            try {
+                                this.spotifyData.voiceChannel = voiceChannel;
+                                this.spotifyData.connection = await voiceChannel.join();
+                                this.spotifyData.playing = true;
+                                play(this.spotifyData, this.bot, this.musicChannel, this);
+                            } catch (err) {
+                                this.spotifyData.playing = false;
+                                console.error(err);
+                            }
+                        } else {
+                            user.send("I need permissions to be able to join the voice channel!");
+                        }
+                    } else {
+                        user.send("You need to be in a voice channel for me to join!");
+                    }
+                }
+            }
+        });
+
+        stopListener.on('collect', reaction => {
+            console.log("Music player, stop pressed!");
+        });
+
+        skipListener.on('collect', reaction => {
+            console.log("Music player, skip pressed!");
+        });
+
+        decrVolListener.on('collect', reaction => {
+            console.log("Music player, decrVol pressed!");
+        });
+
+        incrVolListener.on('collect', reaction => {
+            console.log("Music player, incrVol pressed!");
+        });
+
+    }
+
+    async updateList(spotifyData, bot, musicChannel) {
+        var self = this;
+        let Channel = await new Discord.Channel(bot, {
+            id: musicChannel.id
+        }).fetch();
+
+        var qMessage = await new Discord.Message(bot, {
+            id: musicChannel.embedMessage
+        }, Channel).fetch();
+
+        if (spotifyData.songs.length == 0) {
+            qMessage.edit({
+                "content": "Player",
+                "embed": {
+                    "title": "Music Player",
+                    "description": "Showing the Queue...",
+                    "footer": {
+                        "text": "The queue is " + spotifyData.songs.length + " songs long!"
+                    },
+                    "fields": [{
+                        "name": "There are no songs in the queue!",
+                        "value": "Add one by using !qSearch or !qSpotify"
+                    }]
+                }
+            });
+        } else if (spotifyData.songs.length == 1) {
+            qMessage.edit({
+                "content": "Player",
+                "embed": {
+                    "title": "Music Player",
+                    "description": "Showing the Queue...",
+                    "footer": {
+                        "text": "The queue is " + spotifyData.songs.length + " songs long!"
+                    },
+                    "fields": [{
+                        "name": "Now Playing:",
+                        "value": spotifyData.songs[0].title
+                    }],
+                    "image": {
+                        "url": spotifyData.songs[0].image
+                    }
+                }
+            });
+        } else {
+            let songLists = [];
+            let workingString = "";
+
+            for (let song of spotifyData.songs) {
+                if (song != spotifyData.songs[0]) {
+                    if (workingString.length + song.title.length + 5 < 1024) {
+                        workingString += "`- " + song.title + "`\n";
+                    } else {
+                        songLists.push({
+                            "name": "Up Next:",
+                            "value": workingString
+                        });
+                        workingString = "";
+                    }
+                }
+            }
+
+            // Always run once so that if not exceeded the length, there is still a list to show
+            songLists.push({
+                "name": "Up Next:",
+                "value": workingString
+            });
+
+            // Append with the currently playing
+            songLists.push({
+                "name": "Now Playing:",
+                "value": spotifyData.songs[0].title
+            });
+
+            qMessage
+                .edit({
+                    "content": "Player",
+                    "embed": {
+                        "title": "Music Player",
+                        "description": "Showing the Queue...",
+                        "footer": {
+                            "text": "The queue is " + spotifyData.songs.length + " songs long!"
+                        },
+                        "fields": songLists,
+                        "image": {
+                            "url": spotifyData.songs[0].image
+                        }
+                    }
+                });
+        }
+    }
+
+    qList(messageReceived) {
+        this.updateList(this.spotifyData, this.bot, this.musicChannel);
+        messageReceived.delete();
     }
 
     async qPlay(messageReceived) {
@@ -200,38 +393,48 @@ class MusicClass {
                     this.spotifyData.voiceChannel = voiceChannel;
                     this.spotifyData.connection = await voiceChannel.join();
                     this.spotifyData.playing = true;
-                    play(this.spotifyData, this.bot, this.Channels);
+                    play(this.spotifyData, this.bot, this.musicChannel, this);
                 } catch (err) {
                     this.spotifyData.playing = false;
                     console.error(err);
                 }
             } else {
-                messageReceived.send("I need permissions to be able to join the voice channel!");
+                messageReceived.author.send("I need permissions to be able to join the voice channel!");
             }
         } else {
-            messageReceived.send("You need to be in a voice channel for me to join!");
+            this.updateList(this.spotifyData, this.bot, this.musicChannel);
+            messageReceived.author.send("You need to be in a voice channel for me to join!");
         }
         messageReceived.delete();
     }
 
     qSkip(messageReceived) {
-        if (!messageReceived.member.voice.channel)
-            return messageReceived.channel.send(
-                "You have to be in a voice channel to stop the music!"
-            );
-        if (!this.spotifyData)
-            return messageReceived.channel.send("There is no song that I could skip!");
-        this.spotifyData.connection.dispatcher.end();
+        if (!messageReceived.member.voice.channel) {
+            messageReceived.channel.send("You have to be in a voice channel to stop the music!");
+            return;
+        }
+        if (!this.spotifyData) {
+            messageReceived.channel.send("There is no song that I could skip!");
+            return;
+        }
+        if (this.spotifyData.connection.dispatcher) {
+            this.spotifyData.connection.dispatcher.end();
+            return;
+        }
         messageReceived.delete();
     }
 
     qStop(messageReceived) {
-        if (!messageReceived.member.voice.channel)
-            return messageReceived.channel.send(
-                "You have to be in a voice channel to stop the music!"
-            );
+        if (!messageReceived.member.voice.channel) {
+            messageReceived.channel.send("You have to be in a voice channel to stop the music!");
+            return;
+        }
         this.spotifyData.songs = [];
-        this.spotifyData.connection.dispatcher.end();
+        if (this.spotifyData.connection) {
+            this.spotifyData.connection.dispatcher.end();
+        }
+
+        this.updateList(this.spotifyData, this.bot, this.musicChannel);
         messageReceived.delete();
     }
 
@@ -241,8 +444,10 @@ class MusicClass {
                 console.log("\t-\tAdding " + data.title + " to the queue!");
                 this.spotifyData.songs.push({
                     id: data.video_id,
-                    title: data.title
+                    title: data.title,
+                    image: "https://i.ytimg.com/vi/" + data.video_id + "/default.jpg"
                 });
+                this.updateList(this.spotifyData, this.bot, this.musicChannel);
             });
         }
         messageReceived.delete();
@@ -259,59 +464,20 @@ class MusicClass {
         }, (err, r) => {
             if (!err) {
                 console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
-                self.spotifyData.songs.push({
+                this.spotifyData.songs.push({
                     id: r.videos[0].videoId,
-                    title: r.videos[0].title
+                    title: r.videos[0].title,
+                    image: "https://i.ytimg.com/vi/" + r.videos[0].videoId + "/default.jpg"
                 });
+                this.updateList(this.spotifyData, this.bot, this.musicChannel);
             }
         });
-
-        /*
-        Rate limited youtube api method
-
-        let options = {
-            part: "id,snippet",
-            type: "video",
-            q: argumentString,
-            key: this.googleToken
-        }
-
-        var self = this;
-
-        function fixedEncodeURIComponent(str) {
-            return encodeURIComponent(str).replace(/[-_.!~*'()]/g, function (c) {
-                return '%' + c.charCodeAt(0).toString(16);
-            });
-        }
-
-        let queryString = Object.keys(options)
-            .map(param => fixedEncodeURIComponent(param) + "=" + fixedEncodeURIComponent(options[param])).join('&');
-
-        request('https://www.googleapis.com/youtube/v3/search?' + queryString, (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let content = JSON.parse(body);
-                console.log("\t-\tAdding " + content.items[0].snippet.title + " to the queue!");
-                this.spotifyData.songs.push({
-                    id: content.items[0].id.videoId,
-                    title: content.items[0].snippet.title
-                });
-            } else {
-                console.error(error);
-            }
-        })*/
         messageReceived.delete();
     }
 
     qClear(messageReceived) {
         this.spotifyData.songs = [];
-        messageReceived.delete();
-    }
-
-    // TODO: rather than show the queue like this, edit a message when the queue is changed!  (At the moment there is a small improvement to how it shows)
-    qList(messageReceived) {
-        let songTitles = this.spotifyData.songs.map(song => song.title);
-        console.log("\t\t" + songTitles.join('\n\t\t'));
-        messageReceived.channel.send("The songs in the queue are:\n" + songTitles.join('\n'))
+        this.updateList(this.spotifyData, this.bot, this.musicChannel);
         messageReceived.delete();
     }
 
@@ -344,43 +510,8 @@ class MusicClass {
                                 });
                             }
                         });
-
-                        /*
-                        Old api method
-                        
-                        var options = {
-                            part: "id,snippet",
-                            type: "video",
-                            q: track.track.name + " " + track.track.artists[0].name,
-                            key: self.googleToken,
-                            maxResults: 1, // To keep the quota search low for the key
-                            type: "video", // Set to only return videos
-                            videoCategoryId: 10 // The code for music
-                        }
-
-                        function fixedEncodeURIComponent(str) {
-                            return encodeURIComponent(str).replace(/[-_.!~*'()]/g, function (c) {
-                                return '%' + c.charCodeAt(0).toString(16);
-                            });
-                        }
-
-                        let queryString = Object.keys(options)
-                            .map(param => fixedEncodeURIComponent(param) + "=" + fixedEncodeURIComponent(options[param])).join('&');
-
-                        request('https://www.googleapis.com/youtube/v3/search?' + queryString, (error, response, body) => {
-                            if (!error && response.statusCode == 200) {
-                                let content = JSON.parse(body);
-                                console.log("\t-\tAdding " + content.items[0].snippet.title + " to the queue!");
-                                self.spotifyData.songs.push({
-                                    id: content.items[0].id.videoId,
-                                    title: content.items[0].snippet.title
-                                });
-                            } else {
-                                console.error(error);
-                                console.log(body);
-                            }
-                        })*/
                     }
+                    self.updateList(self.spotifyData, self.bot, self.musicChannel);
                 }
             })
         }
@@ -404,11 +535,14 @@ class MusicClass {
                             if (playlist.name.includes(argumentString)) return playlist;
                         });
 
-                        if (result) addPlaylistToQ(result.href);
-                        else getPlaylist(offset + 50);
+                        if (result) {
+                            addPlaylistToQ(result.href);
+                            self.updateList(self.spotifyData, self.bot, self.musicChannel);
+                        } else getPlaylist(offset + 50);
                     } else if (response.statusCode == 401) {
                         console.log("\tToken expired, refreshing!");
                         self.refreshToken(messageReceived, self);
+                        getPlaylists(offset);
                     } else {
                         console.error(error);
                         console.log(body);
