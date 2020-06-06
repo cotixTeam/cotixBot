@@ -133,22 +133,6 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     general.bulkDelete(messageReceived, args);
                     break;
 
-                case 'qPlay':
-                    console.log("\tJoining the channel of the user!");
-                    console.log(messageReceived.member.voice);
-                    music.qPlay(messageReceived);
-                    break;
-
-                case 'qSkip':
-                    console.log("\tSkipping the current song!");
-                    music.qSkip(messageReceived);
-                    break;
-
-                case 'qStop':
-                    console.log("\tStopping the music playing!");
-                    music.qStop(messageReceived);
-                    break;
-
                 case 'qUrl':
                     console.log("\tAdding the youtube url to queue (if valid)!");
                     music.addByUrl(messageReceived, args);
@@ -157,16 +141,6 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                 case 'qSearch':
                     console.log("\tRunning qSearch!");
                     music.addBySearch(messageReceived, argumentString);
-                    break;
-
-                case 'qClear':
-                    console.log("\tClearing the queue!");
-                    music.qClear(messageReceived);
-                    break;
-
-                case 'qList':
-                    console.log("\tShowing the songs in the queue!");
-                    music.qList(messageReceived);
                     break;
 
                 case 'qSpotify': // WIP

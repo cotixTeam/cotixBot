@@ -19,21 +19,26 @@ function play(spotifyData, bot, musicChannel, musicClass) {
         })).on("finish", () => {
             if (spotifyData.skipped) {
                 spotifyData.skipped = false;
+                spotifyData.playing = true;
                 play(spotifyData, bot, musicChannel, musicClass);
             } else {
                 spotifyData.oldSongs.push(spotifyData.songs.pop());
                 if (!spotifyData.songs[spotifyData.songs.length - 1]) {
                     spotifyData.playing = false;
                     spotifyData.voiceChannel.leave();
-                    this.spotifyData.oldSongs = [];
+                    spotifyData.voiceChannel = null;
+                    spotifyData.connection = null;
+                    spotifyData.player = null;
+                    spotifyData.oldSongs = [];
                 } else {
+                    spotifyData.playing = true;
                     play(spotifyData, bot, musicChannel, musicClass);
                 }
             }
+            musicClass.updateList(spotifyData, bot, musicChannel);
         });
         spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
     }
-    musicClass.updateList(spotifyData, bot, musicChannel);
 }
 
 class MusicClass {
@@ -71,8 +76,6 @@ class MusicClass {
             this.spotifyData.accesses = new Map(JSON.parse(FileSystem.readFileSync(Path.join(__dirname + "/config/AccessMaps.json"))))
         }
 
-        var self = this;
-
         var webhook = Express();
 
         webhook.set('port', process.env.PORT || 3000);
@@ -96,81 +99,9 @@ class MusicClass {
                 "&state=" + req.query.code);
         });
 
-        webhook.get('/discordCallback', (req, res) => {
-            console.log("/discordCallback accessed!");
-            var localReq = req;
+        const discordCallback = require('./routes/discordCallback.js');
 
-            request.post({
-                url: 'https://discord.com/api/v6/oauth2/token',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                formData: {
-                    'client_id': auth.discordClientId,
-                    'client_secret': auth.discordClientSecret,
-                    'grant_type': 'authorization_code',
-                    'code': req.query.code,
-                    'redirect_uri': auth.discordCallback,
-                    'scope': 'identify'
-                }
-            }, (error, response, body) => {
-                if (!error & response.statusCode == 200) {
-                    var discordAuthContent = JSON.parse(body);
-
-                    request.get('https://discord.com/api/v6/users/@me', {
-                        headers: {
-                            Authorization: "Bearer " + discordAuthContent.access_token
-                        }
-                    }, (error, response, body) => {
-                        if (!error & response.statusCode == 200) {
-                            var discordUserContent = JSON.parse(body);
-
-                            console.log()
-
-                            request.post({
-                                url: 'https://accounts.spotify.com/api/token',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                    Authorization: "Basic " + Buffer.from(auth.spotifyClientId + ":" + auth.spotifyClientSecret).toString('base64')
-                                },
-                                form: {
-                                    grant_type: "authorization_code",
-                                    code: localReq.query.state,
-                                    redirect_uri: auth.spotifyCallback
-                                }
-                            }, (error, response, body) => {
-                                if (!error & response.statusCode == 200) {
-                                    let spotifyAuthContent = JSON.parse(body);
-
-                                    self.spotifyData.accesses.set(discordUserContent.id, {
-                                        spotifyCode: localReq.query.state,
-                                        spotifyRefresh: spotifyAuthContent.refresh_token,
-                                        spotifyAccess: spotifyAuthContent.access_token,
-                                        discordCode: localReq.query.code,
-                                        discordRefresh: discordAuthContent.refresh_token,
-                                        discordAccess: discordAuthContent.access_token
-                                    });
-
-                                    FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
-                                    console.log("Added access to Map:");
-                                    console.log(self.spotifyData.accesses.get(discordUserContent.id));
-                                } else {
-                                    console.log("Failed at https://accounts.spotify.com/api/token");
-                                    console.error(error);
-                                }
-                            });
-                        } else {
-                            console.log("Failed at https://discord.com/api/v6/users/@me");
-                            console.error(error);
-                        }
-                    });
-                } else {
-                    console.log("Failed at https://discord.com/api/v6/oauth2/token");
-                    console.error(error);
-                }
-            });
-            res.status(200).sendFile(Path.join(__dirname + "/config/spotifyLink.html"));
-        });
+        webhook.get('/discordCallback', (req, res) => discordCallback.post(req, res, auth, this));
 
         http.createServer(webhook).listen(webhook.get('port'), () => {
             console.log("Express server listening on port " + webhook.get("port"));
@@ -206,7 +137,7 @@ class MusicClass {
         await qMessage.reactions.removeAll();
         await qMessage.react('◀️');
         await qMessage.react('⏯️');
-        await qMessage.react('⏹️');
+        await qMessage.react('🇽');
         await qMessage.react('▶️');
         await qMessage.react('🔉');
         qMessage.react('🔊');
@@ -220,7 +151,7 @@ class MusicClass {
         let playPauseListener = qMessage.createReactionCollector(playPauseFilter, {
             time: 0
         });
-        let stopFilter = (reaction, user) => reaction.emoji.name == '⏹️' && reaction.count == 2;
+        let stopFilter = (reaction, user) => reaction.emoji.name == '🇽' && reaction.count == 2;
         let stopListener = qMessage.createReactionCollector(stopFilter, {
             time: 0
         });
@@ -246,7 +177,6 @@ class MusicClass {
             if (lastSong) {
                 this.spotifyData.songs.push(lastSong);
                 if (this.spotifyData.connection.dispatcher) {
-                    this.updateList(this.spotifyData, this.bot, this.musicChannel);
                     this.spotifyData.skipped = true;
                     this.spotifyData.connection.dispatcher.end();
                 }
@@ -291,7 +221,6 @@ class MusicClass {
                     } else {
                         user.send("You need to be in a voice channel for me to join!");
                     }
-                    this.updateList(this.spotifyData, this.bot, this.musicChannel);
                 }
             }
         });
@@ -303,8 +232,6 @@ class MusicClass {
             if (this.spotifyData.connection) {
                 this.spotifyData.connection.dispatcher.end();
             }
-
-            this.updateList(this.spotifyData, this.bot, this.musicChannel);
         });
 
         skipListener.on('collect', reaction => {
@@ -312,7 +239,6 @@ class MusicClass {
             if (this.spotifyData.connection.dispatcher) {
                 this.spotifyData.connection.dispatcher.end();
             }
-            this.updateList(this.spotifyData, this.bot, this.musicChannel);
         });
 
         decrVolListener.on('collect', reaction => {
@@ -332,7 +258,6 @@ class MusicClass {
     }
 
     async updateList(spotifyData, bot, musicChannel) {
-        var self = this;
         let Channel = await new Discord.Channel(bot, {
             id: musicChannel.id
         }).fetch();
@@ -392,13 +317,13 @@ class MusicClass {
                 }
             }
 
-            // Always run once so that if not exceeded the length, there is still a list to show
-            songLists.push({
-                "name": "Up Next:",
-                "value": workingString
-            });
+            if (workingString.length > 0) {
+                songLists.push({
+                    "name": "Up Next:",
+                    "value": workingString
+                });
+            }
 
-            // Append with the currently playing
             songLists.push({
                 "name": "Now Playing:",
                 "value": spotifyData.songs[spotifyData.songs.length - 1].title
@@ -420,68 +345,6 @@ class MusicClass {
                     }
                 });
         }
-    }
-
-    qList(messageReceived) {
-        this.updateList(this.spotifyData, this.bot, this.musicChannel);
-        messageReceived.delete();
-    }
-
-    async qPlay(messageReceived) {
-        let voiceChannel = messageReceived.member.voice.channel;
-
-        if (voiceChannel) {
-            let permissions = voiceChannel.permissionsFor(messageReceived.client.user);
-            if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
-
-                try {
-                    this.spotifyData.voiceChannel = voiceChannel;
-                    this.spotifyData.connection = await voiceChannel.join();
-                    this.spotifyData.playing = true;
-                    play(this.spotifyData, this.bot, this.musicChannel, this);
-                } catch (err) {
-                    this.spotifyData.playing = false;
-                    console.error(err);
-                }
-            } else {
-                messageReceived.author.send("I need permissions to be able to join the voice channel!");
-            }
-        } else {
-            this.updateList(this.spotifyData, this.bot, this.musicChannel);
-            messageReceived.author.send("You need to be in a voice channel for me to join!");
-        }
-        messageReceived.delete();
-    }
-
-    qSkip(messageReceived) {
-        if (!messageReceived.member.voice.channel) {
-            messageReceived.channel.send("You have to be in a voice channel to stop the music!");
-            return;
-        }
-        if (!this.spotifyData) {
-            messageReceived.channel.send("There is no song that I could skip!");
-            return;
-        }
-        if (this.spotifyData.connection.dispatcher) {
-            this.spotifyData.connection.dispatcher.end();
-            return;
-        }
-        messageReceived.delete();
-    }
-
-    qStop(messageReceived) {
-        if (!messageReceived.member.voice.channel) {
-            messageReceived.channel.send("You have to be in a voice channel to stop the music!");
-            return;
-        }
-        this.spotifyData.songs = [];
-        this.spotifyData.oldSongs = [];
-        if (this.spotifyData.connection) {
-            this.spotifyData.connection.dispatcher.end();
-        }
-
-        this.updateList(this.spotifyData, this.bot, this.musicChannel);
-        messageReceived.delete();
     }
 
     addByUrl(messageReceived, args) {
@@ -518,13 +381,6 @@ class MusicClass {
                 this.updateList(this.spotifyData, this.bot, this.musicChannel);
             }
         });
-        messageReceived.delete();
-    }
-
-    qClear(messageReceived) {
-        this.spotifyData.songs = [];
-        this.spotifyData.oldSongs = [];
-        this.updateList(this.spotifyData, this.bot, this.musicChannel);
         messageReceived.delete();
     }
 
