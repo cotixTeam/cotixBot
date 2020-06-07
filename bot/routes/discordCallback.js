@@ -56,21 +56,27 @@ exports.post = function (req, res, auth, self) {
                             });
 
                             FileSystem.writeFileSync(Path.join(__dirname + "/../config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
-                            console.log("Added access to Map:");
+                            console.log("-\tAdded access to Map:");
                             console.log(self.spotifyData.accesses.get(discordUserContent.id));
                         } else {
                             console.log("Failed at https://accounts.spotify.com/api/token");
+                            console.log(response.statusCode);
                             console.error(error);
+                            console.log(body);
                         }
                     });
                 } else {
                     console.log("Failed at https://discord.com/api/v6/users/@me");
+                    console.log(response.statusCode);
                     console.error(error);
+                    console.log(body);
                 }
             });
         } else {
             console.log("Failed at https://discord.com/api/v6/oauth2/token");
+            console.log(response.statusCode);
             console.error(error);
+            console.log(body);
         }
     });
     res.status(200).sendFile(Path.join(__dirname + "/../config/spotifyLink.html"));

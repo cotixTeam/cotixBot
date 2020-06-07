@@ -15,6 +15,7 @@ class IdeasClass {
     }
 
     async add(messageReceived, ideaArg) {
+        console.log("-\tAdding listeners to the idea: " + ideaArg + "!");
         await messageReceived.react('👍');
         messageReceived.react('👎');
 
@@ -31,6 +32,7 @@ class IdeasClass {
         });
 
         addListener.on('collect', reaction => {
+            console.log(ideaArg + " has received enough votes to be added!");
             new Discord.Message(this.bot, {
                     id: this.channel.todo
                 }, messageReceived.channel)
@@ -45,6 +47,7 @@ class IdeasClass {
         });
 
         rejectListener.on('collect', reaction => {
+            console.log(ideaArg + " has received enough rejections to be removed!");
             new Discord.Message(this.bot, {
                     id: this.channel.bad
                 }, messageReceived.channel)
@@ -60,6 +63,7 @@ class IdeasClass {
     }
 
     addVeto(messageReceived, idea) {
+        console.log("-\tBypassing votes and adding the idea: '" + ideaArg + "' to the list!");
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
@@ -75,6 +79,7 @@ class IdeasClass {
     }
 
     completed(messageReceived, queryIdea) {
+        console.log("-\tMarking anything with the string '" + queryIdea + "' as a completed idea!");
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
@@ -113,6 +118,7 @@ class IdeasClass {
     }
 
     unfinished(messageReceived, queryIdea) {
+        console.log("-\tMarking anything with the string '" + queryIdea + "' as an unfinished idea!");
         new Discord.Message(this.bot, {
                 id: this.channel.completed
             }, messageReceived.channel)
@@ -150,6 +156,7 @@ class IdeasClass {
     }
 
     remove(messageReceived, queryIdea) {
+        console.log("-\tRemoving anything with the string '" + queryIdea + "' as a todo idea!");
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)
@@ -174,6 +181,7 @@ class IdeasClass {
     }
 
     reset(messageReceived) {
+        console.log("-\tResetting the entire todo list!");
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)

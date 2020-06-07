@@ -48,6 +48,7 @@ class ReminderClass {
     }
 
     listEvents(messageReceived) {
+        console.log("-\tListing events that can be added to reminder!");
         let workingStrings = []
         let index = 0;
         for (let reminder of this.Reminders) {
@@ -65,6 +66,7 @@ class ReminderClass {
     }
 
     joinReminder(messageReceived, argumentString) {
+        console.log("-\tJoining notification list for event!");
         for (let reminder of this.Reminders) {
             if (reminder.name == argumentString) {
                 // Add the thing to the file
@@ -91,6 +93,7 @@ class ReminderClass {
     }
 
     leaveReminder(messageReceived, argumentString) {
+        console.log("-\tLeaving notification list for event!");
         for (let reminder of this.Reminders) {
             if (reminder.name == argumentString) {
                 // Remove the thing fromm the file

@@ -11,6 +11,7 @@ class LeaderboardClass {
     }
 
     reset(messageReceived, gameCheck) {
+        console.log("-\tResetting leaderboard (" + gameCheck + ")!");
         for (let game of this.channel.games) {
             if (gameCheck == game.name) {
                 new Discord.Message(this.bot, {
@@ -25,7 +26,6 @@ class LeaderboardClass {
     win(messageReceived, args) {
         for (let game of this.channel.games) {
             if (args[0] == game.name) {
-
                 new Discord.Message(this.bot, {
                         id: game.messageId
                     }, messageReceived.channel)
@@ -35,6 +35,7 @@ class LeaderboardClass {
                         let titleString = lines[0] + '\n';
                         lines = lines.splice(1);
                         let workingStrings = [];
+                        let losers = [];
 
                         lines.forEach((line, indexLine) => {
                             if (messageReceived.author.id == line.substr(3, 18)) {
@@ -43,6 +44,7 @@ class LeaderboardClass {
                                 args.forEach((arg, indexArg) => {
                                     if (arg.substr(3, 18) == line.substr(3, 18)) {
                                         workingStrings[indexLine] = line.substr(0, 27) + (parseInt(line.substr(27, 1)) + 1) + " \n";
+                                        losers.push(line.substr(3, 18));
                                     } else {
                                         workingStrings[indexLine] = line + " \n";
                                     }
@@ -51,6 +53,8 @@ class LeaderboardClass {
                         });
 
                         workingStrings = titleString.concat(workingStrings.join(''));
+
+                        console.log("-\tAdding win for " + messageReceived.author.id + " for " + game.name + " agaisnt " + losers.join(' & ') + "!");
 
                         editMessage
                             .edit(workingStrings);
@@ -75,6 +79,8 @@ class LeaderboardClass {
                         lines = lines.splice(1);
                         let workingStrings = [];
                         let first = true;
+                        let losers = [];
+                        let winner = "";
 
                         args = args.splice(1);
 
@@ -84,8 +90,10 @@ class LeaderboardClass {
                                     if (first == true) {
                                         first = false;
                                         workingStrings[indexLine] = line.substr(0, 25) + (parseInt(line.substr(25, 1)) + 1) + "/" + (parseInt(line.substr(27, 1)) + 1) + " \n";
+                                        winner = line.substr(3, 18);
                                     } else {
                                         workingStrings[indexLine] = line.substr(0, 25) + (parseInt(line.substr(25, 1))) + "/" + (parseInt(line.substr(27, 1)) + 1) + " \n";
+                                        losers.push(line.substr(3, 18));
                                     }
                                 } else if (indexArg == 0) {
                                     workingStrings[indexLine] = line + " \n";
@@ -94,6 +102,7 @@ class LeaderboardClass {
                         });
 
                         workingStrings = titleString.concat(workingStrings.join(''));
+                        console.log("-\tAdding win for " + winner + " for " + game.name + " agaisnt " + losers.join(' & ') + "!");
 
                         editMessage
                             .edit(workingStrings);

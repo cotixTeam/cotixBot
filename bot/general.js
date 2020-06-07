@@ -11,6 +11,7 @@ class GeneralClass {
     }
 
     notImplementedCommand(messageReceived, cmd) {
+        console.log("-\tNot implemented!");
         messageReceived.author
             .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
             .then((sentMessage) => {
@@ -23,6 +24,7 @@ class GeneralClass {
     }
 
     starWarsResponse(messageReceived) {
+        console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") included a star wars string!\n\tResponding with star wars gif");
         request('https://api.tenor.com/v1/search?q=' + "star wars" + '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU', (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 let content = JSON.parse(body)
@@ -35,6 +37,7 @@ class GeneralClass {
     }
 
     insultResponse(messageReceived) {
+        console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") mentioned the bot!\n\tResponding with insult");
         request('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 let content = JSON.parse(body)
@@ -94,6 +97,7 @@ class GeneralClass {
     }
 
     bulkDelete(messageReceived, args) {
+        console.log("-\tBulkDelete invoked, checking permissions!");
         let adminRoles = ["668465816894832641", "705760947721076756"]
         let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
 
@@ -129,6 +133,7 @@ class GeneralClass {
     }
 
     help(messageReceived) {
+        console.log("-\tSending a help list of all the commands to the user!");
         let message = "List of commands:";
         let commandList;
 
@@ -159,6 +164,7 @@ class GeneralClass {
     }
 
     eightBall(messageReceived, argumentString) {
+        console.log("-\tResponding with an 8 ball prediction!");
         let responses = ["As I see it, yes.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don’t count on it.", "It is certain.", "It is decidedly so.", "Most likely.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Outlook good.", "Reply hazy, try again.", "Signs point to yes.", "Very doubtful.", "Without a doubt.", "Yes.", "Yes – definitely.", "You may rely on it."]
         let randomNumber = Math.floor(Math.random() * responses.length);
         messageReceived
@@ -166,6 +172,7 @@ class GeneralClass {
     }
 
     camel(messageReceived, argumentString) {
+        console.log("-\tResponding with cAmEl FoNt!");
         let camelString = "";
         let camelIndex = 0;
 
@@ -192,15 +199,18 @@ class GeneralClass {
         args = args.splice(1);
         let quoteString = args.join(' ');
 
+        console.log("-\tQuote the string:" + quoteSting + " (by " + userId + ")!");
+
         this.quoteMacro(quoteString, userId, null);
         messageReceived.delete();
     }
 
     quoteId(messageReceived, args) {
-        // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
         let regexURIQuote = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
 
         let quoteMatch = args[0].match(regexURIQuote)
+
+        console.log("-\tQuoting the id'd message (" + quoteMatch + ")!");
 
         if (quoteMatch) {
             messageReceived.channel.messages
@@ -216,6 +226,7 @@ class GeneralClass {
     }
 
     quoteMessage(messageReceived, argumentString) {
+        console.log("-\tSearching for the message to quote (" + argumentString + ")!");
         messageReceived.channel.messages
             .fetch({
                 limit: 20
@@ -250,10 +261,10 @@ class GeneralClass {
     }
 
     toxicId(messageReceived, args) {
-        // Checks for 3 numbers, doesn't check yet if the channel or server are correct.
         let regexURIToxic = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
 
         let matchToxic = args[0].match(regexURIToxic)
+        console.log("-\tMarking the id'd message as toxic (" + matchToxic + ")!");
 
         if (matchToxic) {
             messageReceived.channel.messages
@@ -272,6 +283,7 @@ class GeneralClass {
     }
 
     toxic(messageReceived, argumentString) {
+        console.log("-\tSearching for the message to mark as toxic (" + argumentString + ")!");
         messageReceived.channel.messages
             .fetch({
                 limit: 20
@@ -291,6 +303,7 @@ class GeneralClass {
     }
 
     sendPlaceholder(messageReceived) {
+        console.log("-\tSending placeholder!");
         messageReceived.channel.send('Placeholder Message');
         messageReceived.delete();
     }

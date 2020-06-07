@@ -84,67 +84,54 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
             switch (cmd) { // General server wide commands
                 case "sendPlaceholder":
-                    console.log("\tSending placeholder!");
                     general.sendPlaceholder(messageReceived);
                     break;
 
                 case 'toxic':
-                    console.log("\tSearching for the message to mark as toxic!");
                     general.toxic(messageReceived, argumentString);
                     break;
 
                 case "toxicId":
-                    console.log("\tMarking the id'd message as toxic!");
                     general.toxicId(messageReceived, args);
                     break;
 
                 case 'quoteMessage':
-                    console.log("\tSearching for the message to quote!");
                     general.quoteMessage(messageReceived, argumentString);
                     break;
 
                 case 'quoteId':
-                    console.log("\tQuoting the id'd message!");
                     general.quoteId(messageReceived, args);
                     break;
 
                 case 'quote':
-                    console.log("\tQuote the string (not mentioned by anyone)!");
                     general.quote(messageReceived, args);
                     break;
 
                 case 'camel':
-                    console.log("\tResponding with cAmEl FoNt!");
                     general.camel(messageReceived, argumentString);
                     break;
 
                 case '8ball':
-                    console.log("\tResponding with an 8 ball prediction!");
                     general.eightBall(messageReceived, argumentString);
                     break;
 
                 case 'help':
-                    console.log("\tSending a help list of all the commands to the user!");
                     general.help(messageReceived);
                     break;
 
                 case 'bulkDelete':
-                    console.log("\tBulkDelete invoked, checking permissions!");
                     general.bulkDelete(messageReceived, args);
                     break;
 
                 case 'qUrl':
-                    console.log("\tAdding the youtube url to queue (if valid)!");
                     music.addByUrl(messageReceived, args);
                     break;
 
                 case 'qSearch':
-                    console.log("\tRunning qSearch!");
                     music.addBySearch(messageReceived, argumentString);
                     break;
 
-                case 'qSpotify': // WIP
-                    console.log("\tQueuing spotify!");
+                case 'qSpotify':
                     music.qSpotify(messageReceived, argumentString);
                     break;
 
@@ -163,22 +150,18 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         case "Settings":
                             switch (cmd) { // Channel specific commands
                                 case 'listEvents':
-                                    console.log("\tListing events that can be added to reminder!");
                                     reminder.listEvents(messageReceived);
                                     break;
 
                                 case 'joinReminder':
-                                    console.log("\tJoining notification list for event!");
                                     reminder.joinReminder(messageReceived, argumentString);
                                     break;
 
                                 case 'leaveReminder':
-                                    console.log("\tLeaving notification list for event!");
                                     reminder.leaveReminder(messageReceived, argumentString);
                                     break;
 
                                 default:
-                                    console.log("\tNot implemented!");
                                     general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
@@ -187,37 +170,30 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         case "Ideas":
                             switch (cmd) { // channel specific commands
                                 case 'add':
-                                    console.log("\tAdding idea!");
                                     ideas.add(messageReceived, argumentString);
                                     break;
 
                                 case 'addVeto':
-                                    console.log("\tAdding (without vote) idea!");
                                     ideas.addVeto(messageReceived, argumentString);
                                     break;
 
                                 case 'completed':
-                                    console.log("\tCompleting idea!");
                                     ideas.completed(messageReceived, argumentString);
                                     break;
 
                                 case 'unfinished':
-                                    console.log("\tUnfinishing idea!");
                                     ideas.unfinished(messageReceived, argumentString);
                                     break;
 
                                 case 'remove':
-                                    console.log("\tRemoving idea!");
                                     ideas.remove(messageReceived, argumentString);
                                     break;
 
                                 case 'reset':
-                                    console.log("\tClearing todo list!");
                                     ideas.reset(messageReceived);
                                     break;
 
                                 default:
-                                    console.log("\tNot implemented!");
                                     general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
@@ -227,39 +203,32 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                         case "Leaderboards":
                             switch (cmd) { // Channel specific commands
                                 case 'reset':
-                                    console.log("\tResetting leaderboard!");
                                     leaderboard.reset(messageReceived, args[0]);
                                     break;
 
                                 case 'win':
-                                    console.log("\tAdding win to leaderboard!");
                                     leaderboard.win(messageReceived, args);
                                     break;
 
                                 case 'winOther':
-                                    console.log("\tAdding win to leaderboard for other!");
                                     leaderboard.winOther(messageReceived, args);
                                     break;
 
                                 default:
-                                    console.log("\tNot implemented!");
                                     general.notImplementedCommand(messageReceived, cmd);
                                     break;
                             }
                             break;
 
                         default:
-                            console.log("\tNot implemented!");
                             general.notImplementedCommand(messageReceived, cmd);
                             break;
                     }
             }
         } else if (messageReceived.content.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
-            console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") mentioned the bot!\n\tResponding with insult");
             general.insultResponse(messageReceived);
 
         } else if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
-            console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") included a star wars string!\n\tResponding with star wars gif");
             general.starWarsResponse(messageReceived);
         }
     }

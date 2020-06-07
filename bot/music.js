@@ -18,12 +18,15 @@ function play(spotifyData, bot, musicChannel, musicClass) {
             filter: "audioonly"
         })).on("finish", () => {
             if (spotifyData.skipped) {
+                console.log("Song Skipped, starting next song!");
                 spotifyData.skipped = false;
                 spotifyData.playing = true;
                 play(spotifyData, bot, musicChannel, musicClass);
             } else {
+                console.log("Song finished!");
                 spotifyData.oldSongs.push(spotifyData.songs.pop());
                 if (!spotifyData.songs[spotifyData.songs.length - 1]) {
+                    console.log("-\tEnd of queue!");
                     spotifyData.playing = false;
                     spotifyData.voiceChannel.leave();
                     spotifyData.voiceChannel = null;
@@ -31,6 +34,7 @@ function play(spotifyData, bot, musicChannel, musicClass) {
                     spotifyData.player = null;
                     spotifyData.oldSongs = [];
                 } else {
+                    console.log("-\tPlaying next song!")
                     spotifyData.playing = true;
                     play(spotifyData, bot, musicChannel, musicClass);
                 }
@@ -168,35 +172,36 @@ class MusicClass {
             time: 0
         });
 
-
-        // TODO: Find a way to delete the users reaction automatically without re-ordering the whole message, for now, have the bot check only on adding a react
-
         backListener.on('collect', reaction => {
-            console.log("Music player, back pressed!");
+            console.log("Music: Previous!");
             let lastSong = this.spotifyData.oldSongs.pop();
             if (lastSong) {
+                console.log("-\tGoing back one song in the queue!");
                 this.spotifyData.songs.push(lastSong);
                 if (this.spotifyData.connection.dispatcher) {
                     this.spotifyData.skipped = true;
                     this.spotifyData.connection.dispatcher.end();
                 }
+            } else {
+                console.log("-\tNo song in the old queue! Cannot go back!");
             }
         });
 
         playPauseListener.on('collect', async reaction => {
-            console.log("Music player, playPause pressed! (currently playing: " + this.spotifyData.playing + ")");
+            console.log("Music: Play/Pause!");
 
             if (this.spotifyData.playing) {
-                // Pause
+                console.log("-\tPausing!");
                 this.spotifyData.player.pause();
                 this.spotifyData.playing = false;
 
             } else {
-                // Play
                 if (this.spotifyData.player) {
+                    console.log("-\tResuming!");
                     this.spotifyData.player.resume();
                     this.spotifyData.playing = true;
                 } else {
+                    console.log("-\tJoining the channel of the user and begining playing!");
                     let user = this.bot.channels.cache
                         .get(this.generalChannel.id).guild.members.cache
                         .get(reaction.users.cache.last().id);
@@ -216,9 +221,11 @@ class MusicClass {
                                 console.error(err);
                             }
                         } else {
+                            console.log("-\tUser is not in a channel with permissions for bot! Cannot join!");
                             user.send("I need permissions to be able to join the voice channel!");
                         }
                     } else {
+                        console.log("-\tUser is not in a channel with permissions for bot! Cannot join!");
                         user.send("You need to be in a voice channel for me to join!");
                     }
                 }
@@ -226,7 +233,7 @@ class MusicClass {
         });
 
         stopListener.on('collect', reaction => {
-            console.log("Music player, stop pressed!");
+            console.log("Music: Stop!");
             this.spotifyData.songs = [];
             this.spotifyData.oldSongs = [];
             if (this.spotifyData.connection) {
@@ -235,22 +242,22 @@ class MusicClass {
         });
 
         skipListener.on('collect', reaction => {
-            console.log("Music player, skip pressed!");
+            console.log("Music: Skip!");
             if (this.spotifyData.connection.dispatcher) {
                 this.spotifyData.connection.dispatcher.end();
             }
         });
 
         decrVolListener.on('collect', reaction => {
-            console.log("Music player, decrVol pressed!");
-            this.spotifyData.volume -= 1;
+            console.log("Music: Decrease Volume!");
+            if (this.spotifyData.volume > 0) this.spotifyData.volume -= 1;
             if (this.spotifyData.player)
                 this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
 
         incrVolListener.on('collect', reaction => {
-            console.log("Music player, incrVol pressed!");
-            this.spotifyData.volume += 1;
+            console.log("Music: Increase Volume!");
+            if (this.spotifyData.volume < 20) this.spotifyData.volume += 1;
             if (this.spotifyData.player)
                 this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
         });
@@ -258,6 +265,7 @@ class MusicClass {
     }
 
     async updateList(spotifyData, bot, musicChannel) {
+        console.log("Updating the music list!");
         let Channel = await new Discord.Channel(bot, {
             id: musicChannel.id
         }).fetch();
@@ -348,9 +356,10 @@ class MusicClass {
     }
 
     addByUrl(messageReceived, args) {
+        console.log("-\tAdding the youtube url to queue (if valid) [" + args[0] + "]!");
         if (ytdl.validateURL(args[0])) {
             ytdl.getInfo(args[0], (err, data) => {
-                console.log("\t-\tAdding " + data.title + " to the queue!");
+                console.log("-\t*\tAdding " + data.title + " to the queue! (From url " + data.video_url + ")");
                 this.spotifyData.songs.unshift({
                     id: data.video_id,
                     title: data.title,
@@ -363,7 +372,7 @@ class MusicClass {
     }
 
     addBySearch(messageReceived, argumentString) {
-        console.log("\t\tSearching for term on youtube (" + argumentString + ")!");
+        console.log("-\t*\tSearching for term on youtube (" + argumentString + ")!");
 
         ytSearch({
             query: argumentString,
@@ -372,19 +381,23 @@ class MusicClass {
             category: "music"
         }, (err, r) => {
             if (!err) {
-                console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
+                console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue!");
                 this.spotifyData.songs.unshift({
                     id: r.videos[0].videoId,
                     title: r.videos[0].title,
                     image: "https://i.ytimg.com/vi/" + r.videos[0].videoId + "/default.jpg"
                 });
                 this.updateList(this.spotifyData, this.bot, this.musicChannel);
+            } else {
+                console.log("Could not find the query song!");
+                console.error(err);
             }
         });
         messageReceived.delete();
     }
 
     qSpotify(messageReceived, argumentString) {
+        console.log("-\tQueuing spotify!");
         var self = this;
 
         function addPlaylistToQ(playlistUrl) {
@@ -405,32 +418,39 @@ class MusicClass {
                             category: "music"
                         }, (err, r) => {
                             if (!err) {
-                                console.log("\t-\tAdding " + r.videos[0].title + " to the queue!");
+                                console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue! (From query '" + track.track.name + "')");
                                 self.spotifyData.songs.unshift({
                                     id: r.videos[0].videoId,
                                     title: r.videos[0].title,
                                     image: track.track.album.images[1].url
                                 });
+                            } else {
+                                console.log("Could not find the query song (" + track.track.name + ")!");
+                                console.error(err);
                             }
                         });
                     }
                     self.updateList(self.spotifyData, self.bot, self.musicChannel);
+                } else {
+                    console.log("Accessing the users track failed!");
+                    console.log(response.statusCode);
+                    console.error(error);
+                    console.log(body);
                 }
             })
         }
 
         if (self.spotifyData.accesses.has(messageReceived.author.id)) {
-            console.log("\tThe user already has a token!");
+            console.log("-\tThe user already has a token!");
 
             function getPlaylists(offset) {
-                console.log("getPlaylists ran!");
                 request.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
                     headers: {
                         Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
                     }
                 }, (error, response, body) => {
                     if (!error & response.statusCode == 200) {
-                        console.log("\tAdding songs to queue!");
+                        console.log("-\tAdding songs to queue!");
 
                         let playlistsContent = JSON.parse(body);
 
@@ -443,10 +463,11 @@ class MusicClass {
                             self.updateList(self.spotifyData, self.bot, self.musicChannel);
                         } else getPlaylist(offset + 50);
                     } else if (response.statusCode == 401) {
-                        console.log("\tToken expired, refreshing!");
+                        console.log("-\tToken expired, refreshing!");
                         self.refreshToken(messageReceived, self);
                         getPlaylists(offset);
                     } else {
+                        console.log(response.statusCode);
                         console.error(error);
                         console.log(body);
                     }
@@ -456,8 +477,8 @@ class MusicClass {
             getPlaylists(0);
 
         } else {
-            console.log("\tRequesting the token for the user!");
-            messageReceived.author.send(".", {
+            console.log("-\tRequesting the token for the user!");
+            messageReceived.author.send("Connect your spotify account!", {
                 embed: {
                     "title": "Connect your spotify account",
                     "description": "[Click here to link your spotify account](" + this.spotifyRedirect + ")",
@@ -483,10 +504,7 @@ class MusicClass {
             }
         }, (error, response, body) => {
             if (!error & response.statusCode == 200) {
-                // Refresh access token
                 let spotifyAuthContent = JSON.parse(body);
-
-                console.log(spotifyAuthContent);
 
                 self.spotifyData.accesses.set(messageReceived.author.id, {
                     spotifyCode: self.spotifyData.accesses.get(messageReceived.author.id).spotifyCode,
@@ -498,7 +516,9 @@ class MusicClass {
                 });
 
                 FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+                console.log("-\tUpdated the user token!");
             } else {
+                console.log(response.statusCode);
                 console.error(error);
                 console.log(body);
             }
