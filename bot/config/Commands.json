@@ -48,18 +48,6 @@
     "description": "Deletes all unpinned messages (up to 100 in the chat) (needs moderator/admin permissions)."
 }, {
     "channel": "All",
-    "name": "!qPlay",
-    "description": "Joins your voice channel and plays the song at the top of the queue."
-}, {
-    "channel": "All",
-    "name": "!qSkip",
-    "description": "Skips the current song in the queue."
-}, {
-    "channel": "All",
-    "name": "!qStop",
-    "description": "Removes all entires in the queue and disconnects the bot from your channel."
-}, {
-    "channel": "All",
     "name": "!qUrl",
     "arguments": "[YouTube URL]",
     "description": "Adds the youtube url video to the queue for songs played."
@@ -68,14 +56,6 @@
     "name": "!qSearch",
     "arguments": "[Search query]",
     "description": "Searches youtube for your query and adds it to the song queue."
-}, {
-    "channel": "All",
-    "name": "!qClear",
-    "description": "Clears the queue (similar to !qStop, but does not have the bot leave immediately)."
-}, {
-    "channel": "All",
-    "name": "!qList",
-    "description": "Sends a message to the channel with the current list of songs in the queue."
 }, {
     "channel": "All",
     "name": "!qSpotify",
