@@ -224,13 +224,13 @@ class MusicClass {
         playPauseListener.on('collect', async reaction => {
             console.log("Music: Play/Pause!");
 
-            if (this.spotifyData.playing) {
+            if (this.spotifyData.playing && this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
                 console.log("-\tPausing!");
                 this.spotifyData.player.pause();
                 this.spotifyData.playing = false;
 
-            } else {
-                if (this.spotifyData.player) {
+            } else if (!this.spotifyData.playing) {
+                if (this.spotifyData.player && this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
                     console.log("-\tResuming!");
                     this.spotifyData.player.resume();
                     this.spotifyData.playing = true;
@@ -263,6 +263,13 @@ class MusicClass {
                         user.send("You need to be in a voice channel for me to join!");
                     }
                 }
+            } else {
+                console.log("Dispacter is dead!");
+                this.spotifyData.playing = false;
+                this.spotifyData.voiceChannel.leave();
+                this.spotifyData.voiceChannel = null;
+                this.spotifyData.connection = null;
+                this.spotifyData.player = null;
             }
         });
 
@@ -270,30 +277,60 @@ class MusicClass {
             console.log("Music: Stop!");
             this.spotifyData.songs = [];
             this.spotifyData.oldSongs = [];
-            if (this.spotifyData.connection) {
+            if (this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
                 this.spotifyData.connection.dispatcher.end();
+            } else {
+                console.log("Dispacter is already dead!");
+                this.spotifyData.playing = false;
+                this.spotifyData.voiceChannel.leave();
+                this.spotifyData.voiceChannel = null;
+                this.spotifyData.connection = null;
+                this.spotifyData.player = null;
             }
         });
 
         skipListener.on('collect', reaction => {
             console.log("Music: Skip!");
-            if (this.spotifyData.connection.dispatcher) {
+            if (this.spotifyData.connection && this.spotifyData.connection.dispatcher) {
                 this.spotifyData.connection.dispatcher.end();
+            } else {
+                console.log("Dispacter is dead!");
+                this.spotifyData.playing = false;
+                this.spotifyData.voiceChannel.leave();
+                this.spotifyData.voiceChannel = null;
+                this.spotifyData.connection = null;
+                this.spotifyData.player = null;
             }
         });
 
         decrVolListener.on('collect', reaction => {
             console.log("Music: Decrease Volume!");
             if (this.spotifyData.volume > 0) this.spotifyData.volume -= 1;
-            if (this.spotifyData.player)
+            if (this.spotifyData.player && this.spotifyData.connection && this.spotifyData.connection.dispatcher)
                 this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            else {
+                console.log("Dispacter is dead!");
+                this.spotifyData.playing = false;
+                this.spotifyData.voiceChannel.leave();
+                this.spotifyData.voiceChannel = null;
+                this.spotifyData.connection = null;
+                this.spotifyData.player = null;
+            }
         });
 
         incrVolListener.on('collect', reaction => {
             console.log("Music: Increase Volume!");
             if (this.spotifyData.volume < 20) this.spotifyData.volume += 1;
-            if (this.spotifyData.player)
+            if (this.spotifyData.player && this.spotifyData.connection && this.spotifyData.connection.dispatcher)
                 this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            else {
+                console.log("Dispacter is dead!");
+                this.spotifyData.playing = false;
+                this.spotifyData.voiceChannel.leave();
+                this.spotifyData.voiceChannel = null;
+                this.spotifyData.connection = null;
+                this.spotifyData.player = null;
+            }
         });
 
     }
@@ -439,7 +476,7 @@ class MusicClass {
                     Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
                 }
             }, (error, response, body) => {
-                if (!error & response.statusCode == 200) {
+                if (!error && response.statusCode == 200) {
                     let playlistObject = JSON.parse(body);
                     for (let track of playlistObject.tracks.items) {
 
@@ -480,7 +517,7 @@ class MusicClass {
                         Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
                     }
                 }, (error, response, body) => {
-                    if (!error & response.statusCode == 200) {
+                    if (!error && response.statusCode == 200) {
                         let playlistsContent = JSON.parse(body);
 
 
@@ -535,7 +572,7 @@ class MusicClass {
                 refresh_token: self.spotifyData.accesses.get(messageReceived.author.id).spotifyRefresh
             }
         }, (error, response, body) => {
-            if (!error & response.statusCode == 200) {
+            if (!error && response.statusCode == 200) {
                 let spotifyAuthContent = JSON.parse(body);
 
                 self.spotifyData.accesses.set(messageReceived.author.id, {
