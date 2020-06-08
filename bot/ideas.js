@@ -63,7 +63,7 @@ class IdeasClass {
     }
 
     addVeto(messageReceived, idea) {
-        console.log("-\tBypassing votes and adding the idea: '" + ideaArg + "' to the list!");
+        console.log("-\tBypassing votes and adding the idea: '" + idea + "' to the list!");
         new Discord.Message(this.bot, {
                 id: this.channel.todo
             }, messageReceived.channel)

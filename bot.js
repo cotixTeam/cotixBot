@@ -234,6 +234,13 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
     }
 });
 
+bot.on('voiceStateUpdate', (oldState, newState) => {
+    console.log("OldState:");
+    console.log(oldState);
+    console.log("NewState:");
+    console.log(newState);
+});
+
 // catch uncaught exceptions
 process
     .on('unhandledRejection', (reason, p) => {

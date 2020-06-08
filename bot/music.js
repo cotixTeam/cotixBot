@@ -8,6 +8,7 @@ const FileSystem = require('fs');
 const http = require('http');
 const ytSearch = require('yt-search');
 const Discord = require('discord.js');
+const AWS = require('aws-sdk');
 
 function play(spotifyData, bot, musicChannel, musicClass) {
     if (spotifyData.songs.length == 0) {
@@ -76,9 +77,13 @@ class MusicClass {
             accesses: new Map()
         };
 
-        if (FileSystem.existsSync(Path.join(__dirname + "/config/AccessMaps.json"))) {
-            this.spotifyData.accesses = new Map(JSON.parse(FileSystem.readFileSync(Path.join(__dirname + "/config/AccessMaps.json"))))
+        const SESConfig = {
+            apiVersion: "2006-03-01",
+            region: "eu-west-2"
         }
+        AWS.config.update(SESConfig);
+
+        this.initFileSystem();
 
         var webhook = Express();
 
@@ -112,6 +117,35 @@ class MusicClass {
         });
 
         this.initList(this.spotifyData, this.bot, this.musicChannel);
+    }
+
+    async initFileSystem() {
+        let s3 = new AWS.S3({
+            apiVersion: '2006-03-01'
+        });
+        if (await s3.headObject({
+                Bucket: "cotixbotstorage",
+                Key: Path.basename(__dirname + "/config/AccessMaps.json")
+            }, (err, data) => {
+                if (err && err.code === 'NotFound') {
+                    return false;
+                } else {
+                    return true;
+                }
+            }).promise().catch((err) => console.error(err))) {
+            let data = await s3.getObject({
+                Bucket: "cotixbotstorage",
+                Key: Path.basename(__dirname + "/config/AccessMaps.json")
+            }, (err, data) => {
+                if (err && err.code === 'NotFound') {
+                    console.error(err);
+                    console.log("Not Found");
+                } else {
+                    return JSON.parse(data.Body.toString());
+                }
+            }).promise();
+            this.spotifyData.accesses = new Map(JSON.parse(data.Body.toString()));
+        }
     }
 
     async initList(spotifyData, bot, musicChannel) {
@@ -265,7 +299,7 @@ class MusicClass {
     }
 
     async updateList(spotifyData, bot, musicChannel) {
-        console.log("Updating the music list!");
+        console.log("-\tUpdating the music list!");
         let Channel = await new Discord.Channel(bot, {
             id: musicChannel.id
         }).fetch();
@@ -389,19 +423,17 @@ class MusicClass {
                 });
                 this.updateList(this.spotifyData, this.bot, this.musicChannel);
             } else {
-                console.log("Could not find the query song!");
-                console.error(err);
+                console.error("Could not find the query song (" + argumentString + ")!");
             }
         });
         messageReceived.delete();
     }
 
     qSpotify(messageReceived, argumentString) {
-        console.log("-\tQueuing spotify!");
+        console.log("-\tQueuing spotify closest matching string (" + argumentString + ")!");
         var self = this;
 
         function addPlaylistToQ(playlistUrl) {
-
             request.get(playlistUrl, {
                 headers: {
                     Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
@@ -417,7 +449,7 @@ class MusicClass {
                             pageEnd: 1,
                             category: "music"
                         }, (err, r) => {
-                            if (!err) {
+                            if (!err && r.videos[0]) {
                                 console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue! (From query '" + track.track.name + "')");
                                 self.spotifyData.songs.unshift({
                                     id: r.videos[0].videoId,
@@ -425,12 +457,11 @@ class MusicClass {
                                     image: track.track.album.images[1].url
                                 });
                             } else {
-                                console.log("Could not find the query song (" + track.track.name + ")!");
-                                console.error(err);
+                                console.error("-\t*\t\tCould not find the query song (" + track.track.name + ")!");
                             }
+                            if (playlistObject.tracks.items[playlistObject.tracks.items.length - 1] == track) self.updateList(self.spotifyData, self.bot, self.musicChannel);
                         });
                     }
-                    self.updateList(self.spotifyData, self.bot, self.musicChannel);
                 } else {
                     console.log("Accessing the users track failed!");
                     console.log(response.statusCode);
@@ -450,18 +481,19 @@ class MusicClass {
                     }
                 }, (error, response, body) => {
                     if (!error & response.statusCode == 200) {
-                        console.log("-\tAdding songs to queue!");
-
                         let playlistsContent = JSON.parse(body);
+
 
                         let result = playlistsContent.items.find((playlist) => {
                             if (playlist.name.includes(argumentString)) return playlist;
                         });
 
                         if (result) {
+                            console.log("-\tAdding songs of playlist:'" + result.name + "' to queue!");
                             addPlaylistToQ(result.href);
-                            self.updateList(self.spotifyData, self.bot, self.musicChannel);
-                        } else getPlaylist(offset + 50);
+                        } else {
+                            getPlaylists(offset + 50);
+                        }
                     } else if (response.statusCode == 401) {
                         console.log("-\tToken expired, refreshing!");
                         self.refreshToken(messageReceived, self);
@@ -471,7 +503,7 @@ class MusicClass {
                         console.error(error);
                         console.log(body);
                     }
-                });
+                })
             }
 
             getPlaylists(0);
@@ -515,7 +547,23 @@ class MusicClass {
                     discordAccess: self.spotifyData.accesses.get(messageReceived.author.id).discordAccess
                 });
 
-                FileSystem.writeFileSync(Path.join(__dirname + "/config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+                let s3 = new AWS.S3({
+                    apiVersion: '2006-03-01'
+                });
+
+                s3.upload({
+                    Bucket: "cotixbotstorage",
+                    Key: Path.basename(__dirname + "/config/AccessMaps.json"),
+                    Body: JSON.stringify(Array.from(self.spotifyData.accesses))
+                }, (err, data) => {
+                    if (err) {
+                        console.log("Error", err);
+                    }
+                    if (data) {
+                        console.log("Upload Success", data);
+                    }
+                });
+
                 console.log("-\tUpdated the user token!");
             } else {
                 console.log(response.statusCode);

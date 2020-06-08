@@ -2,6 +2,13 @@ exports.post = function (req, res, auth, self) {
     const request = require('request');
     const Path = require('path');
     const FileSystem = require('fs');
+    const AWS = require('aws-sdk');
+
+    const SESConfig = {
+        apiVersion: "2006-03-01",
+        region: "eu-west-2"
+    }
+    AWS.config.update(SESConfig);
 
     console.log("/discordCallback accessed!");
     var localReq = req;
@@ -55,7 +62,22 @@ exports.post = function (req, res, auth, self) {
                                 discordAccess: discordAuthContent.access_token
                             });
 
-                            FileSystem.writeFileSync(Path.join(__dirname + "/../config/AccessMaps.json"), JSON.stringify(Array.from(self.spotifyData.accesses)));
+                            let s3 = new AWS.S3({
+                                apiVersion: '2006-03-01'
+                            });
+
+                            s3.upload({
+                                Bucket: "cotixbotstorage",
+                                Key: Path.basename(__dirname + "/config/AccessMaps.json"),
+                                Body: JSON.stringify(Array.from(self.spotifyData.accesses))
+                            }, (err, data) => {
+                                if (err) {
+                                    console.log("Error", err);
+                                }
+                                if (data) {
+                                    console.log("Upload Success", data);
+                                }
+                            });
                             console.log("-\tAdded access to Map:");
                             console.log(self.spotifyData.accesses.get(discordUserContent.id));
                         } else {

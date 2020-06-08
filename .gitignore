@@ -4,6 +4,7 @@
 /.git
 /.git/*
 /node_modules
+/.aws
 /.gitignore
 /bot/config/AccessMaps.json
 BotDevelopment.code-workspace
