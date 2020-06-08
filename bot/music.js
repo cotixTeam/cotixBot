@@ -149,6 +149,8 @@ class MusicClass {
     }
 
     async initList(spotifyData, bot, musicChannel) {
+        var self = this;
+
         let Channel = await new Discord.Channel(bot, {
             id: musicChannel.id
         }).fetch();
@@ -208,14 +210,12 @@ class MusicClass {
 
         backListener.on('collect', reaction => {
             console.log("Music: Previous!");
-            let lastSong = this.spotifyData.oldSongs.pop();
+            let lastSong = self.spotifyData.oldSongs.pop();
             if (lastSong) {
                 console.log("-\tGoing back one song in the queue!");
-                this.spotifyData.songs.push(lastSong);
-                if (this.spotifyData.connection.dispatcher) {
-                    this.spotifyData.skipped = true;
-                    this.spotifyData.connection.dispatcher.end();
-                }
+                self.spotifyData.songs.push(lastSong);
+                self.spotifyData.skipped = true;
+                self.spotifyData.connection.dispatcher.end();
             } else {
                 console.log("-\tNo song in the old queue! Cannot go back!");
             }
@@ -224,34 +224,34 @@ class MusicClass {
         playPauseListener.on('collect', async reaction => {
             console.log("Music: Play/Pause!");
 
-            if (this.spotifyData.playing && this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
+            if (self.spotifyData.playing && self.spotifyData.connection && self.spotiftyData.connection.dispatcher) {
                 console.log("-\tPausing!");
-                this.spotifyData.player.pause();
-                this.spotifyData.playing = false;
+                self.spotifyData.player.pause();
+                self.spotifyData.playing = false;
 
-            } else if (!this.spotifyData.playing) {
-                if (this.spotifyData.player && this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
+            } else if (!self.spotifyData.playing) {
+                if (self.spotifyData.player && self.spotifyData.connection && self.spotiftyData.connection.dispatcher) {
                     console.log("-\tResuming!");
-                    this.spotifyData.player.resume();
-                    this.spotifyData.playing = true;
+                    self.spotifyData.player.resume();
+                    self.spotifyData.playing = true;
                 } else {
                     console.log("-\tJoining the channel of the user and begining playing!");
-                    let user = this.bot.channels.cache
-                        .get(this.generalChannel.id).guild.members.cache
+                    let user = self.bot.channels.cache
+                        .get(self.generalChannel.id).guild.members.cache
                         .get(reaction.users.cache.last().id);
 
                     let voiceChannel = user.voice.channel;
                     if (voiceChannel) {
-                        let permissions = voiceChannel.permissionsFor(this.bot.user);
+                        let permissions = voiceChannel.permissionsFor(self.bot.user);
                         if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
 
                             try {
-                                this.spotifyData.voiceChannel = voiceChannel;
-                                this.spotifyData.connection = await voiceChannel.join();
-                                this.spotifyData.playing = true;
-                                play(this.spotifyData, this.bot, this.musicChannel, this);
+                                self.spotifyData.voiceChannel = voiceChannel;
+                                self.spotifyData.connection = await voiceChannel.join();
+                                self.spotifyData.playing = true;
+                                play(self.spotifyData, self.bot, self.musicChannel, self);
                             } catch (err) {
-                                this.spotifyData.playing = false;
+                                self.spotifyData.playing = false;
                                 console.error(err);
                             }
                         } else {
@@ -265,71 +265,72 @@ class MusicClass {
                 }
             } else {
                 console.log("Dispacter is dead!");
-                this.spotifyData.playing = false;
-                this.spotifyData.voiceChannel.leave();
-                this.spotifyData.voiceChannel = null;
-                this.spotifyData.connection = null;
-                this.spotifyData.player = null;
+                self.spotifyData.playing = false;
+                self.spotifyData.voiceChannel.leave();
+                self.spotifyData.voiceChannel = null;
+                self.spotifyData.connection = null;
+                self.spotifyData.player = null;
             }
         });
 
         stopListener.on('collect', reaction => {
             console.log("Music: Stop!");
-            this.spotifyData.songs = [];
-            this.spotifyData.oldSongs = [];
-            if (this.spotifyData.connection && this.spotiftyData.connection.dispatcher) {
-                this.spotifyData.connection.dispatcher.end();
+            self.spotifyData.songs = [];
+            self.spotifyData.oldSongs = [];
+            if (self.spotifyData &&
+                self.spotifyData.connection) {
+                self.spotifyData.connection.dispatcher.end();
             } else {
                 console.log("Dispacter is already dead!");
-                this.spotifyData.playing = false;
-                this.spotifyData.voiceChannel.leave();
-                this.spotifyData.voiceChannel = null;
-                this.spotifyData.connection = null;
-                this.spotifyData.player = null;
+                self.spotifyData.playing = false;
+                if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
+                self.spotifyData.voiceChannel = null;
+                self.spotifyData.connection = null;
+                self.spotifyData.player = null;
             }
         });
 
         skipListener.on('collect', reaction => {
             console.log("Music: Skip!");
-            if (this.spotifyData.connection && this.spotifyData.connection.dispatcher) {
-                this.spotifyData.connection.dispatcher.end();
+            if (self.spotifyData.connection) {
+                self.spotifyData.connection.dispatcher.end();
             } else {
                 console.log("Dispacter is dead!");
-                this.spotifyData.playing = false;
-                this.spotifyData.voiceChannel.leave();
-                this.spotifyData.voiceChannel = null;
-                this.spotifyData.connection = null;
-                this.spotifyData.player = null;
+                self.spotifyData.playing = false;
+                self.spotifyData.voiceChannel.leave();
+                self.spotifyData.voiceChannel = null;
+                self.spotifyData.connection = null;
+                self.spotifyData.player = null;
             }
         });
 
         decrVolListener.on('collect', reaction => {
             console.log("Music: Decrease Volume!");
-            if (this.spotifyData.volume > 0) this.spotifyData.volume -= 1;
-            if (this.spotifyData.player && this.spotifyData.connection && this.spotifyData.connection.dispatcher)
-                this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            if (self.spotifyData.volume > 0) self.spotifyData.volume -= 1;
+            if (self.spotifyData.player && self.spotifyData.connection)
+                self.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
             else {
                 console.log("Dispacter is dead!");
-                this.spotifyData.playing = false;
-                this.spotifyData.voiceChannel.leave();
-                this.spotifyData.voiceChannel = null;
-                this.spotifyData.connection = null;
-                this.spotifyData.player = null;
+                self.spotifyData.playing = false;
+                self.spotifyData.voiceChannel.leave();
+                self.spotifyData.voiceChannel = null;
+                self.spotifyData.connection = null;
+                self.spotifyData.player = null;
             }
         });
 
         incrVolListener.on('collect', reaction => {
             console.log("Music: Increase Volume!");
-            if (this.spotifyData.volume < 20) this.spotifyData.volume += 1;
-            if (this.spotifyData.player && this.spotifyData.connection && this.spotifyData.connection.dispatcher)
-                this.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
+            if (self.spotifyData.volume < 20) self.spotifyData.volume += 1;
+            if (self.spotifyData.player && self.spotifyData.connection)
+                self.spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
             else {
                 console.log("Dispacter is dead!");
-                this.spotifyData.playing = false;
-                this.spotifyData.voiceChannel.leave();
-                this.spotifyData.voiceChannel = null;
-                this.spotifyData.connection = null;
-                this.spotifyData.player = null;
+                self.spotifyData.playing = false;
+                self.spotifyData.voiceChannel.leave();
+                self.spotifyData.voiceChannel = null;
+                self.spotifyData.connection = null;
+                self.spotifyData.player = null;
             }
         });
 
