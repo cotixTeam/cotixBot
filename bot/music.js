@@ -29,7 +29,7 @@ function play(spotifyData, bot, musicChannel, musicClass) {
                 if (!spotifyData.songs[spotifyData.songs.length - 1]) {
                     console.log("-\tEnd of queue!");
                     spotifyData.playing = false;
-                    if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
+                    if (spotifyData.voiceChannel) spotifyData.voiceChannel.leave();
                     spotifyData.voiceChannel = null;
                     spotifyData.connection = null;
                     spotifyData.player = null;
