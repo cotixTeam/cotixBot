@@ -29,7 +29,7 @@ function play(spotifyData, bot, musicChannel, musicClass) {
                 if (!spotifyData.songs[spotifyData.songs.length - 1]) {
                     console.log("-\tEnd of queue!");
                     spotifyData.playing = false;
-                    spotifyData.voiceChannel.leave();
+                    if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
                     spotifyData.voiceChannel = null;
                     spotifyData.connection = null;
                     spotifyData.player = null;
@@ -123,9 +123,10 @@ class MusicClass {
         let s3 = new AWS.S3({
             apiVersion: '2006-03-01'
         });
+
         if (await s3.headObject({
-                Bucket: "cotixbotstorage",
-                Key: Path.basename(__dirname + "/config/AccessMaps.json")
+                Bucket: "store.mmrree.co.uk",
+                Key: "config/AccessMaps.json"
             }, (err, data) => {
                 if (err && err.code === 'NotFound') {
                     return false;
@@ -134,8 +135,8 @@ class MusicClass {
                 }
             }).promise().catch((err) => console.error(err))) {
             let data = await s3.getObject({
-                Bucket: "cotixbotstorage",
-                Key: Path.basename(__dirname + "/config/AccessMaps.json")
+                Bucket: "store.mmrree.co.uk",
+                Key: "config/AccessMaps.json"
             }, (err, data) => {
                 if (err && err.code === 'NotFound') {
                     console.error(err);
@@ -266,7 +267,7 @@ class MusicClass {
             } else {
                 console.log("Dispacter is dead!");
                 self.spotifyData.playing = false;
-                self.spotifyData.voiceChannel.leave();
+                if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
                 self.spotifyData.voiceChannel = null;
                 self.spotifyData.connection = null;
                 self.spotifyData.player = null;
@@ -297,7 +298,7 @@ class MusicClass {
             } else {
                 console.log("Dispacter is dead!");
                 self.spotifyData.playing = false;
-                self.spotifyData.voiceChannel.leave();
+                if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
                 self.spotifyData.voiceChannel = null;
                 self.spotifyData.connection = null;
                 self.spotifyData.player = null;
@@ -312,7 +313,7 @@ class MusicClass {
             else {
                 console.log("Dispacter is dead!");
                 self.spotifyData.playing = false;
-                self.spotifyData.voiceChannel.leave();
+                if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
                 self.spotifyData.voiceChannel = null;
                 self.spotifyData.connection = null;
                 self.spotifyData.player = null;
@@ -327,7 +328,7 @@ class MusicClass {
             else {
                 console.log("Dispacter is dead!");
                 self.spotifyData.playing = false;
-                self.spotifyData.voiceChannel.leave();
+                if (self.spotifyData.voiceChannel) self.spotifyData.voiceChannel.leave();
                 self.spotifyData.voiceChannel = null;
                 self.spotifyData.connection = null;
                 self.spotifyData.player = null;
@@ -590,8 +591,8 @@ class MusicClass {
                 });
 
                 s3.upload({
-                    Bucket: "cotixbotstorage",
-                    Key: Path.basename(__dirname + "/config/AccessMaps.json"),
+                    Bucket: "store.mmrree.co.uk",
+                    Key: "config/AccessMaps.json",
                     Body: JSON.stringify(Array.from(self.spotifyData.accesses))
                 }, (err, data) => {
                     if (err) {

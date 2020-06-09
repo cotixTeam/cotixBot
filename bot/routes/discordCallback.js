@@ -67,8 +67,8 @@ exports.post = function (req, res, auth, self) {
                             });
 
                             s3.upload({
-                                Bucket: "cotixbotstorage",
-                                Key: Path.basename(__dirname + "/config/AccessMaps.json"),
+                                Bucket: "store.mmrree.co.uk",
+                                Key: "config/AccessMaps.json",
                                 Body: JSON.stringify(Array.from(self.spotifyData.accesses))
                             }, (err, data) => {
                                 if (err) {
