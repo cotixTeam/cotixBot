@@ -18,9 +18,67 @@ class GeneralClass {
                 messageReceived
                     .reply("is an idiot, he wrote the command: " + messageReceived.content)
                     .then(() => {
-                        messageReceived.delete();
+                        if (messageReceived.guild != null) messageReceived.delete();
                     });
             });
+    }
+
+    stats(messageReceived, userStatsMap) {
+        if (userStatsMap.has(messageReceived.author.id)) {
+            let fields = []
+            userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
+                this.bot.channels.cache.forEach(serverChannel => {
+                    if (serverChannel.id == statId) {
+                        if (statChannel.type == "voice") {
+
+                            function msToTime(duration) {
+                                var milliseconds = parseInt((duration % 1000) / 100),
+                                    seconds = Math.floor((duration / 1000) % 60),
+                                    minutes = Math.floor((duration / (1000 * 60)) % 60),
+                                    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+                                seconds = (seconds < 10 && (minutes > 0 || hours > 0)) ? "0" + seconds : seconds;
+                                minutes = (minutes < 10 && hours > 0) ? "0" + minutes : minutes;
+                                hours = (hours < 10) ? "0" + hours : hours;
+
+                                if (seconds.valueOf() > 0) {
+                                    if (minutes.valueOf() > 0) {
+                                        if (hours.valueOf() > 0) {
+                                            return hours + " hours, " + minutes + " minutes and " + seconds + " seconds";
+                                        }
+                                        return minutes + " minutes and " + seconds + " seconds";
+                                    }
+                                    return seconds + " seconds";
+                                }
+                                return milliseconds + " milliseconds";
+                            }
+
+                            fields.push({
+                                name: serverChannel.name,
+                                value: "You have spent a total of " + msToTime(statChannel.totalTime) + " in this channel!"
+                            })
+                        } else if (statChannel.type == "text") {
+                            fields.push({
+                                name: serverChannel.name,
+                                value: "You have sent " + statChannel.messageCount + " messsages to this channel!"
+                            })
+                        }
+                    }
+                });
+            });
+
+            messageReceived.author.send({
+                "content": "Your statistics",
+                "embed": {
+                    "title": "Stats",
+                    "description": "Showing " + messageReceived.author.username + "'s Stats...",
+                    "fields": fields
+                }
+            });
+        } else {
+            messageReceived.author.send("You have no stats on record!");
+        }
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     starWarsResponse(messageReceived) {
@@ -129,7 +187,7 @@ class GeneralClass {
             messageReceived.author
                 .send("Hi " + messageReceived.author.username + ",\nYou do not have the permissions for the bulkDelete command!");
         }
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     help(messageReceived) {
@@ -160,7 +218,7 @@ class GeneralClass {
         }
         messageReceived.author
             .send(message);
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     eightBall(messageReceived, argumentString) {
@@ -191,7 +249,7 @@ class GeneralClass {
         messageReceived.channel
             .send("> " + camelString + "\n- <@!" + messageReceived.author.id + ">");
 
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     quote(messageReceived, args) {
@@ -202,7 +260,7 @@ class GeneralClass {
         console.log("-\tQuote the string:" + quoteSting + " (by " + userId + ")!");
 
         this.quoteMacro(quoteString, userId, null);
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     quoteId(messageReceived, args) {
@@ -222,7 +280,7 @@ class GeneralClass {
                 })
         }
 
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     quoteMessage(messageReceived, argumentString) {
@@ -238,7 +296,7 @@ class GeneralClass {
                     }
                 });
             }).catch(err => console.error(err));
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     quoteMacro(quoteMessageContent, userId, time) {
@@ -279,7 +337,7 @@ class GeneralClass {
                     console.error(err)
                 })
         }
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     toxic(messageReceived, argumentString) {
@@ -299,13 +357,13 @@ class GeneralClass {
                     }
                 });
             }).catch(err => console.error(err));
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     sendPlaceholder(messageReceived) {
         console.log("-\tSending placeholder!");
         messageReceived.channel.send('Placeholder Message');
-        messageReceived.delete();
+        if (messageReceived.guild != null) messageReceived.delete();
     }
 }
 

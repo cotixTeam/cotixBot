@@ -1,6 +1,7 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
 const FileSystem = require('fs');
+const AWS = require('aws-sdk');
 
 // Custom classes
 const GeneralClass = require('./bot/general.js');
@@ -44,6 +45,23 @@ try {
     process.exit();
 }
 
+function JSONObjectToMap(JSONObject) {
+    let map = new Map();
+    let object = {};
+    let objectRet = false;
+    for (let key of Object.keys(JSONObject)) {
+        if (JSONObject[key] instanceof Object) {
+            map.set(key, JSONObjectToMap(JSONObject[key]));
+        } else {
+            objectRet = true;
+            object[key.toString()] = JSONObject[key];
+        }
+    }
+
+    if (objectRet) return object;
+    return map;
+}
+
 // Object creation
 const bot = new Discord.Client();
 var ideas = null;
@@ -54,7 +72,9 @@ var music = null;
 
 bot.login(auth.discordBotToken);
 
-bot.on('ready', () => { // Run init code
+var userStatsMap = new Map();
+
+bot.on('ready', async () => { // Run init code
     console.log('Connected!');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
@@ -65,10 +85,52 @@ bot.on('ready', () => { // Run init code
     music = new MusicClass.MusicClass(bot, Channels, auth);
 
     general.initCleanChannelsTimouts(bot, Channels);
+
+    let s3 = new AWS.S3({
+        apiVersion: '2006-03-01'
+    });
+
+    let tempStorage = await s3.getObject({
+        Bucket: "store.mmrree.co.uk",
+        Key: "stats/Users.json"
+    }, (err, data) => {
+        if (err && err.code === 'NotFound') {
+            console.error(err);
+            console.log("Not Found");
+        } else {
+            return JSON.parse(data.Body.toString());
+        }
+    }).promise();
+
+    userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
+
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
+        if (messageReceived.guild != null) { // If a DM
+            if (!userStatsMap.get(messageReceived.author.id)) userStatsMap.set(messageReceived.author.id, new Map());
+            userStatsMap.get(messageReceived.author.id).set(messageReceived.channel.id, {
+                messageCount: userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id) ? userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id).messageCount + 1 : 1,
+                type: "text"
+            });
+
+            let s3 = new AWS.S3({
+                apiVersion: '2006-03-01'
+            });
+            s3.upload({
+                Bucket: "store.mmrree.co.uk",
+                Key: "stats/Users.json",
+                Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
+            }, (err, data) => {
+                if (err) {
+                    console.log("Error", err);
+                }
+                if (data) {
+                    console.log("-\tUpdated message counter, upload successful!");
+                }
+            });
+        }
 
         let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/]
 
@@ -85,6 +147,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
             switch (cmd) { // General server wide commands
                 case "sendPlaceholder":
                     general.sendPlaceholder(messageReceived);
+                    break;
+
+                case 'stats':
+                    general.stats(messageReceived, userStatsMap);
                     break;
 
                 case 'toxic':
@@ -234,12 +300,73 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
     }
 });
 
-/*bot.on('voiceStateUpdate', (oldState, newState) => {
-    console.log("OldState:");
-    console.log(oldState);
-    console.log("NewState:");
-    console.log(newState);
-});*/
+function convertNestedMapsToStringify(map) {
+    let listObjects = {};
+    for (let [key, value] of map) {
+        if (value instanceof Map) {
+            listObjects[key] = convertNestedMapsToStringify(value);
+        } else {
+            listObjects[key] = value;
+        }
+    }
+    return listObjects;
+}
+
+bot.on('voiceStateUpdate', async (oldState, newState) => {
+    let s3 = new AWS.S3({
+        apiVersion: '2006-03-01'
+    });
+    if (newState.channelID != oldState.channelID) {
+        if (newState.channelID) {
+            if (!userStatsMap.get(newState.id)) userStatsMap.set(newState.id, new Map());
+            if (userStatsMap.get(newState.id).get(oldState.channelID)) {
+                let difference = new Date().getTime() - new Date(userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
+                userStatsMap.get(newState.id).set(oldState.channelID, {
+                    totalTime: (userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(oldState.channelID).totalTime) ? userStatsMap.get(newState.id).get(oldState.channelID).totalTime : 0 + difference,
+                    startTime: null,
+                    type: "voice"
+                });
+                s3.upload({
+                    Bucket: "store.mmrree.co.uk",
+                    Key: "stats/Users.json",
+                    Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
+                }, (err, data) => {
+                    if (err) {
+                        console.log("Error", err);
+                    }
+                    if (data) {
+                        console.log("-\tLeft a channel, upload successful!");
+                    }
+                });
+            };
+            userStatsMap.get(newState.id).set(newState.channelID, {
+                totalTime: new Date((userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(newState.channelId).totalTime) ? userStatsMap.get(newStat.id).get(newState.channelId).totalTime : 0).getTime(),
+                startTime: new Date().getTime()
+            });
+            // Save to bucket
+            if (oldState.channelID) console.log(userStatsMap.get(newState.id).get(oldState.channelID));
+        } else if (oldState.channelID) {
+            let difference = new Date().getTime() - new Date(userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
+            userStatsMap.get(newState.id).set(oldState.channelID, {
+                totalTime: (userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(newState.channelId).totalTime) ? userStatsMap.get(newState.id).get(oldState.channelID).totalTime : 0 + difference,
+                startTime: null,
+                type: "voice"
+            });
+            s3.upload({
+                Bucket: "store.mmrree.co.uk",
+                Key: "stats/Users.json",
+                Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
+            }, (err, data) => {
+                if (err) {
+                    console.log("Error", err);
+                }
+                if (data) {
+                    console.log("-\tLeft a channel, upload successful!");
+                }
+            });
+        }
+    }
+});
 
 // catch uncaught exceptions
 process
