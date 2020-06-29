@@ -78,13 +78,12 @@ bot.on('ready', async () => { // Run init code
     console.log('Connected!');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
-    general = new GeneralClass.GeneralClass(bot, Channels);
-    ideas = new IdeasClass.IdeasClass(bot, Channels);
-    leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
-    reminder = new ReminderClass.ReminderClass(bot, Channels);
-    music = new MusicClass.MusicClass(bot, Channels, auth);
+    const SESConfig = {
+        apiVersion: "2006-03-01",
+        region: "eu-west-2"
+    }
 
-    general.initCleanChannelsTimouts(bot, Channels);
+    AWS.config.update(SESConfig);
 
     let s3 = new AWS.S3({
         apiVersion: '2006-03-01'
@@ -97,6 +96,8 @@ bot.on('ready', async () => { // Run init code
         if (err && err.code === 'NotFound') {
             console.error(err);
             console.log("Not Found");
+        } else if (err) {
+            console.error(err);
         } else {
             return JSON.parse(data.Body.toString());
         }
@@ -104,38 +105,21 @@ bot.on('ready', async () => { // Run init code
 
     userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
 
+    general = new GeneralClass.GeneralClass(bot, Channels, userStatsMap);
+    ideas = new IdeasClass.IdeasClass(bot, Channels);
+    leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
+    reminder = new ReminderClass.ReminderClass(bot, Channels);
+    music = new MusicClass.MusicClass(bot, Channels, auth);
+
+    general.initCleanChannelsTimouts();
+    general.initHourlyUpdater();
+
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
     if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
-        if (messageReceived.guild != null) { // If a DM
-            if (!userStatsMap.get(messageReceived.author.id)) userStatsMap.set(messageReceived.author.id, new Map());
-            userStatsMap.get(messageReceived.author.id).set(messageReceived.channel.id, {
-                messageCount: userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id) ? userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id).messageCount + 1 : 1,
-                type: "text"
-            });
-
-            let s3 = new AWS.S3({
-                apiVersion: '2006-03-01'
-            });
-            s3.upload({
-                Bucket: "store.mmrree.co.uk",
-                Key: "stats/Users.json",
-                Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
-            }, (err, data) => {
-                if (err) {
-                    console.log("Error", err);
-                }
-                if (data) {
-                    console.log("-\tUpdated message counter, upload successful!");
-                }
-            });
-        }
-
-        let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/]
-
+        console.log(messageReceived.author.username + " sent '" + messageReceived.content + "':");
         if (messageReceived.content.substring(0, 1) == "!") { // If its a command
-            console.log(messageReceived.author.username + " sent '" + messageReceived.content + "':");
 
             let args = messageReceived.content.substring(1).split(' ');
             let cmd = args[0];
@@ -149,8 +133,12 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     general.sendPlaceholder(messageReceived);
                     break;
 
+                case 'resetStats':
+                    general.resetStats(messageReceived);
+                    break;
+
                 case 'stats':
-                    general.stats(messageReceived, userStatsMap);
+                    general.stats(messageReceived);
                     break;
 
                 case 'toxic':
@@ -291,81 +279,25 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             break;
                     }
             }
-        } else if (messageReceived.content.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
-            general.insultResponse(messageReceived);
+        } else { // If not a command
+            general.updateMessageStats(messageReceived, userStatsMap);
 
-        } else if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
-            general.starWarsResponse(messageReceived);
+            if (messageReceived.content.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
+                general.insultResponse(messageReceived);
+            }
+
+            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/]
+
+            if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
+                general.starWarsResponse(messageReceived);
+            }
         }
     }
 });
 
-function convertNestedMapsToStringify(map) {
-    let listObjects = {};
-    for (let [key, value] of map) {
-        if (value instanceof Map) {
-            listObjects[key] = convertNestedMapsToStringify(value);
-        } else {
-            listObjects[key] = value;
-        }
-    }
-    return listObjects;
-}
 
-bot.on('voiceStateUpdate', async (oldState, newState) => {
-    let s3 = new AWS.S3({
-        apiVersion: '2006-03-01'
-    });
-    if (newState.channelID != oldState.channelID) {
-        if (newState.channelID) {
-            if (!userStatsMap.get(newState.id)) userStatsMap.set(newState.id, new Map());
-            if (userStatsMap.get(newState.id).get(oldState.channelID)) {
-                let difference = new Date().getTime() - new Date(userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
-                userStatsMap.get(newState.id).set(oldState.channelID, {
-                    totalTime: (userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(oldState.channelID).totalTime) ? userStatsMap.get(newState.id).get(oldState.channelID).totalTime : 0 + difference,
-                    startTime: null,
-                    type: "voice"
-                });
-                s3.upload({
-                    Bucket: "store.mmrree.co.uk",
-                    Key: "stats/Users.json",
-                    Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
-                }, (err, data) => {
-                    if (err) {
-                        console.log("Error", err);
-                    }
-                    if (data) {
-                        console.log("-\tLeft a channel, upload successful!");
-                    }
-                });
-            };
-            userStatsMap.get(newState.id).set(newState.channelID, {
-                totalTime: new Date((userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(newState.channelId).totalTime) ? userStatsMap.get(newStat.id).get(newState.channelId).totalTime : 0).getTime(),
-                startTime: new Date().getTime()
-            });
-            // Save to bucket
-            if (oldState.channelID) console.log(userStatsMap.get(newState.id).get(oldState.channelID));
-        } else if (oldState.channelID) {
-            let difference = new Date().getTime() - new Date(userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
-            userStatsMap.get(newState.id).set(oldState.channelID, {
-                totalTime: (userStatsMap.get(newState.id).get(newState.channelId) && userStatsMap.get(newState.id).get(newState.channelId).totalTime) ? userStatsMap.get(newState.id).get(oldState.channelID).totalTime : 0 + difference,
-                startTime: null,
-                type: "voice"
-            });
-            s3.upload({
-                Bucket: "store.mmrree.co.uk",
-                Key: "stats/Users.json",
-                Body: JSON.stringify(convertNestedMapsToStringify(userStatsMap))
-            }, (err, data) => {
-                if (err) {
-                    console.log("Error", err);
-                }
-                if (data) {
-                    console.log("-\tLeft a channel, upload successful!");
-                }
-            });
-        }
-    }
+bot.on('voiceStateUpdate', (oldState, newState) => {
+    general.updateVoiceStats(oldState, newState);
 });
 
 // catch uncaught exceptions

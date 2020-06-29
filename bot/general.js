@@ -3,16 +3,135 @@
 const Discord = require('discord.js');
 const FileSystem = require('fs');
 const request = require('request');
+const AWS = require('aws-sdk');
+const rp = require('request-promise-native');
+const cheerio = require('cheerio');
 
 class GeneralClass {
-    constructor(client, Channels) {
+    constructor(client, Channels, userStatsMap) {
         this.bot = client;
         this.Channels = Channels;
+        this.userStatsMap = userStatsMap;
+    }
+
+    async updateVoiceStats(oldState, newState) {
+        if (newState.channelID != oldState.channelID) {
+            if (newState.channelID) {
+                if (!this.userStatsMap.has(newState.id)) this.userStatsMap.set(newState.id, new Map());
+
+                if (this.userStatsMap.get(newState.id).has(oldState.channelID)) { // If has old state channelId, then update the old channel id time for having left
+
+                    let difference = new Date().getTime() - new Date(this.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
+
+                    this.userStatsMap.get(newState.id).set(oldState.channelID, {
+                        totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
+                            this.userStatsMap.get(newState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
+                        startTime: null,
+                        type: "voice"
+                    });
+
+
+                } else {
+                    this.userStatsMap.get(newState.id).set(newState.channelID, {
+                        totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
+                            this.userStatsMap.get(newStat.id).get(newState.channelId).totalTime : 0,
+                        startTime: new Date().getTime()
+                    });
+
+                }
+            } else if (oldState.channelID) {
+
+                let difference = new Date().getTime() - new Date(this.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
+
+                this.userStatsMap.get(newState.id).set(oldState.channelID, {
+                    totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
+                        this.userStatsMap.get(newState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
+                    startTime: null,
+                    type: "voice"
+                });
+            }
+        }
+        this.saveUserStats();
+        console.log(this.userStatsMap.get(newState.id));
+    }
+
+    saveUserStats() {
+        let s3 = new AWS.S3({
+            apiVersion: '2006-03-01'
+        });
+
+        s3.upload({
+            Bucket: "store.mmrree.co.uk",
+            Key: "stats/Users.json",
+            Body: JSON.stringify(this.convertNestedMapsToStringify(this.userStatsMap))
+        }, (err, data) => {
+            if (err) {
+                console.log("Error", err);
+            }
+            if (data) {
+                console.log("-\tLeft a channel, upload successful!");
+            }
+        });
+    }
+
+    convertNestedMapsToStringify(map) {
+        let listObjects = {};
+        for (let [key, value] of map) {
+            if (value instanceof Map) {
+                listObjects[key] = this.convertNestedMapsToStringify(value);
+            } else {
+                listObjects[key] = value;
+            }
+        }
+        return listObjects;
+    }
+
+    resetStats(messageReceived) {
+        this.userStatsMap.delete(messageReceived.author.id);
+        this.saveUserStats();
+        messageReceived.delete();
+    }
+
+    async updateMessageStats(messageReceived) {
+        if (messageReceived.guild != null) { // If a DM
+            if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
+            this.userStatsMap.get(messageReceived.author.id).set(messageReceived.channel.id, {
+                // If message count then increment, otherwise simply set to 1
+                messageCount: this.userStatsMap.get(messageReceived.author.id).has(messageReceived.channel.id) ?
+                    this.userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id).messageCount + 1 : 1,
+                type: "text"
+            });
+        }
+
+        if (/[n]+[i]+[c]+[e]+/gi.test(messageReceived.content)) {
+            if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
+
+            // If "niceCount" exists, increment, otherwise set to 1
+            this.userStatsMap.get(messageReceived.author.id).set("niceCount", {
+                count: this.userStatsMap.get(messageReceived.author.id).has("niceCount") ?
+                    this.userStatsMap.get(messageReceived.author.id).get("niceCount").count + 1 : 1
+            });
+        }
+
+        if (/[l]+[m]+[f]*[a]+[o]+/gi.test(messageReceived.content)) {
+            if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
+
+            // If "lmaoCount" exists, increment, otherwise set to 1
+            this.userStatsMap.get(messageReceived.author.id).set("lmaoCount", {
+                count: this.userStatsMap.get(messageReceived.author.id).has("lmaoCount") ?
+                    this.userStatsMap.get(messageReceived.author.id).get("lmaoCount").count + 1 : 1
+            });
+        }
+
+        this.saveUserStats();
+
+        console.log(this.userStatsMap.get(messageReceived.author.id));
     }
 
     notImplementedCommand(messageReceived, cmd) {
         console.log("-\tNot implemented!");
-        messageReceived.author
+        if (new Date().getDay() != 2)
+            messageReceived.author
             .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
             .then((sentMessage) => {
                 messageReceived
@@ -23,11 +142,22 @@ class GeneralClass {
             });
     }
 
-    stats(messageReceived, userStatsMap) {
-        if (userStatsMap.has(messageReceived.author.id)) {
+    stats(messageReceived) {
+        if (this.userStatsMap.has(messageReceived.author.id)) {
+            console.log(this.userStatsMap.get(messageReceived.author.id))
             let fields = []
-            userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
-                this.bot.channels.cache.forEach(serverChannel => {
+
+            fields.push({
+                name: '\u200B',
+                value: '\u200B'
+            });
+
+            fields.push({
+                name: 'Channel Stats Below',
+                value: '...'
+            });
+            this.bot.channels.cache.forEach(serverChannel => {
+                this.userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
                     if (serverChannel.id == statId) {
                         if (statChannel.type == "voice") {
 
@@ -55,17 +185,51 @@ class GeneralClass {
 
                             fields.push({
                                 name: serverChannel.name,
-                                value: "You have spent a total of " + msToTime(statChannel.totalTime) + " in this channel!"
+                                value: msToTime(statChannel.totalTime) + " spent in this channel!",
+                                inline: true
                             })
                         } else if (statChannel.type == "text") {
                             fields.push({
                                 name: serverChannel.name,
-                                value: "You have sent " + statChannel.messageCount + " messsages to this channel!"
+                                value: "You sent " + statChannel.messageCount + " messsages in this channel!",
+                                inline: true
                             })
                         }
                     }
                 });
             });
+
+            fields.push({
+                name: '\u200B',
+                value: '\u200B'
+            });
+
+            fields.push({
+                name: 'General Stats Below',
+                value: '...'
+            });
+
+            this.userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
+                if (statId == "lmaoCount") {
+                    fields.push({
+                        name: "😂-lmao",
+                        value: "You have sent " + statChannel.count + ' "lmao"s!',
+                        inline: true
+                    })
+                } else if (statId == "niceCount") {
+                    fields.push({
+                        name: "👍-nice",
+                        value: "You have sent " + statChannel.count + ' "nice"s!',
+                        inline: true
+                    })
+                } else if (statId == "toxicCount") {
+                    fields.push({
+                        name: "☣️-toxic",
+                        value: "You been toxic " + statChannel.count + ' times!',
+                        inline: true
+                    })
+                }
+            })
 
             messageReceived.author.send({
                 "content": "Your statistics",
@@ -96,18 +260,19 @@ class GeneralClass {
 
     insultResponse(messageReceived) {
         console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") mentioned the bot!\n\tResponding with insult");
-        request('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let content = JSON.parse(body)
-                messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
-            } else {
-                console.error(error + " " + response)
-            }
-        });
+        if (new Date().getDay() != 2)
+            request('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
+                if (!error && response.statusCode == 200) {
+                    let content = JSON.parse(body)
+                    messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
+                } else {
+                    console.error(error + " " + response)
+                }
+            });
     }
 
-    initCleanChannelsTimouts(bot, Channels) {
-        // Setting up clean channels at midnight setting (Used for the bulk delete WIP )
+    initCleanChannelsTimouts() {
+        // Setting up clean channels at midnight setting
         let cleanChannelDate = new Date();
         cleanChannelDate.setMilliseconds(0);
         cleanChannelDate.setSeconds(0);
@@ -115,15 +280,97 @@ class GeneralClass {
         cleanChannelDate.setHours(0);
         cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
 
+        this.cleanChannels();
 
-        if (cleanChannelDate.getTime() - (new Date()).getTime() >= 0)
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime(), bot, Channels);
-        else
-            setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime() + 24 * 60 * 60 * 1000, bot, Channels);
+        setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     }
 
-    // Bulk delete, by filtering - will not delete any pinned
-    cleanChannels(bot, Channels) {
+    initHourlyUpdater() {
+        // Setting up an hourly repeated command
+        let nextHourDate = new Date();
+        nextHourDate.setMilliseconds(0);
+        nextHourDate.setSeconds(0);
+        nextHourDate.setMinutes(0);
+        nextHourDate.setHours(nextHourDate.getHours() + 1);
+
+        this.hourlyUpdate();
+
+        setTimeout(this.hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime());
+    }
+
+    getFbPosts(pageUrl, iteration) {
+        const requestOptions = {
+            url: pageUrl,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0'
+            }
+        };
+        if (iteration < 3)
+            return rp.get(requestOptions).then(async (postsHtml) => {
+                const $ = cheerio.load(postsHtml);
+                //const morePosts = $('.uiMorePager').map((i, el) => $(el)).get(); // To be used when scraping more posts
+                /*const link = morePosts.map((link) => {
+                    return "https://www.facebook.com" + /ajaxify="([^"]+)"/.exec(link.html())[1];
+                });*/
+                const timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
+                const posts = timeLinePostEls.filter(post => {
+                    if (post.text().includes("#Crushampton")) {
+                        return post;
+                    };
+                });
+                return {
+                    posts: posts,
+                    //nextPageUrl: link[0],
+                    iteration: iteration // To be used for repeating when scraping more posts, will figure this out later
+                };
+            });
+        else null;
+    }
+
+    hourlyUpdate() {
+        console.log("Running Hourly Update!");
+        this.getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', 1).then(metaData => this.sendFacebookPosts(metaData));
+    }
+
+    async sendFacebookPosts(metaData) {
+        let channel = this.Channels
+            .find((item) => {
+                return item.name === "Crushampton"
+            });
+
+        if (channel) {
+            let crushamptonChannel = await new Discord.Channel(this.bot, {
+                id: channel.id
+            }).fetch();
+
+            let lastMessage = await new Discord.Message(this.bot, {
+                id: crushamptonChannel.lastMessageId
+            }, crushamptonChannel).fetch();
+
+            lastMessage = lastMessage.first();
+
+            let reorderedPosts = metaData.posts.reverse();
+
+            let regExp = /(?:#Crushampton)*([0-9]+)/;
+
+            for (let post of reorderedPosts) {
+                if (lastMessage == null) {
+                    lastMessage = {
+                        content: post.text()
+                    }
+                    console.log("Sending Crushampton post #" + regExp.exec(post.text())[1] + " to the channel!\n" + post.text());
+                    crushamptonChannel.send(post.text().replace("Mehr ansehen", "").replace("More answers", ""));
+                } else if (regExp.exec(lastMessage.content)[1] < regExp.exec(post.text())[1]) {
+                    console.log("Sending Crushampton post #" + regExp.exec(post.text())[1] + " to the channel!\n" + post.text());
+                    crushamptonChannel.send(post.text().replace("Mehr ansehen", "").replace("More answers", ""));
+                }
+            }
+        } else {
+            console.error("No such channel, check the config files!");
+        }
+    }
+
+    cleanChannels() {
         async function clean(bot, Channels) {
             let cleanChannelArray = bot.channels.cache.filter(channel => {
                 if (channel.type == "text") return channel;
@@ -151,7 +398,7 @@ class GeneralClass {
                 }
             }
         }
-        clean(bot, Channels);
+        clean(this.bot, this.Channels);
     }
 
     bulkDelete(messageReceived, args) {
@@ -318,21 +565,33 @@ class GeneralClass {
         }
     }
 
+    async toxicMacro(toxicMessage) {
+        console.log(toxicMessage.author.id);
+
+        if (!this.userStatsMap.has(toxicMessage.author.id)) this.userStatsMap.set(toxicMessage.author.id, new Map());
+        this.userStatsMap.get(toxicMessage.author.id).set("toxicCount", {
+            count: this.userStatsMap.get(toxicMessage.author.id).has("toxicCount") ?
+                this.userStatsMap.get(toxicMessage.author.id).get("toxicCount").count + 1 : 1
+        });
+
+        await toxicMessage.react('🇹');
+        await toxicMessage.react('🇴');
+        await toxicMessage.react('🇽');
+        await toxicMessage.react('🇮');
+        await toxicMessage.react('🇨');
+    }
+
     toxicId(messageReceived, args) {
         let regexURIToxic = new RegExp("(https:\/\/discordapp\.com\/channels\/[1-9][0-9]{0,18}\/[1-9][0-9]{0,18}\/)?([1-9][0-9]{0,18})")
 
         let matchToxic = args[0].match(regexURIToxic)
-        console.log("-\tMarking the id'd message as toxic (" + matchToxic + ")!");
+        console.log("-\tMarking the id'd message as toxic (" + matchToxic[1] + ")!");
 
         if (matchToxic) {
             messageReceived.channel.messages
                 .fetch(matchToxic[matchToxic.length - 1])
-                .then(async (toxicMessage) => {
-                    await toxicMessage.react('🇹');
-                    await toxicMessage.react('🇴');
-                    await toxicMessage.react('🇽');
-                    await toxicMessage.react('🇮');
-                    await toxicMessage.react('🇨');
+                .then((toxicMessage) => {
+                    this.toxicMacro(toxicMessage);
                 }).catch((err) => {
                     console.error(err)
                 })
@@ -347,13 +606,9 @@ class GeneralClass {
                 limit: 20
             })
             .then((messageArray) => {
-                messageArray.each(async (message) => {
+                messageArray.each((message) => {
                     if (message.content.includes(argumentString) && message != messageReceived) {
-                        await message.react('🇹');
-                        await message.react('🇴');
-                        await message.react('🇽');
-                        await message.react('🇮');
-                        await message.react('🇨');
+                        this.toxicMacro(message);
                     }
                 });
             }).catch(err => console.error(err));

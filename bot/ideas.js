@@ -11,7 +11,7 @@ class IdeasClass {
             }
         }
 
-        this.ideaRegex = / (\w+[\w\S ]*)`/g;
+        this.ideaRegex = /(?:`- \[ \] )([\w \S]+)(?:`)/g;
     }
 
     async add(messageReceived, ideaArg) {
@@ -53,11 +53,19 @@ class IdeasClass {
                 }, messageReceived.channel)
                 .fetch()
                 .then((editMessage) => {
-                    editMessage
-                        .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
-                        .then(() => {
-                            messageReceived.delete();
-                        });
+                    if (editMessage.content.substring(editMessage.content.length - 2) == "||") {
+                        editMessage
+                            .edit(editMessage.content.substring(0, editMessage.content.length - 2) + '\n`- ' + ideaAndAuthorString + '`||')
+                            .then(() => {
+                                messageReceived.delete();
+                            });
+                    } else {
+                        editMessage
+                            .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
+                            .then(() => {
+                                messageReceived.delete();
+                            });
+                    }
                 });
         });
     }
@@ -92,7 +100,7 @@ class IdeasClass {
 
                 while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
                     if (ideasMatch[1].includes(queryIdea)) {
-                        completedStringsArray.push("||`- [x] " + ideasMatch[1] + "`||\n");
+                        completedStringsArray.push("\n`- [x] " + ideasMatch[1] + "`");
                     } else {
                         todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
                     }
@@ -106,12 +114,19 @@ class IdeasClass {
                             }, messageReceived.channel)
                             .fetch()
                             .then((completedMessage) => {
-                                completedMessage
-                                    .edit(completedMessage.content + '\n' + completedStringsArray.join(""))
-                                    .then(() => {
-                                        messageReceived.delete();
-                                    });
-
+                                if (completedMessage.content.substring(completedMessage.content.length - 2) == "||") {
+                                    completedMessage
+                                        .edit(completedMessage.content.substring(0, completedMessage.content.length - 2) + completedStringsArray.join("") + "||")
+                                        .then(() => {
+                                            messageReceived.delete();
+                                        });
+                                } else {
+                                    completedMessage
+                                        .edit(completedMessage.content + "||" + completedStringsArray.join("") + "||")
+                                        .then(() => {
+                                            messageReceived.delete();
+                                        })
+                                }
                             })
                     })
             })
@@ -133,7 +148,7 @@ class IdeasClass {
                     if (ideasMatch[1].includes(queryIdea)) {
                         todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
                     } else {
-                        completedStringsArray.push("||`- [x] " + ideasMatch[1] + "`||\n");
+                        completedStringsArray.push("\n`- [x] " + ideasMatch[1] + "`");
                     }
                 }
 

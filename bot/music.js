@@ -17,7 +17,9 @@ function play(spotifyData, bot, musicChannel, musicClass) {
         spotifyData.player = spotifyData.connection.play(ytdl(spotifyData.songs[spotifyData.songs.length - 1].id, {
             quality: "highestaudio",
             filter: "audioonly"
-        })).on("finish", () => {
+        }));
+
+        spotifyData.player.on("finish", () => {
             if (spotifyData.skipped) {
                 console.log("Song Skipped, starting next song!");
                 spotifyData.skipped = false;
@@ -42,6 +44,8 @@ function play(spotifyData, bot, musicChannel, musicClass) {
             }
             musicClass.updateList(spotifyData, bot, musicChannel);
         });
+
+        spotifyData.player.on('error', error => console.error(error));
         spotifyData.player.setVolumeLogarithmic(spotifyData.volume / 10);
     }
 }
@@ -64,6 +68,10 @@ class MusicClass {
             if (channel.name == "Music") return channel;
         });
 
+        this.crushamptonChannel = Channels.find((channel) => {
+            if (channel.name == "Crushampton") return channel;
+        });
+
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -77,17 +85,20 @@ class MusicClass {
             accesses: new Map()
         };
 
-        const SESConfig = {
-            apiVersion: "2006-03-01",
-            region: "eu-west-2"
-        }
-        AWS.config.update(SESConfig);
-
         this.initFileSystem();
 
+        this.initWebhooks();
+
+        this.initList(this.spotifyData, this.bot, this.musicChannel);
+    }
+
+    initWebhooks() {
+        var self = this;
         var webhook = Express();
+        const bodyParser = require('body-parser');
 
         webhook.set('port', process.env.PORT || 3000);
+        webhook.use(bodyParser.json());
         webhook.use(Express.static('public'));
         webhook.use(Express.static('files'));
         webhook.use('/', Express.static(Path.join(__dirname + "/landing/")));
@@ -109,14 +120,16 @@ class MusicClass {
         });
 
         const discordCallback = require('./routes/discordCallback.js');
+        // Commented out facebook implementation since needs a lot of approval, might look back into it later, for now this is the extent
+        //const facebookCallback = require('./routes/facebook/webhooks.js');
 
-        webhook.get('/discordCallback', (req, res) => discordCallback.post(req, res, auth, this));
+        webhook.get('/discordCallback', (req, res) => discordCallback.get(req, res, auth, self));
+        //webhook.get('/facebook/webhooks', (req, res) => facebookCallback.get(req, res, auth, self));
+        //webhook.post('/facebook/webhooks', (req, res) => facebookCallback.post(req, res, auth, self));
 
         http.createServer(webhook).listen(webhook.get('port'), () => {
             console.log("Express server listening on port " + webhook.get("port"));
         });
-
-        this.initList(this.spotifyData, this.bot, this.musicChannel);
     }
 
     async initFileSystem() {

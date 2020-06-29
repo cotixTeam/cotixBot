@@ -1,4 +1,4 @@
-exports.post = function (req, res, auth, self) {
+exports.get = function (req, res, auth, self) {
     const request = require('request');
     const Path = require('path');
     const FileSystem = require('fs');
