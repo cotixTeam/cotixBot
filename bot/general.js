@@ -345,14 +345,25 @@ class GeneralClass {
 
                     let recentPosts = [];
 
-                    let timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
-                    timeLinePostEls.forEach(post => {
+                    let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
+                    timeLinePostEls.forEach(postObject => {
+                        let $post = cheerio.load(postObject.html());
+                        let post = $post('.userContent');
+
                         if (post.text().includes("#Crushampton")) {
                             let regExp = /(?:#Crushampton)*([0-9]+)/;
                             if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
-                                recentPosts.unshift(post.text());
+                                recentPosts.unshift({
+                                    text: post.text(),
+                                    url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                    image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                                });
                             } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
-                                recentPosts.unshift(post.text());
+                                recentPosts.unshift({
+                                    text: post.text(),
+                                    url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                    image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                                });
                                 reachedLast = true;
                                 return;
                             } else {
@@ -410,14 +421,25 @@ class GeneralClass {
 
                         async function ajax(body, posts) {
                             let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
-                            let htmlPosts = $(".userContent").map((i, el) => $(el)).get();
-                            htmlPosts.filter(post => {
+                            let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
+                            timeLinePostEls.forEach(postObject => {
+                                let $post = cheerio.load(postObject.html());
+                                let post = $post('.userContent');
+
                                 if (post.text().includes("#Crushampton")) {
                                     let regExp = /(?:#Crushampton)*([0-9]+)/;
                                     if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
-                                        posts.unshift(post.text());
-                                    } else if (parseInt(regExp.exec(post.text()))[1] > parseInt(regExp.exec(lastMessage.content)[1]) + 1) {
-                                        posts.unshift(post.text());
+                                        recentPosts.unshift({
+                                            text: post.text(),
+                                            url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                            image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                                        });
+                                    } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
+                                        recentPosts.unshift({
+                                            text: post.text(),
+                                            url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                            image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                                        });
                                         reachedLast = true;
                                         return;
                                     } else {
@@ -491,6 +513,7 @@ class GeneralClass {
 
     hourlyUpdate(getFbPosts, sendFbPosts, Channels, bot) {
         console.log("Running Hourly Update!");
+
         getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', Channels, bot).then(posts => {
             sendFbPosts(posts, Channels, bot);
         });
@@ -510,12 +533,20 @@ class GeneralClass {
             let regExp = /(?:#Crushampton)*([0-9]+)/;
 
             for (let post of posts) {
-                console.log("Sending Crushampton post #" + regExp.exec(post)[1] + " to the channel!\n" + post);
+                console.log("Sending Crushampton post #" + regExp.exec(post.text)[1] + " to the channel!\n" + post.text);
                 crushamptonChannel.send({
-                    "content": "Crushampton #" + regExp.exec(post)[1],
+                    "content": "Crushampton #" + regExp.exec(post.text)[1],
                     "embed": {
-                        "title": "#" + regExp.exec(post)[1],
-                        "description": post.replace("#Crushampton" + regExp.exec(post)[1], "").replace("Mehr ansehen", "").replace("See more", "")
+                        "title": "#" + regExp.exec(post.text)[1],
+                        "description": post.text.replace("#Crushampton" + regExp.exec(post.text)[1], "").replace("Mehr ansehen", "").replace("See more", ""),
+                        "url": post.url,
+                        "author": {
+                            "name": "Crushampton",
+                            "icon_url": "https://scontent.fzrh3-1.fna.fbcdn.net/v/t1.0-9/61258631_2477108982524094_1497858827888885760_n.png?_nc_cat=106&_nc_sid=85a577&_nc_oc=AQn8bVmgCgcTE0Ufn8mCp2dNhOHBhwn9fcg5WL4ZQxGgqa2eMFbe37JnEglgns9K1JONfjsXcrek0Hm524JxhsGy&_nc_ht=scontent.fzrh3-1.fna&oh=cf2fafc50f5afe2c6185056c09300032&oe=5F20EA6A"
+                        },
+                        "image": {
+                            "url": post.image
+                        }
                     }
                 });
             }
