@@ -324,17 +324,89 @@ class GeneralClass {
             lastMessage = lastMessage.first();
 
             if (lastMessage == null) {
+                let posts = [];
+
+                let recentPosts = [];
                 return rp.get(requestOptions).then(async (postsHtml) => {
                     let $ = cheerio.load(postsHtml);
-                    let timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
-                    let posts = timeLinePostEls.filter(post => {
+                    let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
+                    let htmlPosts = timeLinePostEls.filter(postObject => {
+                        let $post = cheerio.load(postObject.html());
+                        let post = $post('.userContent');
                         if (post.text().includes("#Crushampton")) {
-                            let regExp = /(?:#Crushampton)*([0-9]+)/;
-                            if (regExp.exec(post.text()))
-                                posts.unshift(post.text());
+                            posts.unshift({
+                                text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
+                                url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                            });
                         };
                     });
-                    return posts;
+                    let morePosts = $('.uiMorePager').map((i, el) => $(el)).get();
+                    let link = morePosts.map((link) => {
+                        return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)" href/.exec(link)[1].replace(" ", "").replace(/\"www_/g, "www_"))
+                            .replace(/,/g, "%2C")
+                            .replace(/&amp;/g, "&")
+                            .replace(/%25/g, "%")
+                            .replace(/:/g, "%3A")
+                            .replace("unit_count=8", "unit_count=100") +
+                            "&fb_dtsg_ag" +
+                            "&__user=0" +
+                            "&__a=1" +
+                            "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
+                            "&__csr=" +
+                            "&__req=4" +
+                            "&__beoa=0" +
+                            "&__pc=PHASED%3ADEFAULT" +
+                            "&dpr=1" +
+                            "&__ccg=EXCELLENT" +
+                            "&__rev=1002311505" +
+                            "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
+                            "&__hsi=6844080780314694399-0" +
+                            "&__comet_req=0" +
+                            "&__spin_r=1002311505" +
+                            "&__spin_b=trunk" +
+                            "&__spin_t=1593511733";
+                    });
+                    link = link[0];
+
+                    await rp.get(link, {
+                        "credentials": "include",
+                        "headers": {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0",
+                            "Accept": "*/*",
+                            "Accept-Language": "en-US,en;q=0.5"
+                        },
+                        "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
+                        "method": "GET",
+                        "mode": "cors"
+                    }, (err, res, body) => {
+                        if (!err && res.statusCode == 200) {
+                            ajax(body);
+                        }
+                    });
+
+                    async function ajax(body) {
+                        let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
+                        let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
+                        timeLinePostEls.forEach(postObject => {
+                            let $post = cheerio.load(postObject.html());
+                            let post = $post('.userContent');
+
+                            if (post.text().includes("#Crushampton")) {
+                                recentPosts.unshift({
+                                    text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
+                                    url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                                    image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                                });
+                            };
+                        });
+                    }
+
+                    for (let post of recentPosts) {
+                        htmlPosts.push(post);
+                    }
+
+                    return htmlPosts;
                 });
             } else {
                 return rp.get(requestOptions).then(async (postsHtml) => {
@@ -354,13 +426,13 @@ class GeneralClass {
                             let regExp = /(?:#Crushampton)*([0-9]+)/;
                             if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
                                 recentPosts.unshift({
-                                    text: post.text(),
+                                    text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                                     url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                                     image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                                 });
                             } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
                                 recentPosts.unshift({
-                                    text: post.text(),
+                                    text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                                     url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                                     image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                                 });
@@ -415,11 +487,11 @@ class GeneralClass {
                             "mode": "cors"
                         }, (err, res, body) => {
                             if (!err && res.statusCode == 200) {
-                                ajax(body, posts);
+                                ajax(body);
                             }
                         });
 
-                        async function ajax(body, posts) {
+                        async function ajax(body) {
                             let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
                             let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
                             timeLinePostEls.forEach(postObject => {
@@ -430,13 +502,13 @@ class GeneralClass {
                                     let regExp = /(?:#Crushampton)*([0-9]+)/;
                                     if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
                                         recentPosts.unshift({
-                                            text: post.text(),
+                                            text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                                             url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                                             image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                                         });
                                     } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
                                         recentPosts.unshift({
-                                            text: post.text(),
+                                            text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                                             url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                                             image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                                         });
@@ -448,54 +520,6 @@ class GeneralClass {
                                     }
                                 };
                             });
-
-                            /*
-                            Depreciated since recursion doesnt work, and there is a way to query the correct posts using the parameter __req and "unit_count", for now have just set the unit count to 100, so will get the last 18 + 100 posts
-                            if (!reachedLast) {
-                                let morePosts = $('.uiMorePager').map((i, el) => $(el)).get(); // To be used when scraping more posts
-                                let link = morePosts.map((link) => {
-                                    return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)&quot;/.exec(link.html())[1].replace(" ", "").replace(/\"www_/g, "www_"))
-                                        .replace(/,/g, "%2C")
-                                        .replace(/&amp;/g, "&")
-                                        .replace(/%25/g, "%")
-                                        .replace(/:/g, "%3A") +
-                                        "&fb_dtsg_ag" +
-                                        "&__user=0" +
-                                        "&__a=1" +
-                                        "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
-                                        "&__csr=" +
-                                        "&__req=8" +
-                                        "&__beoa=0" +
-                                        "&__pc=PHASED%3ADEFAULT" +
-                                        "&dpr=1" +
-                                        "&__ccg=EXCELLENT" +
-                                        "&__rev=1002311505" +
-                                        "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
-                                        "&__hsi=6844080780314694399-0" +
-                                        "&__comet_req=0" +
-                                        "&__spin_r=1002311505" +
-                                        "&__spin_b=trunk" +
-                                        "&__spin_t=1593511733";
-                                });
-                                link = link[0];
-                                console.log(link);
-
-                                request(link, {
-                                    "credentials": "include",
-                                    "headers": {
-                                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0",
-                                        "Accept": "* /*",
-                                        "Accept-Language": "en-US,en;q=0.5"
-                                    },
-                                    "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
-                                    "method": "GET",
-                                    "mode": "cors"
-                                }, (err, res, body) => {
-                                    if (!err && res.statusCode == 200) {
-                                        ajax(body, posts);
-                                    }
-                                });
-                            }*/
                         }
                     }
 
