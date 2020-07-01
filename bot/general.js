@@ -285,7 +285,7 @@ class GeneralClass {
         setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     }
 
-    initHourlyUpdater() {
+    async initHourlyUpdater() {
         // Setting up an hourly repeated command
         let nextHourDate = new Date();
         nextHourDate.setMilliseconds(0);
@@ -293,78 +293,233 @@ class GeneralClass {
         nextHourDate.setMinutes(0);
         nextHourDate.setHours(nextHourDate.getHours() + 1);
 
-        this.hourlyUpdate();
+        this.hourlyUpdate(this.getFbPosts, this.sendFbPosts, this.Channels, this.bot);
 
-        setTimeout(this.hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime());
+        setTimeout(this.hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime(), this.getFbPosts, this.sendFbPosts, this.Channels, this.bot);
     }
 
-    getFbPosts(pageUrl, iteration) {
-        const requestOptions = {
+
+    async getFbPosts(pageUrl, Channels, bot) {
+        let requestOptions = {
             url: pageUrl,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0'
             }
         };
-        if (iteration < 3)
-            return rp.get(requestOptions).then(async (postsHtml) => {
-                const $ = cheerio.load(postsHtml);
-                //const morePosts = $('.uiMorePager').map((i, el) => $(el)).get(); // To be used when scraping more posts
-                /*const link = morePosts.map((link) => {
-                    return "https://www.facebook.com" + /ajaxify="([^"]+)"/.exec(link.html())[1];
-                });*/
-                const timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
-                const posts = timeLinePostEls.filter(post => {
-                    if (post.text().includes("#Crushampton")) {
-                        return post;
-                    };
-                });
-                return {
-                    posts: posts,
-                    //nextPageUrl: link[0],
-                    iteration: iteration // To be used for repeating when scraping more posts, will figure this out later
-                };
-            });
-        else null;
-    }
 
-    hourlyUpdate() {
-        console.log("Running Hourly Update!");
-        this.getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', 1).then(metaData => this.sendFacebookPosts(metaData));
-    }
-
-    async sendFacebookPosts(metaData) {
-        let channel = this.Channels
+        let channel = Channels
             .find((item) => {
                 return item.name === "Crushampton"
             });
 
-        if (channel) {
-            let crushamptonChannel = await new Discord.Channel(this.bot, {
+        if (channel) { // Just make sure the config has been set up properly
+            let crushamptonChannel = await new Discord.Channel(bot, {
                 id: channel.id
             }).fetch();
 
-            let lastMessage = await new Discord.Message(this.bot, {
+            let lastMessage = await new Discord.Message(bot, {
                 id: crushamptonChannel.lastMessageId
             }, crushamptonChannel).fetch();
 
             lastMessage = lastMessage.first();
 
-            let reorderedPosts = metaData.posts.reverse();
+            if (lastMessage == null) {
+                return rp.get(requestOptions).then(async (postsHtml) => {
+                    let $ = cheerio.load(postsHtml);
+                    let timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
+                    let posts = timeLinePostEls.filter(post => {
+                        if (post.text().includes("#Crushampton")) {
+                            let regExp = /(?:#Crushampton)*([0-9]+)/;
+                            if (regExp.exec(post.text()))
+                                posts.unshift(post.text());
+                        };
+                    });
+                    return posts;
+                });
+            } else {
+                return rp.get(requestOptions).then(async (postsHtml) => {
+                    let reachedLast = false;
+                    let $ = cheerio.load(postsHtml);
+
+                    let posts = [];
+
+                    let recentPosts = [];
+
+                    let timeLinePostEls = $('.userContent').map((i, el) => $(el)).get();
+                    timeLinePostEls.forEach(post => {
+                        if (post.text().includes("#Crushampton")) {
+                            let regExp = /(?:#Crushampton)*([0-9]+)/;
+                            if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
+                                recentPosts.unshift(post.text());
+                            } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
+                                recentPosts.unshift(post.text());
+                                reachedLast = true;
+                                return;
+                            } else {
+                                reachedLast = true;
+                                return;
+                            }
+                        };
+                    });
+
+                    if (!reachedLast) {
+                        // Ajax request for more posts
+                        let morePosts = $('.uiMorePager').map((i, el) => $(el)).get();
+                        let link = morePosts.map((link) => {
+                            return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)" href/.exec(link)[1].replace(" ", "").replace(/\"www_/g, "www_"))
+                                .replace(/,/g, "%2C")
+                                .replace(/&amp;/g, "&")
+                                .replace(/%25/g, "%")
+                                .replace(/:/g, "%3A")
+                                .replace("unit_count=8", "unit_count=100") +
+                                "&fb_dtsg_ag" +
+                                "&__user=0" +
+                                "&__a=1" +
+                                "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
+                                "&__csr=" +
+                                "&__req=4" +
+                                "&__beoa=0" +
+                                "&__pc=PHASED%3ADEFAULT" +
+                                "&dpr=1" +
+                                "&__ccg=EXCELLENT" +
+                                "&__rev=1002311505" +
+                                "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
+                                "&__hsi=6844080780314694399-0" +
+                                "&__comet_req=0" +
+                                "&__spin_r=1002311505" +
+                                "&__spin_b=trunk" +
+                                "&__spin_t=1593511733";
+                        });
+                        link = link[0];
+
+                        await rp.get(link, {
+                            "credentials": "include",
+                            "headers": {
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0",
+                                "Accept": "*/*",
+                                "Accept-Language": "en-US,en;q=0.5"
+                            },
+                            "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
+                            "method": "GET",
+                            "mode": "cors"
+                        }, (err, res, body) => {
+                            if (!err && res.statusCode == 200) {
+                                ajax(body, posts);
+                            }
+                        });
+
+                        async function ajax(body, posts) {
+                            let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
+                            let htmlPosts = $(".userContent").map((i, el) => $(el)).get();
+                            htmlPosts.filter(post => {
+                                if (post.text().includes("#Crushampton")) {
+                                    let regExp = /(?:#Crushampton)*([0-9]+)/;
+                                    if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
+                                        posts.unshift(post.text());
+                                    } else if (parseInt(regExp.exec(post.text()))[1] > parseInt(regExp.exec(lastMessage.content)[1]) + 1) {
+                                        posts.unshift(post.text());
+                                        reachedLast = true;
+                                        return;
+                                    } else {
+                                        reachedLast = true;
+                                        return;
+                                    }
+                                };
+                            });
+
+                            /*
+                            Depreciated since recursion doesnt work, and there is a way to query the correct posts using the parameter __req and "unit_count", for now have just set the unit count to 100, so will get the last 18 + 100 posts
+                            if (!reachedLast) {
+                                let morePosts = $('.uiMorePager').map((i, el) => $(el)).get(); // To be used when scraping more posts
+                                let link = morePosts.map((link) => {
+                                    return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)&quot;/.exec(link.html())[1].replace(" ", "").replace(/\"www_/g, "www_"))
+                                        .replace(/,/g, "%2C")
+                                        .replace(/&amp;/g, "&")
+                                        .replace(/%25/g, "%")
+                                        .replace(/:/g, "%3A") +
+                                        "&fb_dtsg_ag" +
+                                        "&__user=0" +
+                                        "&__a=1" +
+                                        "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
+                                        "&__csr=" +
+                                        "&__req=8" +
+                                        "&__beoa=0" +
+                                        "&__pc=PHASED%3ADEFAULT" +
+                                        "&dpr=1" +
+                                        "&__ccg=EXCELLENT" +
+                                        "&__rev=1002311505" +
+                                        "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
+                                        "&__hsi=6844080780314694399-0" +
+                                        "&__comet_req=0" +
+                                        "&__spin_r=1002311505" +
+                                        "&__spin_b=trunk" +
+                                        "&__spin_t=1593511733";
+                                });
+                                link = link[0];
+                                console.log(link);
+
+                                request(link, {
+                                    "credentials": "include",
+                                    "headers": {
+                                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0",
+                                        "Accept": "* /*",
+                                        "Accept-Language": "en-US,en;q=0.5"
+                                    },
+                                    "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
+                                    "method": "GET",
+                                    "mode": "cors"
+                                }, (err, res, body) => {
+                                    if (!err && res.statusCode == 200) {
+                                        ajax(body, posts);
+                                    }
+                                });
+                            }*/
+                        }
+                    }
+
+                    for (let post of recentPosts) {
+                        posts.push(post);
+                    }
+                    return posts;
+                });
+            }
+
+        } else {
+            console.error("No such channel, check the config files!");
+        }
+    }
+
+    hourlyUpdate(getFbPosts, sendFbPosts, Channels, bot) {
+        console.log("Running Hourly Update!");
+        getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', Channels, bot).then(posts => {
+            sendFbPosts(posts, Channels, bot);
+        });
+    }
+
+    async sendFbPosts(posts, Channels, bot) {
+        let channel = Channels
+            .find((item) => {
+                return item.name === "Crushampton"
+            });
+
+        if (channel) { // Just make sure the config has been set up properly
+            let crushamptonChannel = await new Discord.Channel(bot, {
+                id: channel.id
+            }).fetch();
 
             let regExp = /(?:#Crushampton)*([0-9]+)/;
 
-            for (let post of reorderedPosts) {
-                if (lastMessage == null) {
-                    lastMessage = {
-                        content: post.text()
+            for (let post of posts) {
+                console.log("Sending Crushampton post #" + regExp.exec(post)[1] + " to the channel!\n" + post);
+                crushamptonChannel.send({
+                    "content": "Crushampton #" + regExp.exec(post)[1],
+                    "embed": {
+                        "title": "#" + regExp.exec(post)[1],
+                        "description": post.replace("#Crushampton" + regExp.exec(post)[1], "").replace("Mehr ansehen", "").replace("See more", "")
                     }
-                    console.log("Sending Crushampton post #" + regExp.exec(post.text())[1] + " to the channel!\n" + post.text());
-                    crushamptonChannel.send(post.text().replace("Mehr ansehen", "").replace("More answers", ""));
-                } else if (regExp.exec(lastMessage.content)[1] < regExp.exec(post.text())[1]) {
-                    console.log("Sending Crushampton post #" + regExp.exec(post.text())[1] + " to the channel!\n" + post.text());
-                    crushamptonChannel.send(post.text().replace("Mehr ansehen", "").replace("More answers", ""));
-                }
+                });
             }
+
         } else {
             console.error("No such channel, check the config files!");
         }
@@ -406,6 +561,7 @@ class GeneralClass {
         let adminRoles = ["668465816894832641", "705760947721076756"]
         let permissionsFound = messageReceived.member.roles._roles.array().some((role) => adminRoles.includes(role.id));
 
+        if (messageReceived.guild != null) messageReceived.delete();
 
         if (permissionsFound) {
             let messageCount = parseInt(args[0]);
@@ -413,7 +569,6 @@ class GeneralClass {
             // Plus one to the message count to INCLUDE the message just sent
             if (messageCount + 1 > 100) messageCount = 100;
             else if (messageCount <= 0) messageCount = 1;
-            else messageCount = messageCount + 1;
 
             console.log("\tPermissions are correct, deleting " + messageCount + " messages!");
 
@@ -434,7 +589,6 @@ class GeneralClass {
             messageReceived.author
                 .send("Hi " + messageReceived.author.username + ",\nYou do not have the permissions for the bulkDelete command!");
         }
-        if (messageReceived.guild != null) messageReceived.delete();
     }
 
     help(messageReceived) {
