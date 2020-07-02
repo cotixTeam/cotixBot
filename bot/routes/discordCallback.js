@@ -1,14 +1,7 @@
 exports.get = function (req, res, auth, self) {
     const request = require('request');
     const Path = require('path');
-    const FileSystem = require('fs');
-    const AWS = require('aws-sdk');
-
-    const SESConfig = {
-        apiVersion: "2006-03-01",
-        region: "eu-west-2"
-    }
-    AWS.config.update(SESConfig);
+    const awsUtils = require('../awsUtils');
 
     console.log("/discordCallback accessed!");
     var localReq = req;
@@ -62,22 +55,7 @@ exports.get = function (req, res, auth, self) {
                                 discordAccess: discordAuthContent.access_token
                             });
 
-                            let s3 = new AWS.S3({
-                                apiVersion: '2006-03-01'
-                            });
-
-                            s3.upload({
-                                Bucket: "store.mmrree.co.uk",
-                                Key: "config/AccessMaps.json",
-                                Body: JSON.stringify(Array.from(self.spotifyData.accesses))
-                            }, (err, data) => {
-                                if (err) {
-                                    console.log("Error", err);
-                                }
-                                if (data) {
-                                    console.log("Upload Success", data);
-                                }
-                            });
+                            awsUtils.save("store.mmrree.co.uk", "config/AcessMaps.json", JSON.stringify(Array.from(self.spotifyData.accesses)));
                             console.log("-\tAdded access to Map:");
                             console.log(self.spotifyData.accesses.get(discordUserContent.id));
                         } else {
@@ -101,5 +79,5 @@ exports.get = function (req, res, auth, self) {
             console.log(body);
         }
     });
-    res.status(200).sendFile(Path.join(__dirname + "/../config/spotifyLink.html"));
+    res.status(200).sendFile(Path.join(__dirname + "/spotifyLink.html"));
 };

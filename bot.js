@@ -1,7 +1,6 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
-const FileSystem = require('fs');
-const AWS = require('aws-sdk');
+const awsUtils = require('./bot/awsUtils');
 
 // Custom classes
 const GeneralClass = require('./bot/general.js');
@@ -15,8 +14,8 @@ const MusicClass = require('./bot/music.js');
 let Channels;
 let auth;
 try {
-    if (FileSystem.existsSync("./local/auth.json")) auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
-    else {
+    if (process.env.DISCORD_BOT_TOKEN) {
+        console.log("Using s3 Channels file!")
         auth = {
             "discordBotToken": process.env.DISCORD_BOT_TOKEN,
             "discordCallback": process.env.DISCORD_CALLBACK,
@@ -29,16 +28,13 @@ try {
             "googleToken": process.env.YOUTUBE_KEY,
             "spotifyRedirect": process.env.SPOTIFY_REDIRECT
         }
-    }
-    console.log(auth);
-
-    if (FileSystem.existsSync("./local/Channels.json")) {
+    } else {
+        const FileSystem = require('fs');
         console.log("Using local Channels file!");
         Channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
-    } else {
-        console.log("Using ./bot/config/ Channels file!")
-        Channels = JSON.parse(FileSystem.readFileSync("./bot/config/Channels.json"));
+        auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
     }
+    console.log(auth);
 } catch (err) {
     console.error(err);
     bot.destroy();
@@ -75,33 +71,15 @@ bot.login(auth.discordBotToken);
 var userStatsMap = new Map();
 
 bot.on('ready', async () => { // Run init code
+    if (!Channels) {
+        let tempChannels = await awsUtils.load("store.mmrree.co.uk", "config/Channels.json");
+        Channels = JSON.parse(tempChannels.Body.toString());
+    }
+
     console.log('Connected!');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
-    const SESConfig = {
-        apiVersion: "2006-03-01",
-        region: "eu-west-2"
-    }
-
-    AWS.config.update(SESConfig);
-
-    let s3 = new AWS.S3({
-        apiVersion: '2006-03-01'
-    });
-
-    let tempStorage = await s3.getObject({
-        Bucket: "store.mmrree.co.uk",
-        Key: "stats/Users.json"
-    }, (err, data) => {
-        if (err && err.code === 'NotFound') {
-            console.error(err);
-            console.log("Not Found");
-        } else if (err) {
-            console.error(err);
-        } else {
-            return JSON.parse(data.Body.toString());
-        }
-    }).promise();
+    let tempStorage = await awsUtils.load("store.mmrree.co.uk", "stats/Users.json");
 
     userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
 
@@ -258,6 +236,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             switch (cmd) { // Channel specific commands
                                 case 'reset':
                                     leaderboard.reset(messageReceived, args[0]);
+                                    break;
+
+                                case 'addPlayer':
+                                    leaderboard.addPlayer(messageReceived, args[0], args[1]);
                                     break;
 
                                 case 'win':

@@ -1,6 +1,6 @@
 "use strict";
 
-const FileSystem = require('fs');
+const awsUtils = require('./awsUtils');
 
 function timeoutReminderFunction(reminderEvent, bot) {
     for (let userId of reminderEvent.users) {
@@ -20,14 +20,13 @@ class ReminderClass {
     constructor(client, channels) {
         this.bot = client;
         this.channels = channels;
-        try {
-            this.Reminders = JSON.parse(FileSystem.readFileSync("./bot/config/Reminders.json"))
-        } catch (err) {
-            console.error(err);
-            this.bot.destroy();
-            process.exit();
-        };
 
+        this.remindersInit();
+    }
+
+    async remindersInit() {
+        let data = await awsUtils.load("store.mmrree.co.uk", "config/Reminders.json");
+        this.Reminders = JSON.parse(data.Body.toString());
         let reminderDate = new Date();
         let now = new Date();
         reminderDate.setSeconds(0);
@@ -69,7 +68,6 @@ class ReminderClass {
         console.log("-\tJoining notification list for event!");
         for (let reminder of this.Reminders) {
             if (reminder.name == argumentString) {
-                // Add the thing to the file
                 let addFlag = true;
                 for (let user of reminder.users) {
                     if (user == messageReceived.author.id)
@@ -78,7 +76,7 @@ class ReminderClass {
 
                 if (addFlag) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.push(messageReceived.author.id)
-                    FileSystem.writeFile("./bot/config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
+                    awsUtils.save("store.mmrree.co.uk", "config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'));
                     messageReceived.author
                         .send("You have been added to the reminder: " + reminder.name)
                         .catch(err => console.error(err));
@@ -96,7 +94,6 @@ class ReminderClass {
         console.log("-\tLeaving notification list for event!");
         for (let reminder of this.Reminders) {
             if (reminder.name == argumentString) {
-                // Remove the thing fromm the file
                 let userExists = false;
                 let userIndex = null;
                 for (let user of reminder.users) {
@@ -108,7 +105,7 @@ class ReminderClass {
 
                 if (userExists) {
                     this.Reminders[this.Reminders.indexOf(reminder)].users.splice(userIndex, 1);
-                    FileSystem.writeFile("./bot/config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'), this.catchError);
+                    awsUtils.save("store.mmrree.co.uk", "config/Reminders.json", JSON.stringify(this.Reminders, null, '\t'));
                     messageReceived.author.
                     send("You have been removed from the reminder: " + reminder.name)
                         .catch(err => console.error(err));
@@ -120,10 +117,6 @@ class ReminderClass {
             }
         }
         messageReceived.delete();
-    }
-
-    catchError(err) {
-        if (err) console.error(err);
     }
 
 }

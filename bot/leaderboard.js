@@ -1,6 +1,7 @@
 "use strict";
 
 const Discord = require('discord.js');
+const awsUtils = require('./awsUtils');
 
 class LeaderboardClass {
     constructor(client, channels) {
@@ -8,6 +9,12 @@ class LeaderboardClass {
         for (let channel of channels) {
             if (channel.name == "Leaderboards") this.channel = channel;
         }
+    }
+
+    addPlayer(messageReceived, player, game) {
+        console.log("-\tAdding player " + player.substring(3, 21) + " to the leaderboard " + game);
+
+        messageReceived.delete();
     }
 
     reset(messageReceived, gameCheck) {

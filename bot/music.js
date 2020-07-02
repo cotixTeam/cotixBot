@@ -1,14 +1,13 @@
 "use strict";
 
-const request = require('request');
-const ytdl = require('ytdl-core');
-const Express = require('express');
-const Path = require('path');
-const FileSystem = require('fs');
-const http = require('http');
-const ytSearch = require('yt-search');
 const Discord = require('discord.js');
-const AWS = require('aws-sdk');
+const Express = require('express');
+const http = require('http');
+const ytdl = require('ytdl-core');
+const Path = require('path');
+const rp = require('request-promise-native');
+const ytSearch = require('yt-search');
+const awsUtils = require('./awsUtils');
 
 function play(spotifyData, bot, musicChannel, musicClass) {
     if (spotifyData.songs.length == 0) {
@@ -68,10 +67,6 @@ class MusicClass {
             if (channel.name == "Music") return channel;
         });
 
-        this.crushamptonChannel = Channels.find((channel) => {
-            if (channel.name == "Crushampton") return channel;
-        });
-
         this.spotifyData = {
             voiceChannel: null,
             connection: null,
@@ -87,13 +82,12 @@ class MusicClass {
 
         this.initFileSystem();
 
-        this.initWebhooks();
+        this.initWebhooks(auth, this);
 
         this.initList(this.spotifyData, this.bot, this.musicChannel);
     }
 
-    initWebhooks() {
-        var self = this;
+    initWebhooks(auth, self) {
         var webhook = Express();
         const bodyParser = require('body-parser');
 
@@ -120,12 +114,8 @@ class MusicClass {
         });
 
         const discordCallback = require('./routes/discordCallback.js');
-        // Commented out facebook implementation since needs a lot of approval, might look back into it later, for now this is the extent
-        //const facebookCallback = require('./routes/facebook/webhooks.js');
 
         webhook.get('/discordCallback', (req, res) => discordCallback.get(req, res, auth, self));
-        //webhook.get('/facebook/webhooks', (req, res) => facebookCallback.get(req, res, auth, self));
-        //webhook.post('/facebook/webhooks', (req, res) => facebookCallback.post(req, res, auth, self));
 
         http.createServer(webhook).listen(webhook.get('port'), () => {
             console.log("Express server listening on port " + webhook.get("port"));
@@ -133,33 +123,8 @@ class MusicClass {
     }
 
     async initFileSystem() {
-        let s3 = new AWS.S3({
-            apiVersion: '2006-03-01'
-        });
-
-        if (await s3.headObject({
-                Bucket: "store.mmrree.co.uk",
-                Key: "config/AccessMaps.json"
-            }, (err, data) => {
-                if (err && err.code === 'NotFound') {
-                    return false;
-                } else {
-                    return true;
-                }
-            }).promise().catch((err) => console.error(err))) {
-            let data = await s3.getObject({
-                Bucket: "store.mmrree.co.uk",
-                Key: "config/AccessMaps.json"
-            }, (err, data) => {
-                if (err && err.code === 'NotFound') {
-                    console.error(err);
-                    console.log("Not Found");
-                } else {
-                    return JSON.parse(data.Body.toString());
-                }
-            }).promise();
-            this.spotifyData.accesses = new Map(JSON.parse(data.Body.toString()));
-        }
+        let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
+        this.spotifyData.accesses = new Map(JSON.parse(data.Body.toString()));
     }
 
     async initList(spotifyData, bot, musicChannel) {
@@ -486,7 +451,7 @@ class MusicClass {
         var self = this;
 
         function addPlaylistToQ(playlistUrl) {
-            request.get(playlistUrl, {
+            rp.get(playlistUrl, {
                 headers: {
                     Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
                 }
@@ -527,7 +492,7 @@ class MusicClass {
             console.log("-\tThe user already has a token!");
 
             function getPlaylists(offset) {
-                request.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
+                rp.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
                     headers: {
                         Authorization: "Bearer " + self.spotifyData.accesses.get(messageReceived.author.id).spotifyAccess
                     }
@@ -577,7 +542,7 @@ class MusicClass {
     }
 
     refreshToken(messageReceived, self) {
-        request.post('https://accounts.spotify.com/api/token', {
+        rp.post('https://accounts.spotify.com/api/token', {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 Authorization: "Basic " + Buffer.from(self.spotifyClientId + ":" + self.spotifyClientSecret).toString('base64')
@@ -599,22 +564,7 @@ class MusicClass {
                     discordAccess: self.spotifyData.accesses.get(messageReceived.author.id).discordAccess
                 });
 
-                let s3 = new AWS.S3({
-                    apiVersion: '2006-03-01'
-                });
-
-                s3.upload({
-                    Bucket: "store.mmrree.co.uk",
-                    Key: "config/AccessMaps.json",
-                    Body: JSON.stringify(Array.from(self.spotifyData.accesses))
-                }, (err, data) => {
-                    if (err) {
-                        console.log("Error", err);
-                    }
-                    if (data) {
-                        console.log("Upload Success", data);
-                    }
-                });
+                awsUtils.save("store.mmrree.co.uk", "config/AccessMaps.json", JSON.stringify(Array.from(self.spotifyData.accesses)));
 
                 console.log("-\tUpdated the user token!");
             } else {

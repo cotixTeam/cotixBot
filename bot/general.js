@@ -1,11 +1,9 @@
 "use strict";
 
 const Discord = require('discord.js');
-const FileSystem = require('fs');
-const request = require('request');
-const AWS = require('aws-sdk');
 const rp = require('request-promise-native');
 const cheerio = require('cheerio');
+const awsUtils = require('./awsUtils');
 
 class GeneralClass {
     constructor(client, Channels, userStatsMap) {
@@ -51,27 +49,8 @@ class GeneralClass {
                 });
             }
         }
-        this.saveUserStats();
+        awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(this.convertNestedMapsToStringify(this.userStatsMap)));
         console.log(this.userStatsMap.get(newState.id));
-    }
-
-    saveUserStats() {
-        let s3 = new AWS.S3({
-            apiVersion: '2006-03-01'
-        });
-
-        s3.upload({
-            Bucket: "store.mmrree.co.uk",
-            Key: "stats/Users.json",
-            Body: JSON.stringify(this.convertNestedMapsToStringify(this.userStatsMap))
-        }, (err, data) => {
-            if (err) {
-                console.log("Error", err);
-            }
-            if (data) {
-                console.log("-\tLeft a channel, upload successful!");
-            }
-        });
     }
 
     convertNestedMapsToStringify(map) {
@@ -88,7 +67,7 @@ class GeneralClass {
 
     resetStats(messageReceived) {
         this.userStatsMap.delete(messageReceived.author.id);
-        this.saveUserStats();
+        awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(this.convertNestedMapsToStringify(this.userStatsMap)));
         messageReceived.delete();
     }
 
@@ -123,9 +102,8 @@ class GeneralClass {
             });
         }
 
-        this.saveUserStats();
-
-        console.log(this.userStatsMap.get(messageReceived.author.id));
+        awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(this.convertNestedMapsToStringify(this.userStatsMap)));
+        //console.log(this.userStatsMap.get(messageReceived.author.id));
     }
 
     notImplementedCommand(messageReceived, cmd) {
@@ -247,7 +225,7 @@ class GeneralClass {
 
     starWarsResponse(messageReceived) {
         console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") included a star wars string!\n\tResponding with star wars gif");
-        request('https://api.tenor.com/v1/search?q=' + "star wars" + '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU', (error, response, body) => {
+        rp.get('https://api.tenor.com/v1/search?q=' + "star wars" + '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU', (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 let content = JSON.parse(body)
                 let item = Math.floor(Math.random() * content.results.length) // The far right number is the top X results value
@@ -261,7 +239,7 @@ class GeneralClass {
     insultResponse(messageReceived) {
         console.log("'" + messageReceived.content + "' (by " + messageReceived.author.username + ") mentioned the bot!\n\tResponding with insult");
         if (new Date().getDay() != 2)
-            request('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
+            rp.get('https://evilinsult.com/generate_insult.php?lang=en&type=json', (error, response, body) => {
                 if (!error && response.statusCode == 200) {
                     let content = JSON.parse(body)
                     messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
@@ -280,8 +258,6 @@ class GeneralClass {
         cleanChannelDate.setHours(0);
         cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
 
-        this.cleanChannels();
-
         setTimeout(this.cleanChannels, cleanChannelDate.getTime() - (new Date()).getTime());
     }
 
@@ -293,9 +269,7 @@ class GeneralClass {
         nextHourDate.setMinutes(0);
         nextHourDate.setHours(nextHourDate.getHours() + 1);
 
-        this.hourlyUpdate(this.getFbPosts, this.sendFbPosts, this.Channels, this.bot);
-
-        setTimeout(this.hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime(), this.getFbPosts, this.sendFbPosts, this.Channels, this.bot);
+        setTimeout(this.hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime(), this.hourlyUpdate, this.getFbPosts, this.sendFbPosts, this.Channels, this.bot);
     }
 
 
@@ -535,12 +509,13 @@ class GeneralClass {
         }
     }
 
-    hourlyUpdate(getFbPosts, sendFbPosts, Channels, bot) {
+    hourlyUpdate(hourlyUpdate, getFbPosts, sendFbPosts, Channels, bot) {
         console.log("Running Hourly Update!");
 
         getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', Channels, bot).then(posts => {
             sendFbPosts(posts, Channels, bot);
         });
+        setTimeout(hourlyUpdate, 60 * 60 * 1000, hourlyUpdate, getFbPosts, sendFbPosts, Channels, bot);
     }
 
     async sendFbPosts(posts, Channels, bot) {
@@ -649,13 +624,7 @@ class GeneralClass {
     help(messageReceived) {
         console.log("-\tSending a help list of all the commands to the user!");
         let message = "List of commands:";
-        let commandList;
-
-        try {
-            commandList = JSON.parse(FileSystem.readFileSync("./bot/config/Commands.json"));
-        } catch (err) {
-            console.error(err)
-        }
+        let commandList = require('./commands').list;
 
         let lastChannel = commandList[0].channel;
 
