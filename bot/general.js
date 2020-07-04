@@ -14,36 +14,25 @@ class GeneralClass {
 
     async updateVoiceStats(oldState, newState) {
         if (newState.channelID != oldState.channelID) {
+            if (!this.userStatsMap.has(newState.id)) this.userStatsMap.set(newState.id, new Map());
+
             if (newState.channelID) {
-                if (!this.userStatsMap.has(newState.id)) this.userStatsMap.set(newState.id, new Map());
+                // If a new state exists, just append the start time to it, this should never be the same as the old state, and so will have no contentions
+                this.userStatsMap.get(newState.id).set(newState.channelID, {
+                    totalTime: this.userStatsMap.get(newState.id).has(newState.channelID) ?
+                        this.userStatsMap.get(newState.id).get(newState.channelID).totalTime : 0,
+                    startTime: new Date().getTime(),
+                    type: "voice"
+                });
+            }
 
-                if (this.userStatsMap.get(newState.id).has(oldState.channelID)) { // If has old state channelId, then update the old channel id time for having left
-
-                    let difference = new Date().getTime() - new Date(this.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
-
-                    this.userStatsMap.get(newState.id).set(oldState.channelID, {
-                        totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
-                            this.userStatsMap.get(newState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
-                        startTime: null,
-                        type: "voice"
-                    });
-
-
-                } else {
-                    this.userStatsMap.get(newState.id).set(newState.channelID, {
-                        totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
-                            this.userStatsMap.get(newStat.id).get(newState.channelId).totalTime : 0,
-                        startTime: new Date().getTime()
-                    });
-
-                }
-            } else if (oldState.channelID) {
-
+            if (oldState.channelID) {
+                // If an old state exists, just increment its total time
                 let difference = new Date().getTime() - new Date(this.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
 
-                this.userStatsMap.get(newState.id).set(oldState.channelID, {
-                    totalTime: this.userStatsMap.get(newState.id).has(newState.channelId) ?
-                        this.userStatsMap.get(newState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
+                this.userStatsMap.get(oldState.id).set(oldState.channelID, {
+                    totalTime: this.userStatsMap.get(oldState.id).has(oldState.channelID) ?
+                        this.userStatsMap.get(oldState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
                     startTime: null,
                     type: "voice"
                 });

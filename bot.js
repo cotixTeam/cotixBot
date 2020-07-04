@@ -37,7 +37,6 @@ try {
     console.log(auth);
 } catch (err) {
     console.error(err);
-    bot.destroy();
     process.exit();
 }
 
@@ -234,12 +233,28 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                         case "Leaderboards":
                             switch (cmd) { // Channel specific commands
-                                case 'reset':
-                                    leaderboard.reset(messageReceived, args[0]);
+                                case 'clearUsers':
+                                    leaderboard.clearUsers(messageReceived, args[0]);
+                                    break;
+
+                                case 'clearScores':
+                                    leaderboard.clearScores(messageReceived, args[0]);
                                     break;
 
                                 case 'addPlayer':
-                                    leaderboard.addPlayer(messageReceived, args[0], args[1]);
+                                    leaderboard.addPlayer(messageReceived, args);
+                                    break;
+
+                                case 'remPlayer':
+                                    leaderboard.remPlayer(messageReceived, args);
+                                    break;
+
+                                case 'addLeaderboard':
+                                    leaderboard.addLeaderboard(messageReceived, args);
+                                    break;
+
+                                case 'remLeaderboard':
+                                    leaderboard.remLeaderboard(messageReceived, args);
                                     break;
 
                                 case 'win':
