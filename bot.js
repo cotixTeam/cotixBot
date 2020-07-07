@@ -3,15 +3,15 @@ const Discord = require('discord.js');
 const awsUtils = require('./bot/awsUtils');
 
 // Custom classes
-const GeneralClass = require('./bot/general.js');
-const IdeasClass = require('./bot/ideas.js');
-const LeaderboardClass = require('./bot/leaderboard.js');
-const ReminderClass = require('./bot/reminder.js');
-const MusicClass = require('./bot/music.js');
+const general = require('./bot/general.js');
+const ideas = require('./bot/ideas.js');
+const leaderboard = require('./bot/leaderboard.js');
+const reminder = require('./bot/reminder.js');
+const music = require('./bot/music.js');
 
 
 // Parsed JSON files & prevent fatal crashes with catches
-let Channels;
+let channels;
 let auth;
 try {
     if (process.env.DISCORD_BOT_TOKEN) {
@@ -31,7 +31,7 @@ try {
     } else {
         const FileSystem = require('fs');
         console.log("Using local Channels file!");
-        Channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
+        channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
         auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
     }
     console.log(auth);
@@ -59,20 +59,15 @@ function JSONObjectToMap(JSONObject) {
 
 // Object creation
 const bot = new Discord.Client();
-var ideas = null;
-var leaderboard = null;
-var reminder = null;
-var general = null;
-var music = null;
 
 bot.login(auth.discordBotToken);
 
 var userStatsMap = new Map();
 
 bot.on('ready', async () => { // Run init code
-    if (!Channels) {
+    if (!channels) {
         let tempChannels = await awsUtils.load("store.mmrree.co.uk", "config/Channels.json");
-        Channels = JSON.parse(tempChannels.Body.toString());
+        channels = JSON.parse(tempChannels.Body.toString());
     }
 
     console.log('Connected!');
@@ -82,15 +77,11 @@ bot.on('ready', async () => { // Run init code
 
     userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
 
-    general = new GeneralClass.GeneralClass(bot, Channels, userStatsMap);
-    ideas = new IdeasClass.IdeasClass(bot, Channels);
-    leaderboard = new LeaderboardClass.LeaderboardClass(bot, Channels);
-    reminder = new ReminderClass.ReminderClass(bot, Channels);
-    music = new MusicClass.MusicClass(bot, Channels, auth);
-
-    general.initCleanChannelsTimouts();
-    general.initHourlyUpdater();
-
+    reminder.init(bot);
+    music.init(bot, auth, channels);
+    ideas.init(bot, channels);
+    leaderboard.init(bot, channels);
+    general.init(bot, channels, userStatsMap);
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
@@ -155,7 +146,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'qUrl':
-                    music.addByUrl(messageReceived, args);
+                    music.addByURL(messageReceived, args);
                     break;
 
                 case 'qSearch':
@@ -163,12 +154,12 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'qSpotify':
-                    music.qSpotify(messageReceived, argumentString);
+                    music.qSpotify(messageReceived, argumentString, this.music);
                     break;
 
                 default:
                     // Find the relative channel, then use to decided in the switch statement
-                    let channel = Channels
+                    let channel = channels
                         .find((item) => {
                             return item.id === messageReceived.channel.id
                         });
