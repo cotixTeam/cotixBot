@@ -385,7 +385,7 @@ exports.addBySearch = function (messageReceived, argumentString) {
         pageEnd: 1,
         category: "music"
     }, (err, r) => {
-        if (!err) {
+        if (!err && r.videos.length > 0) {
             console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue!");
             this.spotifyPlayer.songs.unshift({
                 id: r.videos[0].videoId,
@@ -394,6 +394,8 @@ exports.addBySearch = function (messageReceived, argumentString) {
             });
             updateList(this.spotifyPlayer, this.bot, this.musicChannel);
         } else {
+            console.log(err);
+            console.log(r);
             console.error("Could not find the query song (" + argumentString + ")!");
         }
     });
@@ -405,7 +407,7 @@ exports.qSpotify = function (messageReceived, argumentString) {
 
     if (this.spotifyPlayer.accesses.has(messageReceived.author.id)) {
         console.log("-\tThe user already has a token!");
-        getPlaylists(0, this, messageReceived.author.id);
+        getPlaylists(0, this, messageReceived.author.id, argumentString);
     } else {
         console.log("-\tRequesting the token for the user!");
         messageReceived.author.send("Connect your spotify account!", {
@@ -422,7 +424,7 @@ exports.qSpotify = function (messageReceived, argumentString) {
     messageReceived.delete();
 }
 
-function addPlaylistToQ(playlistUrl, userId) {
+function addPlaylistToQ(playlistUrl, userId, self) {
     rp.get(playlistUrl, {
         headers: {
             Authorization: "Bearer " + self.spotifyPlayer.accesses.get(userId).spotifyAccess
@@ -446,6 +448,7 @@ function addPlaylistToQ(playlistUrl, userId) {
                             image: track.track.album.images[1].url
                         });
                     } else {
+                        console.log(err);
                         console.error("-\t*\t\tCould not find the query song (" + track.track.name + ")!");
                     }
                     if (playlistObject.tracks.items[playlistObject.tracks.items.length - 1] == track) updateList(self.spotifyPlayer, self.bot, self.musicChannel);
@@ -460,7 +463,7 @@ function addPlaylistToQ(playlistUrl, userId) {
     })
 }
 
-function getPlaylists(offset, self, userId) {
+function getPlaylists(offset, self, userId, argumentString) {
     rp.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
         headers: {
             Authorization: "Bearer " + self.spotifyPlayer.accesses.get(userId).spotifyAccess
@@ -476,14 +479,14 @@ function getPlaylists(offset, self, userId) {
 
             if (result) {
                 console.log("-\tAdding songs of playlist:'" + result.name + "' to queue!");
-                addPlaylistToQ(result.href, userId);
+                addPlaylistToQ(result.href, userId, self);
             } else {
-                getPlaylists(offset + 50, self, userId);
+                getPlaylists(offset + 50, self, userId, argumentString);
             }
         } else if (response.statusCode == 401) {
             console.log("-\tToken expired, refreshing!");
             refreshToken(userId, self);
-            getPlaylists(offset, self, userId);
+            getPlaylists(offset, self, userId, argumentString);
         } else {
             console.log(response.statusCode);
             console.error(error);

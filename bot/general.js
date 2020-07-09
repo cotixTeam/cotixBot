@@ -44,11 +44,14 @@ function initHourlyUpdater(bot, channels, userStatsMap) {
 function hourlyUpdate(bot, channels, userStatsMap) {
     console.log("Running Hourly Update!");
 
+    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(this.userStatsMap)));
+
     getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', channels, bot).then(posts => {
         sendFbPosts(posts, bot, channels);
     });
 
     updateLeaderboards(bot, channels, userStatsMap);
+
 
     setTimeout(hourlyUpdate, 60 * 60 * 1000, bot, channels, userStatsMap);
 }
@@ -152,7 +155,7 @@ async function sendFbPosts(posts, bot, channels) {
                 "content": "Crushampton #" + regExp.exec(post.text)[1],
                 "embed": {
                     "title": "#" + regExp.exec(post.text)[1],
-                    "description": post.text.replace("#Crushampton" + regExp.exec(post.text)[1], "").splice(2048).replace("Mehr ansehen", "").replace("See more", "").replace("See More", ""),
+                    "description": post.text.replace("#Crushampton" + regExp.exec(post.text)[1], "").substring(0, 2048).replace("Mehr ansehen", "").replace("See more", "").replace("See More", ""),
                     "url": post.url,
                     "author": {
                         "name": "Crushampton",
@@ -379,10 +382,8 @@ async function ajax(body, lastMessage, recentPosts) {
                     url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                     image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                 });
-                reachedLast = true;
                 return;
             } else {
-                reachedLast = true;
                 return;
             }
         };
@@ -415,7 +416,6 @@ exports.updateVoiceStats = async function (oldState, newState) {
             });
         }
     }
-    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(this.userStatsMap)));
     console.log(this.userStatsMap.get(newState.id));
 }
 
@@ -433,7 +433,6 @@ function convertNestedMapsToStringify(map) {
 
 exports.resetStats = function (messageReceived) {
     this.userStatsMap.delete(messageReceived.author.id);
-    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(this.userStatsMap)));
     messageReceived.delete();
 }
 
@@ -467,8 +466,6 @@ exports.updateMessageStats = async function (messageReceived) {
                 this.userStatsMap.get(messageReceived.author.id).get("lmaoCount").count + 1 : 1
         });
     }
-
-    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(this.userStatsMap)));
 }
 
 exports.notImplementedCommand = function (messageReceived, cmd) {

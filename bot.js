@@ -145,18 +145,6 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     general.bulkDelete(messageReceived, args);
                     break;
 
-                case 'qUrl':
-                    music.addByURL(messageReceived, args);
-                    break;
-
-                case 'qSearch':
-                    music.addBySearch(messageReceived, argumentString);
-                    break;
-
-                case 'qSpotify':
-                    music.qSpotify(messageReceived, argumentString, this.music);
-                    break;
-
                 default:
                     // Find the relative channel, then use to decided in the switch statement
                     let channel = channels
@@ -169,6 +157,22 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     };
 
                     switch (channel.name) { // Checking the channel for the specific commands
+                        case "Music":
+                            switch (cmd) {
+                                case 'qUrl':
+                                    music.addByURL(messageReceived, args);
+                                    break;
+
+                                case 'qSearch':
+                                    music.addBySearch(messageReceived, argumentString);
+                                    break;
+
+                                case 'qSpotify':
+                                    music.qSpotify(messageReceived, argumentString, this.music);
+                                    break;
+                            }
+                            break;
+
                         case "Settings":
                             switch (cmd) { // Channel specific commands
                                 case 'listEvents':
