@@ -8,6 +8,7 @@ const ideas = require('./bot/ideas.js');
 const leaderboard = require('./bot/leaderboard.js');
 const reminder = require('./bot/reminder.js');
 const music = require('./bot/music.js');
+const gamesFinder = require('./bot/gamesFinder.js');
 
 
 // Parsed JSON files & prevent fatal crashes with catches
@@ -98,6 +99,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
             let argumentString = args.join(' ');
 
             switch (cmd) { // General server wide commands
+                case "findGames":
+                    gamesFinder.findGames(messageReceived, args);
+                    break;
+
                 case "toggleModerator":
                     general.toggleModerator(messageReceived);
                     break;
