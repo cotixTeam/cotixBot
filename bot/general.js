@@ -613,6 +613,7 @@ exports.insultResponse = function (messageReceived) {
 
 function dailyTimeouts(bot, Channels) {
     clean(bot, Channels);
+    setTimeout(dailyTimeouts, 24*60*60*1000, bot, Channels);
 }
 
 async function clean(bot, channels) {
