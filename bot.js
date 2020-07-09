@@ -77,6 +77,7 @@ bot.on('ready', async () => { // Run init code
 
     userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
 
+
     reminder.init(bot);
     music.init(bot, auth, channels);
     ideas.init(bot, channels);
@@ -97,6 +98,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
             let argumentString = args.join(' ');
 
             switch (cmd) { // General server wide commands
+                case "toggleModerator":
+                    general.toggleModerator(messageReceived);
+                    break;
+
                 case "sendPlaceholder":
                     general.sendPlaceholder(messageReceived);
                     break;
@@ -106,7 +111,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     break;
 
                 case 'stats':
-                    general.stats(messageReceived);
+                    general.stats(messageReceived, args);
                     break;
 
                 case 'toxic':

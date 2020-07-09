@@ -44,7 +44,7 @@ function initHourlyUpdater(bot, channels, userStatsMap) {
 function hourlyUpdate(bot, channels, userStatsMap) {
     console.log("Running Hourly Update!");
 
-    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(this.userStatsMap)));
+    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(userStatsMap)));
 
     getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', channels, bot).then(posts => {
         sendFbPosts(posts, bot, channels);
@@ -431,6 +431,28 @@ function convertNestedMapsToStringify(map) {
     return listObjects;
 }
 
+exports.toggleModerator = function (messageReceived) {
+    console.log("-\tToggle user to normal view for " + messageReceived.author.username + "!");
+    let psudoModRole;
+    let modRole;
+    if (process.env.DISCORD_BOT_TOKEN) {
+        psudoModRole = "730775933581263028";
+        modRole = "668465816894832641";
+    } else {
+        psudoModRole = "729306365562191912";
+        modRole = "730778077386506250";
+    }
+    if (!messageReceived.member.roles.cache.has(modRole) && messageReceived.member.roles.cache.has(psudoModRole)) {
+        messageReceived.member.roles.add(modRole);
+    } else if (messageReceived.member.roles.cache.has(modRole) && messageReceived.member.roles.cache.has(psudoModRole)) {
+        messageReceived.member.roles.remove(modRole);
+    } else if (messageReceived.member.roles.cache.has(modRole) && !messageReceived.member.roles.cache.has(psudoModRole)) {
+        messageReceived.member.roles.remove(modRole);
+        messageReceived.member.roles.add(psudoModRole);
+    }
+    messageReceived.delete();
+}
+
 exports.resetStats = function (messageReceived) {
     this.userStatsMap.delete(messageReceived.author.id);
     messageReceived.delete();
@@ -482,105 +504,141 @@ exports.notImplementedCommand = function (messageReceived, cmd) {
         });
 }
 
-exports.stats = function (messageReceived) {
-    if (this.userStatsMap.has(messageReceived.author.id)) {
-        console.log(this.userStatsMap.get(messageReceived.author.id))
-        let fields = []
+function statFieldsGenerator(userId, userStatsMap, bot) {
+    let fields = []
 
-        fields.push({
-            name: '\u200B',
-            value: '\u200B'
-        });
+    fields.push({
+        name: '\u200B',
+        value: '\u200B'
+    });
 
-        fields.push({
-            name: 'Channel Stats Below',
-            value: '...'
-        });
-        this.bot.channels.cache.forEach(serverChannel => {
-            this.userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
-                if (serverChannel.id == statId) {
-                    if (statChannel.type == "voice") {
+    fields.push({
+        name: 'Channel Stats Below',
+        value: '...'
+    });
+    bot.channels.cache.forEach(serverChannel => {
+        userStatsMap.get(userId).forEach((statChannel, statId) => {
+            if (serverChannel.id == statId) {
+                if (statChannel.type == "voice") {
 
-                        function msToTime(duration) {
-                            var milliseconds = parseInt((duration % 1000) / 100),
-                                seconds = Math.floor((duration / 1000) % 60),
-                                minutes = Math.floor((duration / (1000 * 60)) % 60),
-                                hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+                    function msToTime(duration) {
+                        var milliseconds = parseInt((duration % 1000) / 100),
+                            seconds = Math.floor((duration / 1000) % 60),
+                            minutes = Math.floor((duration / (1000 * 60)) % 60),
+                            hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
-                            seconds = (seconds < 10 && (minutes > 0 || hours > 0)) ? "0" + seconds : seconds;
-                            minutes = (minutes < 10 && hours > 0) ? "0" + minutes : minutes;
-                            hours = (hours < 10) ? "0" + hours : hours;
+                        seconds = (seconds < 10 && (minutes > 0 || hours > 0)) ? "0" + seconds : seconds;
+                        minutes = (minutes < 10 && hours > 0) ? "0" + minutes : minutes;
+                        hours = (hours < 10) ? "0" + hours : hours;
 
-                            if (seconds.valueOf() > 0) {
-                                if (minutes.valueOf() > 0) {
-                                    if (hours.valueOf() > 0) {
-                                        return hours + " hours, " + minutes + " minutes and " + seconds + " seconds";
-                                    }
-                                    return minutes + " minutes and " + seconds + " seconds";
+                        if (seconds.valueOf() > 0) {
+                            if (minutes.valueOf() > 0) {
+                                if (hours.valueOf() > 0) {
+                                    return hours + " hours, " + minutes + " minutes and " + seconds + " seconds";
                                 }
-                                return seconds + " seconds";
+                                return minutes + " minutes and " + seconds + " seconds";
                             }
-                            return milliseconds + " milliseconds";
+                            return seconds + " seconds";
                         }
-
-                        fields.push({
-                            name: serverChannel.name,
-                            value: msToTime(statChannel.totalTime) + " spent in this channel!",
-                            inline: true
-                        })
-                    } else if (statChannel.type == "text") {
-                        fields.push({
-                            name: serverChannel.name,
-                            value: "You sent " + statChannel.messageCount + " messsages in this channel!",
-                            inline: true
-                        })
+                        return milliseconds + " milliseconds";
                     }
+
+                    fields.push({
+                        name: serverChannel.name,
+                        value: msToTime(statChannel.totalTime) + " spent in this channel!",
+                        inline: true
+                    })
+                } else if (statChannel.type == "text") {
+                    fields.push({
+                        name: serverChannel.name,
+                        value: "You sent " + statChannel.messageCount + " messsages in this channel!",
+                        inline: true
+                    })
+                }
+            }
+        });
+    });
+
+    fields.push({
+        name: '\u200B',
+        value: '\u200B'
+    });
+
+    fields.push({
+        name: 'General Stats Below',
+        value: '...'
+    });
+
+    userStatsMap.get(userId).forEach((statChannel, statId) => {
+        if (statId == "lmaoCount") {
+            fields.push({
+                name: "😂-lmao",
+                value: "You have sent " + statChannel.count + ' "lmao"s!',
+                inline: true
+            })
+        } else if (statId == "niceCount") {
+            fields.push({
+                name: "👍-nice",
+                value: "You have sent " + statChannel.count + ' "nice"s!',
+                inline: true
+            })
+        } else if (statId == "toxicCount") {
+            fields.push({
+                name: "☣️-toxic",
+                value: "You been toxic " + statChannel.count + ' times!',
+                inline: true
+            })
+        }
+    });
+
+    return fields;
+}
+
+exports.stats = async function (messageReceived, args) {
+    if (args.length == 0) {
+        if (this.userStatsMap.has(messageReceived.author.id)) {
+            console.log(this.userStatsMap.get(messageReceived.author.id))
+            let fields = statFieldsGenerator(messageReceived.author.id, this.userStatsMap, this.bot);
+
+            messageReceived.author.send({
+                "content": "Your statistics",
+                "embed": {
+                    "title": "Stats",
+                    "description": "Showing " + messageReceived.author.username + "'s Stats...",
+                    "fields": fields
                 }
             });
-        });
-
-        fields.push({
-            name: '\u200B',
-            value: '\u200B'
-        });
-
-        fields.push({
-            name: 'General Stats Below',
-            value: '...'
-        });
-
-        this.userStatsMap.get(messageReceived.author.id).forEach((statChannel, statId) => {
-            if (statId == "lmaoCount") {
-                fields.push({
-                    name: "😂-lmao",
-                    value: "You have sent " + statChannel.count + ' "lmao"s!',
-                    inline: true
-                })
-            } else if (statId == "niceCount") {
-                fields.push({
-                    name: "👍-nice",
-                    value: "You have sent " + statChannel.count + ' "nice"s!',
-                    inline: true
-                })
-            } else if (statId == "toxicCount") {
-                fields.push({
-                    name: "☣️-toxic",
-                    value: "You been toxic " + statChannel.count + ' times!',
-                    inline: true
-                })
-            }
-        })
-
-        messageReceived.author.send({
-            "content": "Your statistics",
-            "embed": {
-                "title": "Stats",
-                "description": "Showing " + messageReceived.author.username + "'s Stats...",
-                "fields": fields
-            }
-        });
+        } else {
+            messageReceived.author.send("You have no stats on record!");
+        }
     } else {
-        messageReceived.author.send("You have no stats on record!");
+        let userList = args.map(arg => /<@[!]*([0-9]+)>/g.exec(arg)[1]).filter(arg => arg != null);
+
+        for (let user of userList) {
+            if (this.userStatsMap.has(user)) {
+
+                let discordUser = await new Discord.User(this.bot, {
+                    id: user
+                }).fetch();
+
+                console.log(this.userStatsMap.get(user));
+                let fields = statFieldsGenerator(user, this.userStatsMap, this.bot);
+
+                messageReceived.author.send({
+                    "content": discordUser.username + "'s statistics",
+                    "embed": {
+                        "title": "Stats",
+                        "description": "Showing " + discordUser.username + "'s Stats...",
+                        "fields": fields
+                    }
+                });
+            } else {
+                let discordUser = await new Discord.User(this.bot, {
+                    id: user
+                }).fetch();
+                messageReceived.author.send("There are no stats on record for " + discordUser.username + "!");
+            }
+        }
     }
     if (messageReceived.guild != null) messageReceived.delete();
 }
@@ -613,7 +671,7 @@ exports.insultResponse = function (messageReceived) {
 
 function dailyTimeouts(bot, Channels) {
     clean(bot, Channels);
-    setTimeout(dailyTimeouts, 24*60*60*1000, bot, Channels);
+    setTimeout(dailyTimeouts, 24 * 60 * 60 * 1000, bot, Channels);
 }
 
 async function clean(bot, channels) {
@@ -732,7 +790,7 @@ exports.camel = function (messageReceived, argumentString) {
 }
 
 exports.quote = function (messageReceived, args) {
-    let userId = args[0].substring(3, 21);
+    let userId = /<@[!]*([0-9]+)>/g.exec(args[0])[1];
     args = args.splice(1);
     let quoteString = args.join(' ');
 

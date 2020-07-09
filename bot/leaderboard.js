@@ -21,7 +21,7 @@ exports.init = async function (bot, channels) {
 }
 
 exports.addPlayer = async function (messageReceived, args) {
-    let playerQuery = args[0].substring(3, 21);
+    let playerQuery = /<@[!]*([0-9]+)>/g.exec(args[0])[1];
     let leaderboardQuery = args[1];
 
     for (let leaderboard of this.leaderboards) {
@@ -61,12 +61,12 @@ exports.remPlayer = function (messageReceived, args) {
 
     for (let leaderboard of this.leaderboards) {
         if (leaderboardQuery == leaderboard.name) {
-            console.log("-\tRemoving player '" + playerQuery.substring(3, 21) + "' to the leaderboard '" + leaderboardQuery + "'");
+            console.log("-\tRemoving player '" + /<@[!]*([0-9]+)>/g.exec(playerQuery)[1] + "' to the leaderboard '" + leaderboardQuery + "'");
             if (!leaderboard.users) leaderboard.users = []; // Initialise if users do not exists (only used during conversion)
 
             // remove user if exists, otherwise leave the same
             leaderboard.users = leaderboard.users.filter((value) => {
-                if (value.id != playerQuery.substring(3, 21)) {
+                if (value.id != /<@[!]*([0-9]+)>/g.exec(playerQuery)[1]) {
                     changed = true;
                     return true;
                 }
@@ -255,7 +255,7 @@ exports.win = function (messageReceived, args) {
     let queryLeaderboard = args[0];
     let losers = args.map((arg) => {
         if (arg != queryLeaderboard) {
-            return arg.substring(3, 21);
+            return /<@[!]*([0-9]+)>/g.exec(arg)[1];
         }
     }).filter((arg) => arg != null);
 
@@ -298,10 +298,10 @@ exports.win = function (messageReceived, args) {
 
 exports.winOther = function (messageReceived, args) {
     let queryLeaderboard = args[0];
-    let winner = args[1].substring(3, 21);
+    let winner = /<@[!]*([0-9]+)>/g.exec(args[1])[1];
     let losers = args.map((arg) => {
         if (arg != queryLeaderboard && arg != args[1]) {
-            return arg.substring(3, 21);
+            return /<@[!]*([0-9]+)>/g.exec(arg)[1];
         }
     }).filter((arg) => arg != null);
 
