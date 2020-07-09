@@ -8,7 +8,6 @@ var me = "76561198037408655";
 /// INTERMEDIATE FUNCTIONS ///
 
 var friendsUsernames = ['Gavin8a2can','MisterE', 'thialfi'];
-var gameses = [];
 
 /// Fill an array friendsUsernames with their IDs
 async function fillFriendsIDList(refSteamID , friendsUsernames) {
