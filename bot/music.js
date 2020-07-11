@@ -1,10 +1,7 @@
 "use strict";
 
 const Discord = require('discord.js');
-const Express = require('express');
-const http = require('http');
 const ytdl = require('ytdl-core');
-const Path = require('path');
 const rp = require('request-promise-native');
 const ytSearch = require('yt-search');
 const awsUtils = require('./awsUtils');
@@ -65,8 +62,6 @@ exports.spotifyPlayer = {
 
 // TODO: move all the callbacks to their own individual functions so that this init looks cleaner (scope rearrange)
 exports.init = async function (bot, auth, Channels) {
-    initWebhooks(auth, this);
-
     let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
     this.spotifyPlayer.accesses = new Map(JSON.parse(data.Body.toString()));
 
@@ -530,36 +525,5 @@ function refreshToken(userId, self) {
 }
 
 function initWebhooks(auth, self) {
-    var webhook = Express();
-    const bodyParser = require('body-parser');
 
-    webhook.set('port', process.env.PORT || 3000);
-    webhook.use(bodyParser.json());
-    webhook.use(Express.static('public'));
-    webhook.use(Express.static('files'));
-    webhook.use('/', Express.static(Path.join(__dirname + "/landing/")));
-
-    webhook.get('/spotifyAuthenticate', (req, res) => {
-        console.log("/spotifyAuthenticate accessed!");
-        res.redirect(auth.spotifyDiscordConnectUrl);
-    })
-
-    webhook.get('/spotifyCallback', (req, res) => {
-        console.log("/spotifyCallback accessed!");
-        res.redirect("https://discord.com/api/v6/oauth2/authorize?" +
-            "client_id=" + auth.discordClientId +
-            "&redirect_uri=" + encodeURIComponent(auth.discordCallback) +
-            "&response_type=code" +
-            "&scope=identify" +
-            "&prompt=none" +
-            "&state=" + req.query.code);
-    });
-
-    const discordCallback = require('./routes/discordCallback.js');
-
-    webhook.get('/discordCallback', (req, res) => discordCallback.get(req, res, auth, self));
-
-    http.createServer(webhook).listen(webhook.get('port'), () => {
-        console.log("Express server listening on port " + webhook.get("port"));
-    });
 }

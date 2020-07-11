@@ -9,6 +9,7 @@ const leaderboard = require('./bot/leaderboard.js');
 const reminder = require('./bot/reminder.js');
 const music = require('./bot/music.js');
 const gamesFinder = require('./bot/gamesFinder.js');
+const webHooks = require('./bot/webHooks.js');
 
 
 // Parsed JSON files & prevent fatal crashes with catches
@@ -84,6 +85,7 @@ bot.on('ready', async () => { // Run init code
     ideas.init(bot, channels);
     leaderboard.init(bot, channels);
     general.init(bot, channels, userStatsMap);
+    webHooks.init(auth);
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in

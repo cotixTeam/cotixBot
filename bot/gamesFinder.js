@@ -9,6 +9,8 @@ var friendsUsernames = ['Gavin8a2can', 'MisterE', 'thialfi'];
 // Notifying the users that steam api is being a bitch, otherwise continue by using the cached / updated lists
 // The cache will not be backed up anything (such as s3) so will be lost between restarts, but this does not seem like that big of an issue
 
+var cache = new Map();
+
 async function fillFriendsIDList(refSteamID, friendsUsernames) {
     let foundFriends = [];
 
@@ -16,7 +18,6 @@ async function fillFriendsIDList(refSteamID, friendsUsernames) {
         "&relationship=friend" +
         "&steamid=" + refSteamID).then((res) => {
         let jsonRes = JSON.parse(res);
-        console.log(jsonRes.friendslist.friends)
         return jsonRes.friendslist.friends;
     });
 
@@ -27,14 +28,12 @@ async function fillFriendsIDList(refSteamID, friendsUsernames) {
     let steamFriends = await rp.get("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" + steamKey +
         "&steamids=" + friends.join(",")).then((res) => {
         let jsonRes = JSON.parse(res);
-        console.log(jsonRes.response.players);
         return jsonRes.response.players
     });
 
     for (let unknownFriend of steamFriends) {
         for (let knownFriendName of friendsUsernames) {
             if (unknownFriend.personaname == knownFriendName) {
-                console.log("Adding " + unknownFriend.personaname + " to the list with id " + unknownFriend.steamid);
                 foundFriends.push(unknownFriend.steamid);
             }
         }
@@ -47,15 +46,18 @@ async function getGameList(refID, idList) {
     let gameList = [];
 
     for (let id of idList) {
-        console.log(id)
         let gList = await rp.get("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" + steamKey +
             "&include_appinfo=1" +
             "&include_played_free_games=1" +
             "&steamid=" + id +
             "&format=json").then((res) => {
             let jsonRes = JSON.parse(res);
-            console.log(jsonRes.response.games);
-            return jsonRes.response.games;
+            if (jsonRes.response.games != null) {
+                cache.set(id, jsonRes.response.games);
+                return jsonRes.response.games;
+            } else if (cache.has(id)) {
+                return cache.get(id);
+            } else return false;
         })
         gameList.push(gList);
     }
@@ -80,12 +82,19 @@ function chooseGame(gameList) {
 }
 
 async function getRandomGame() {
+
+
+
     var friendsIDs = await fillFriendsIDList(me, friendsUsernames);
 
     var gameLists = await getGameList(me, friendsIDs, (val) => {
         return val
     });
     gameLists = gameLists.filter((list) => list != null).sort((a, b) => a.length - b.length);
+
+    if (gameLists.some((game) => game == false)) {
+        return [false, false];
+    }
 
     let combinedResults = gameLists[0];
     gameLists = gameLists.splice(1);
@@ -101,6 +110,11 @@ async function getRandomGame() {
 exports.findGames = function (messageReceived) {
     messageReceived.channel.send("Finding your common games...\nThis might take a while!").then(async (message) => {
         let results = await getRandomGame();
+
+        if (results = [false, false]) {
+            message.edit("Steam is being weird and you don't have enough cached lists! Re-try in a short time and see if it works then!");
+        }
+
         let chosenGame = results[0];
         let list = results[1];
 
