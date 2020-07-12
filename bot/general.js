@@ -3,22 +3,21 @@
 const Discord = require('discord.js');
 const rp = require('request-promise-native');
 const cheerio = require('cheerio');
+
+const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
+const fileConversion = require('./fileConversion.js');
 
-exports.init = function (bot, channels, userStatsMap) {
-    this.bot = bot;
-    this.channels = channels;
-    this.userStatsMap = userStatsMap;
+exports.init = function () {
+    updateLeaderboards();
+    hourlyUpdate();
+    dailyTimeouts();
 
-    updateLeaderboards(bot, channels, userStatsMap);
-    hourlyUpdate(bot, channels, userStatsMap);
-    dailyTimeouts(bot, channels);
-
-    initHourlyUpdater(bot, channels, userStatsMap);
-    initDailyTimeouts(bot, channels);
+    initHourlyUpdater();
+    initDailyTimeouts();
 }
 
-function initDailyTimeouts(bot, channels) {
+function initDailyTimeouts() {
     // Setting up clean channels at midnight setting
     let cleanChannelDate = new Date();
     cleanChannelDate.setMilliseconds(0);
@@ -27,10 +26,10 @@ function initDailyTimeouts(bot, channels) {
     cleanChannelDate.setHours(0);
     cleanChannelDate.setDate(cleanChannelDate.getDate() + 1);
 
-    setTimeout(dailyTimeouts, cleanChannelDate.getTime() - (new Date()).getTime(), bot, channels);
+    setTimeout(dailyTimeouts, cleanChannelDate.getTime() - (new Date()).getTime());
 }
 
-function initHourlyUpdater(bot, channels, userStatsMap) {
+function initHourlyUpdater() {
     // Setting up an hourly repeated command
     let nextHourDate = new Date();
     nextHourDate.setMilliseconds(0);
@@ -38,30 +37,32 @@ function initHourlyUpdater(bot, channels, userStatsMap) {
     nextHourDate.setMinutes(0);
     nextHourDate.setHours(nextHourDate.getHours() + 1);
 
-    setTimeout(hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime(), bot, channels, userStatsMap);
+    setTimeout(hourlyUpdate, nextHourDate.getTime() - (new Date()).getTime());
 }
 
-function hourlyUpdate(bot, channels, userStatsMap) {
+let initialHourly = true;
+
+function hourlyUpdate() {
     console.log("Running Hourly Update!");
 
-    awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(convertNestedMapsToStringify(userStatsMap)));
+    if (!initialHourly) {
+        awsUtils.save("store.mmrree.co.uk", "stats/Users.json", JSON.stringify(fileConversion.convertNestedMapsToStringify(metaData.userStatsMap)));
+        setTimeout(hourlyUpdate, 60 * 60 * 1000);
+    } else initialHourly = false;
 
-    getFbPosts('https://www.facebook.com/pg/Crushampton/posts/', channels, bot).then(posts => {
-        sendFbPosts(posts, bot, channels);
+    getFbPosts('https://www.facebook.com/pg/Crushampton/posts/').then(posts => {
+        sendFbPosts(posts);
     });
 
-    updateLeaderboards(bot, channels, userStatsMap);
-
-
-    setTimeout(hourlyUpdate, 60 * 60 * 1000, bot, channels, userStatsMap);
+    updateLeaderboards();
 }
 
-async function updateLeaderboards(bot, channels, userStatsMap) {
-    let leaderboardChannel = await new Discord.Channel(bot, {
-        id: channels.find((channel) => channel.name == "Leaderboards").id
+async function updateLeaderboards() {
+    let leaderboardChannel = await new Discord.Channel(metaData.bot, {
+        id: metaData.channels.find((channel) => channel.name == "Leaderboards").id
     }).fetch();
 
-    updateCountStat(bot, channels, leaderboardChannel, userStatsMap, "lmao", {
+    updateCountStat(leaderboardChannel, "lmao", {
         "content": "Lmao Count",
         "embed": {
             "title": "LMAO 😂",
@@ -70,7 +71,7 @@ async function updateLeaderboards(bot, channels, userStatsMap) {
         }
     });
 
-    updateCountStat(bot, channels, leaderboardChannel, userStatsMap, "nice", {
+    updateCountStat(leaderboardChannel, "nice", {
         "content": "Nice Count",
         "embed": {
             "title": "Nice 👌",
@@ -79,7 +80,7 @@ async function updateLeaderboards(bot, channels, userStatsMap) {
         }
     });
 
-    updateCountStat(bot, channels, leaderboardChannel, userStatsMap, "toxic", {
+    updateCountStat(leaderboardChannel, "toxic", {
         "content": "Toxic Count",
         "embed": {
             "title": "Toxic ☢️",
@@ -89,11 +90,11 @@ async function updateLeaderboards(bot, channels, userStatsMap) {
     });
 }
 
-async function updateCountStat(bot, channels, leaderboardChannel, userStatsMap, stat, message) {
+async function updateCountStat(leaderboardChannel, stat, message) {
     let stats = [];
 
-    await userStatsMap.forEach(async (user, key) => {
-        let discordUser = await new Discord.User(bot, {
+    await metaData.userStatsMap.forEach(async (user, key) => {
+        let discordUser = await new Discord.User(metaData.bot, {
             "id": key
         }).fetch();
 
@@ -131,19 +132,19 @@ async function updateCountStat(bot, channels, leaderboardChannel, userStatsMap, 
         }
     });
 
-    new Discord.Message(bot, {
-        id: channels.find((channel) => channel.name == "Leaderboards")[stat + "Board"]
+    new Discord.Message(metaData.bot, {
+        id: metaData.channels.find((channel) => channel.name == "Leaderboards")[stat + "Board"]
     }, leaderboardChannel).fetch().then((board) => board.edit(message));
 }
 
-async function sendFbPosts(posts, bot, channels) {
-    let channel = channels
+async function sendFbPosts(posts) {
+    let channel = metaData.channels
         .find((item) => {
             return item.name === "Crushampton"
         });
 
     if (channel) { // Just make sure the config has been set up properly
-        let crushamptonChannel = await new Discord.Channel(bot, {
+        let crushamptonChannel = await new Discord.Channel(metaData.bot, {
             id: channel.id
         }).fetch();
 
@@ -173,48 +174,60 @@ async function sendFbPosts(posts, bot, channels) {
     }
 }
 
-async function getFbPosts(pageUrl, Channels, bot) {
-    let requestOptions = {
-        url: pageUrl,
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0'
-        }
-    };
-
-    let channel = Channels
-        .find((item) => {
-            return item.name === "Crushampton"
-        });
+async function getFbPosts(pageUrl) {
+    let channel = metaData.channels.find((item) => {
+        return item.name === "Crushampton"
+    });
 
     if (channel) { // Just make sure the config has been set up properly
-        let crushamptonChannel = await new Discord.Channel(bot, {
+        let crushamptonChannel = await new Discord.Channel(metaData.bot, {
             id: channel.id
         }).fetch();
 
-        let lastMessage = await new Discord.Message(bot, {
+        let lastMessage = await new Discord.Message(metaData.bot, {
             id: crushamptonChannel.lastMessageId
         }, crushamptonChannel).fetch();
 
         lastMessage = lastMessage.first();
 
-        if (lastMessage == null) {
+        return rp.get({
+            url: pageUrl,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0'
+            }
+        }).then(async (postsHtml) => {
+            let reachedLast = false;
+            let $ = cheerio.load(postsHtml);
+
             let posts = [];
 
             let recentPosts = [];
-            return rp.get(requestOptions).then(async (postsHtml) => {
-                let $ = cheerio.load(postsHtml);
-                let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
-                let htmlPosts = timeLinePostEls.filter(postObject => {
-                    let $post = cheerio.load(postObject.html());
-                    let post = $post('.userContent');
-                    if (post.text().includes("#Crushampton")) {
-                        posts.unshift({
+
+            let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
+            timeLinePostEls.forEach(postObject => {
+                let $post = cheerio.load(postObject.html());
+                let post = $post('.userContent');
+
+                if (post.text().includes("#Crushampton")) {
+                    let regExp = /(?:#Crushampton)*([0-9]+)/;
+
+                    if (parseInt(regExp.exec(post.text())[1]) > (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]))) {
+                        recentPosts.unshift({
                             text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                             url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
                             image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
                         });
-                    };
-                });
+                    }
+
+                    if (parseInt(regExp.exec(post.text())[1]) <= (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]) + 1)) {
+                        reachedLast = true;
+                        return;
+                    }
+                };
+            });
+
+            if (!reachedLast) {
+                // Ajax request for more posts
                 let morePosts = $('.uiMorePager').map((i, el) => $(el)).get();
                 let link = morePosts.map((link) => {
                     return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)" href/.exec(link)[1].replace(" ", "").replace(/\"www_/g, "www_"))
@@ -226,136 +239,30 @@ async function getFbPosts(pageUrl, Channels, bot) {
                         "&fb_dtsg_ag" +
                         "&__user=0" +
                         "&__a=1" +
-                        "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
-                        "&__csr=" +
-                        "&__req=4" +
-                        "&__beoa=0" +
-                        "&__pc=PHASED%3ADEFAULT" +
-                        "&dpr=1" +
-                        "&__ccg=EXCELLENT" +
-                        "&__rev=1002311505" +
-                        "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
-                        "&__hsi=6844080780314694399-0" +
-                        "&__comet_req=0" +
-                        "&__spin_r=1002311505" +
-                        "&__spin_b=trunk" +
-                        "&__spin_t=1593511733";
+                        "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m";
                 });
                 link = link[0];
 
-                await rp.get(link, {
-                    "credentials": "include",
+                await rp.get({
+                    "url": link,
                     "headers": {
-                        "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0",
-                        "Accept": "*/*",
-                        "Accept-Language": "en-US,en;q=0.5"
-                    },
-                    "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
-                    "method": "GET",
-                    "mode": "cors"
-                }, (err, res, body) => {
+                        "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0"
+                    }
+                }, async (err, res, body) => {
                     if (!err && res.statusCode == 200) {
-                        ajax(body, lastMessage, recentPosts);
+                        await ajax(body, lastMessage, recentPosts);
+                    } else {
+                        console.error(err);
+                        console.group(res);
                     }
                 });
+            }
 
-                for (let post of recentPosts) {
-                    htmlPosts.push(post);
-                }
-
-                return htmlPosts;
-            });
-        } else {
-            return rp.get(requestOptions).then(async (postsHtml) => {
-                let reachedLast = false;
-                let $ = cheerio.load(postsHtml);
-
-                let posts = [];
-
-                let recentPosts = [];
-
-                let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
-                timeLinePostEls.forEach(postObject => {
-                    let $post = cheerio.load(postObject.html());
-                    let post = $post('.userContent');
-
-                    if (post.text().includes("#Crushampton")) {
-                        let regExp = /(?:#Crushampton)*([0-9]+)/;
-                        if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
-                            recentPosts.unshift({
-                                text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
-                                url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
-                                image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
-                            });
-                        } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
-                            recentPosts.unshift({
-                                text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
-                                url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
-                                image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
-                            });
-                            reachedLast = true;
-                            return;
-                        } else {
-                            reachedLast = true;
-                            return;
-                        }
-                    };
-                });
-
-                if (!reachedLast) {
-                    // Ajax request for more posts
-                    let morePosts = $('.uiMorePager').map((i, el) => $(el)).get();
-                    let link = morePosts.map((link) => {
-                        return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)" href/.exec(link)[1].replace(" ", "").replace(/\"www_/g, "www_"))
-                            .replace(/,/g, "%2C")
-                            .replace(/&amp;/g, "&")
-                            .replace(/%25/g, "%")
-                            .replace(/:/g, "%3A")
-                            .replace("unit_count=8", "unit_count=100") +
-                            "&fb_dtsg_ag" +
-                            "&__user=0" +
-                            "&__a=1" +
-                            "&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m" +
-                            "&__csr=" +
-                            "&__req=4" +
-                            "&__beoa=0" +
-                            "&__pc=PHASED%3ADEFAULT" +
-                            "&dpr=1" +
-                            "&__ccg=EXCELLENT" +
-                            "&__rev=1002311505" +
-                            "&__s=p08z8l%3Aa6jad3%3Azkci3v" +
-                            "&__hsi=6844080780314694399-0" +
-                            "&__comet_req=0" +
-                            "&__spin_r=1002311505" +
-                            "&__spin_b=trunk" +
-                            "&__spin_t=1593511733";
-                    });
-                    link = link[0];
-
-                    await rp.get(link, {
-                        "credentials": "include",
-                        "headers": {
-                            "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0",
-                            "Accept": "*/*",
-                            "Accept-Language": "en-US,en;q=0.5"
-                        },
-                        "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
-                        "method": "GET",
-                        "mode": "cors"
-                    }, (err, res, body) => {
-                        if (!err && res.statusCode == 200) {
-                            ajax(body, lastMessage, recentPosts);
-                        }
-                    });
-                }
-
-                for (let post of recentPosts) {
-                    posts.push(post);
-                }
-                return posts;
-            });
-        }
-
+            for (let post of recentPosts) {
+                posts.push(post);
+            }
+            return posts;
+        });
     } else {
         console.error("No such channel, check the config files!");
     }
@@ -364,41 +271,43 @@ async function getFbPosts(pageUrl, Channels, bot) {
 async function ajax(body, lastMessage, recentPosts) {
     let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
     let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
-    timeLinePostEls.forEach(postObject => {
-        let $post = cheerio.load(postObject.html());
-        let post = $post('.userContent');
 
-        if (post.text().includes("#Crushampton")) {
-            let regExp = /(?:#Crushampton)*([0-9]+)/;
-            if (regExp.exec(post.text())[1] > regExp.exec(lastMessage.content)[1]) {
-                recentPosts.unshift({
-                    text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
-                    url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
-                    image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
-                });
-            } else if (parseInt(regExp.exec(post.text()))[1] > (parseInt(regExp.exec(lastMessage.content)[1]) + 1)) {
-                recentPosts.unshift({
-                    text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
-                    url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
-                    image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
-                });
-                return;
-            } else {
-                return;
-            }
-        };
+    let finished = false;
+
+    timeLinePostEls.forEach(postObject => {
+        if (!finished) {
+            let $post = cheerio.load(postObject.html());
+            let post = $post('.userContent');
+
+            if (post.text().includes("#Crushampton")) {
+                let regExp = /(?:Crushampton #)*([0-9]+)/;
+
+                if (parseInt(regExp.exec(post.text())[1]) > (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]))) {
+                    recentPosts.unshift({
+                        text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
+                        url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
+                        image: $post('.uiScaledImageContainer')[0] ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src : null
+                    });
+                }
+
+                if (parseInt(regExp.exec(post.text())[1]) <= (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]) + 1)) {
+                    finished = true;
+                    return;
+                }
+            };
+        }
     });
 }
 
 exports.updateVoiceStats = async function (oldState, newState) {
     if (newState.channelID != oldState.channelID) {
-        if (!this.userStatsMap.has(newState.id)) this.userStatsMap.set(newState.id, new Map());
+        if (!metaData.userStatsMap.has(newState.id)) metaData.userStatsMap.set(newState.id, new Map());
 
         if (newState.channelID) {
             // If a new state exists, just append the start time to it, this should never be the same as the old state, and so will have no contentions
-            this.userStatsMap.get(newState.id).set(newState.channelID, {
-                totalTime: this.userStatsMap.get(newState.id).has(newState.channelID) ?
-                    this.userStatsMap.get(newState.id).get(newState.channelID).totalTime : 0,
+            metaData.userStatsMap.get(newState.id).set(newState.channelID, {
+                totalTime: metaData.userStatsMap.get(newState.id).has(newState.channelID) ?
+                    metaData.userStatsMap.get(newState.id).get(newState.channelID).totalTime : 0,
                 startTime: new Date().getTime(),
                 type: "voice"
             });
@@ -406,29 +315,17 @@ exports.updateVoiceStats = async function (oldState, newState) {
 
         if (oldState.channelID) {
             // If an old state exists, just increment its total time
-            let difference = new Date().getTime() - new Date(this.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
+            let difference = new Date().getTime() - new Date(metaData.userStatsMap.get(newState.id).get(oldState.channelID).startTime).getTime();
 
-            this.userStatsMap.get(oldState.id).set(oldState.channelID, {
-                totalTime: this.userStatsMap.get(oldState.id).has(oldState.channelID) ?
-                    this.userStatsMap.get(oldState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
+            metaData.userStatsMap.get(oldState.id).set(oldState.channelID, {
+                totalTime: metaData.userStatsMap.get(oldState.id).has(oldState.channelID) ?
+                    metaData.userStatsMap.get(oldState.id).get(oldState.channelID).totalTime + difference : 0 + difference,
                 startTime: null,
                 type: "voice"
             });
         }
     }
-    console.log(this.userStatsMap.get(newState.id));
-}
-
-function convertNestedMapsToStringify(map) {
-    let listObjects = {};
-    for (let [key, value] of map) {
-        if (value instanceof Map) {
-            listObjects[key] = convertNestedMapsToStringify(value);
-        } else {
-            listObjects[key] = value;
-        }
-    }
-    return listObjects;
+    console.log(metaData.userStatsMap.get(newState.id));
 }
 
 exports.toggleModerator = function (messageReceived) {
@@ -454,38 +351,38 @@ exports.toggleModerator = function (messageReceived) {
 }
 
 exports.resetStats = function (messageReceived) {
-    this.userStatsMap.delete(messageReceived.author.id);
+    metaData.userStatsMap.delete(messageReceived.author.id);
     messageReceived.delete();
 }
 
 exports.updateMessageStats = async function (messageReceived) {
     if (messageReceived.guild != null) { // If a DM
-        if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
-        this.userStatsMap.get(messageReceived.author.id).set(messageReceived.channel.id, {
+        if (!metaData.userStatsMap.has(messageReceived.author.id)) metaData.userStatsMap.set(messageReceived.author.id, new Map());
+        metaData.userStatsMap.get(messageReceived.author.id).set(messageReceived.channel.id, {
             // If message count then increment, otherwise simply set to 1
-            messageCount: this.userStatsMap.get(messageReceived.author.id).has(messageReceived.channel.id) ?
-                this.userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id).messageCount + 1 : 1,
+            messageCount: metaData.userStatsMap.get(messageReceived.author.id).has(messageReceived.channel.id) ?
+                metaData.userStatsMap.get(messageReceived.author.id).get(messageReceived.channel.id).messageCount + 1 : 1,
             type: "text"
         });
     }
 
     if (/[n]+[i]+[c]+[e]+/gi.test(messageReceived.content)) {
-        if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
+        if (!metaData.userStatsMap.has(messageReceived.author.id)) metaData.userStatsMap.set(messageReceived.author.id, new Map());
 
         // If "niceCount" exists, increment, otherwise set to 1
-        this.userStatsMap.get(messageReceived.author.id).set("niceCount", {
-            count: this.userStatsMap.get(messageReceived.author.id).has("niceCount") ?
-                this.userStatsMap.get(messageReceived.author.id).get("niceCount").count + 1 : 1
+        metaData.userStatsMap.get(messageReceived.author.id).set("niceCount", {
+            count: metaData.userStatsMap.get(messageReceived.author.id).has("niceCount") ?
+                metaData.userStatsMap.get(messageReceived.author.id).get("niceCount").count + 1 : 1
         });
     }
 
     if (/[l]+[m]+[f]*[a]+[o]+/gi.test(messageReceived.content)) {
-        if (!this.userStatsMap.has(messageReceived.author.id)) this.userStatsMap.set(messageReceived.author.id, new Map());
+        if (!metaData.userStatsMap.has(messageReceived.author.id)) metaData.userStatsMap.set(messageReceived.author.id, new Map());
 
         // If "lmaoCount" exists, increment, otherwise set to 1
-        this.userStatsMap.get(messageReceived.author.id).set("lmaoCount", {
-            count: this.userStatsMap.get(messageReceived.author.id).has("lmaoCount") ?
-                this.userStatsMap.get(messageReceived.author.id).get("lmaoCount").count + 1 : 1
+        metaData.userStatsMap.get(messageReceived.author.id).set("lmaoCount", {
+            count: metaData.userStatsMap.get(messageReceived.author.id).has("lmaoCount") ?
+                metaData.userStatsMap.get(messageReceived.author.id).get("lmaoCount").count + 1 : 1
         });
     }
 }
@@ -497,14 +394,14 @@ exports.notImplementedCommand = function (messageReceived, cmd) {
         .send("Hi " + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!")
         .then((sentMessage) => {
             messageReceived
-                .reply("is an idiot, he wrote the command: " + messageReceived.content)
+                .reply("is an idiot, they wrote the command: " + messageReceived.content)
                 .then(() => {
                     if (messageReceived.guild != null) messageReceived.delete();
                 });
         });
 }
 
-function statFieldsGenerator(userId, userStatsMap, bot) {
+function statFieldsGenerator(userId) {
     let fields = []
 
     fields.push({
@@ -516,8 +413,9 @@ function statFieldsGenerator(userId, userStatsMap, bot) {
         name: 'Channel Stats Below',
         value: '...'
     });
-    bot.channels.cache.forEach(serverChannel => {
-        userStatsMap.get(userId).forEach((statChannel, statId) => {
+
+    metaData.bot.channels.cache.forEach(serverChannel => {
+        metaData.userStatsMap.get(userId).forEach((statChannel, statId) => {
             if (serverChannel.id == statId) {
                 if (statChannel.type == "voice") {
 
@@ -569,7 +467,7 @@ function statFieldsGenerator(userId, userStatsMap, bot) {
         value: '...'
     });
 
-    userStatsMap.get(userId).forEach((statChannel, statId) => {
+    metaData.userStatsMap.get(userId).forEach((statChannel, statId) => {
         if (statId == "lmaoCount") {
             fields.push({
                 name: "😂-lmao",
@@ -596,9 +494,9 @@ function statFieldsGenerator(userId, userStatsMap, bot) {
 
 exports.stats = async function (messageReceived, args) {
     if (args.length == 0) {
-        if (this.userStatsMap.has(messageReceived.author.id)) {
-            console.log(this.userStatsMap.get(messageReceived.author.id))
-            let fields = statFieldsGenerator(messageReceived.author.id, this.userStatsMap, this.bot);
+        if (metaData.userStatsMap.has(messageReceived.author.id)) {
+            console.log(metaData.userStatsMap.get(messageReceived.author.id))
+            let fields = statFieldsGenerator(messageReceived.author.id, metaData.userStatsMap, metaData.bot);
 
             messageReceived.author.send({
                 "content": "Your statistics",
@@ -615,14 +513,14 @@ exports.stats = async function (messageReceived, args) {
         let userList = args.map(arg => /<@[!]*([0-9]+)>/g.exec(arg)[1]).filter(arg => arg != null);
 
         for (let user of userList) {
-            if (this.userStatsMap.has(user)) {
+            if (metaData.userStatsMap.has(user)) {
 
-                let discordUser = await new Discord.User(this.bot, {
+                let discordUser = await new Discord.User(metaData.bot, {
                     id: user
                 }).fetch();
 
-                console.log(this.userStatsMap.get(user));
-                let fields = statFieldsGenerator(user, this.userStatsMap, this.bot);
+                console.log(metaData.userStatsMap.get(user));
+                let fields = statFieldsGenerator(user, metaData.userStatsMap, metaData.bot);
 
                 messageReceived.author.send({
                     "content": discordUser.username + "'s statistics",
@@ -633,7 +531,7 @@ exports.stats = async function (messageReceived, args) {
                     }
                 });
             } else {
-                let discordUser = await new Discord.User(this.bot, {
+                let discordUser = await new Discord.User(metaData.bot, {
                     id: user
                 }).fetch();
                 messageReceived.author.send("There are no stats on record for " + discordUser.username + "!");
@@ -669,32 +567,34 @@ exports.insultResponse = function (messageReceived) {
         });
 }
 
-function dailyTimeouts(bot, Channels) {
-    clean(bot, Channels);
-    setTimeout(dailyTimeouts, 24 * 60 * 60 * 1000, bot, Channels);
+let initialDaily = true;
+
+function dailyTimeouts() {
+    clean();
+    if (!initialDaily) setTimeout(dailyTimeouts, 24 * 60 * 60 * 1000);
+    else initialDaily = false;
 }
 
-async function clean(bot, channels) {
-    let cleanChannelArray = bot.channels.cache.filter(channel => {
+async function clean() {
+    let cleanChannelArray = metaData.bot.channels.cache.filter(channel => {
         if (channel.type == "text") return channel;
     });
 
-    for (let queryChannel of channels) {
+    for (let queryChannel of metaData.channels) {
         if (queryChannel.keepClean) {
             console.log("Cleaning channel " + queryChannel.name + " (" + queryChannel.id + ")!");
 
-            await cleanChannelArray.find((item) => {
-                    if (item.id == queryChannel.id) return true;
-                }).messages.fetch({
+            let channel = await cleanChannelArray.find((item) => {
+                if (item.id == queryChannel.id) return true;
+            });
+
+            channel.messages.fetch({
                     limit: 100
                 })
                 .then((messageArray) => {
                     messageArray.each(message => {
                         if (!message.pinned) message.delete();
                     });
-                }).then(() => {
-                    // Create a timer for 24 hours to repeat the task
-                    setTimeout(clean, 24 * 60 * 60 * 1000, bot, channels);
                 });
         }
     }
@@ -796,7 +696,7 @@ exports.quote = function (messageReceived, args) {
 
     console.log("-\tQuote the string:" + quoteSting + " (by " + userId + ")!");
 
-    quoteMacro(quoteString, userId, null, this.bot, this.channels);
+    quoteMacro(quoteString, userId, null);
     if (messageReceived.guild != null) messageReceived.delete();
 }
 
@@ -811,7 +711,7 @@ exports.quoteId = function (messageReceived, args) {
         messageReceived.channel.messages
             .fetch(quoteMatch[quoteMatch.length - 1])
             .then((toxicMessage) => {
-                quoteMacro(toxicMessage.content, toxicMessage.author.id, toxicMessage.createdAt, this.bot, this.channels);
+                quoteMacro(toxicMessage.content, toxicMessage.author.id, toxicMessage.createdAt);
             });
     }
 
@@ -827,17 +727,17 @@ exports.quoteMessage = function (messageReceived, argumentString) {
         .then((messageArray) => {
             messageArray.each((message) => {
                 if (message.content.includes(argumentString) && message != messageReceived) {
-                    quoteMacro(message.content, message.author.id, message.createdAt, this.bot, this.channels);
+                    quoteMacro(message.content, message.author.id, message.createdAt);
                 }
             });
         });
     if (messageReceived.guild != null) messageReceived.delete();
 }
 
-function quoteMacro(quoteMessageContent, userId, time, bot, channels) {
-    for (let channel of this.Channels) {
+function quoteMacro(quoteMessageContent, userId, time) {
+    for (let channel of metaData.channels) {
         if (channel.name == "Quotes") {
-            new Discord.Channel(this.bot, {
+            new Discord.Channel(metaData.bot, {
                     id: channel.id
                 })
                 .fetch()
@@ -851,13 +751,13 @@ function quoteMacro(quoteMessageContent, userId, time, bot, channels) {
     }
 }
 
-async function toxicMacro(toxicMessage, userStatsMap) {
+async function toxicMacro(toxicMessage) {
     console.log(toxicMessage.author.id);
 
-    if (!userStatsMap.has(toxicMessage.author.id)) userStatsMap.set(toxicMessage.author.id, new Map());
-    userStatsMap.get(toxicMessage.author.id).set("toxicCount", {
-        count: userStatsMap.get(toxicMessage.author.id).has("toxicCount") ?
-            userStatsMap.get(toxicMessage.author.id).get("toxicCount").count + 1 : 1
+    if (!metaData.userStatsMap.has(toxicMessage.author.id)) metaData.userStatsMap.set(toxicMessage.author.id, new Map());
+    metaData.userStatsMap.get(toxicMessage.author.id).set("toxicCount", {
+        count: metaData.userStatsMap.get(toxicMessage.author.id).has("toxicCount") ?
+            metaData.userStatsMap.get(toxicMessage.author.id).get("toxicCount").count + 1 : 1
     });
 
     await toxicMessage.react('🇹');
@@ -877,7 +777,7 @@ exports.toxicId = function (messageReceived, args) {
         messageReceived.channel.messages
             .fetch(matchToxic[matchToxic.length - 1])
             .then((toxicMessage) => {
-                toxicMacro(toxicMessage, this.userStatsMap);
+                toxicMacro(toxicMessage);
             });
     }
     if (messageReceived.guild != null) messageReceived.delete();
@@ -892,7 +792,7 @@ exports.toxic = function (messageReceived, argumentString) {
         .then((messageArray) => {
             messageArray.each((message) => {
                 if (message.content.includes(argumentString) && message != messageReceived) {
-                    toxicMacro(message, this.userStatsMap);
+                    toxicMacro(message);
                 }
             });
         });

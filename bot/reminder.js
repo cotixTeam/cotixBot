@@ -1,5 +1,4 @@
-"use strict";
-
+const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 
 function reminderTimeouts(reminderEvent, bot) {
@@ -15,7 +14,7 @@ function reminderTimeouts(reminderEvent, bot) {
     }
 }
 
-exports.init = async function (bot) {
+exports.init = async function () {
     let data = await awsUtils.load("store.mmrree.co.uk", "config/Reminders.json");
     this.remindersArray = JSON.parse(data.Body.toString());
     let reminderDate = new Date();
@@ -30,9 +29,9 @@ exports.init = async function (bot) {
             reminderDate.setMinutes(reminder.minute);
 
             if (reminderDate.getTime() - now.getTime() >= 0) // If later today or this week
-                setTimeout(reminderTimeouts, reminderDate.getTime() - now.getTime(), reminder, bot);
+                setTimeout(reminderTimeouts, reminderDate.getTime() - now.getTime(), reminder, metaData.bot);
             else // If any time before this time next week, set for next week
-                setTimeout(reminderTimeouts, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, bot);
+                setTimeout(reminderTimeouts, reminderDate.getTime() - now.getTime() + 7 * 24 * 60 * 60 * 1000, reminder, metaData.bot);
         }
     }
 }

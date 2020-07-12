@@ -1,12 +1,24 @@
-"use strict";
-
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
 const rp = require('request-promise-native');
 const ytSearch = require('yt-search');
+
+const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 
-function play(spotifyPlayer, bot, musicChannel, musicClass) {
+var spotifyPlayer = {
+    voiceChannel: null,
+    connection: null,
+    player: null,
+    songs: [],
+    oldSongs: [],
+    volume: 5,
+    playing: false,
+    repeat: false,
+    skipped: false
+};
+
+function play() {
     if (spotifyPlayer.songs.length == 0) {
         spotifyPlayer.voiceChannel.leave();
     } else {
@@ -20,7 +32,7 @@ function play(spotifyPlayer, bot, musicChannel, musicClass) {
                 console.log("Song Skipped, starting next song!");
                 spotifyPlayer.skipped = false;
                 spotifyPlayer.playing = true;
-                play(spotifyPlayer, bot, musicChannel, musicClass);
+                play(spotifyPlayer, musicChannel);
             } else {
                 console.log("Song finished!");
                 spotifyPlayer.oldSongs.push(spotifyPlayer.songs.pop());
@@ -35,10 +47,10 @@ function play(spotifyPlayer, bot, musicChannel, musicClass) {
                 } else {
                     console.log("-\tPlaying next song!")
                     spotifyPlayer.playing = true;
-                    play(spotifyPlayer, bot, musicChannel, musicClass);
+                    play();
                 }
             }
-            updateList(spotifyPlayer, bot, musicChannel);
+            updateList();
         });
 
         spotifyPlayer.player.on('error', error => console.error(error));
@@ -46,45 +58,20 @@ function play(spotifyPlayer, bot, musicChannel, musicClass) {
     }
 }
 
-exports.spotifyPlayer = {
-    voiceChannel: null,
-    connection: null,
-    player: null,
-    songs: [],
-    oldSongs: [],
-    volume: 5,
-    playing: false,
-    repeat: false,
-    skipped: false,
-    accesses: new Map()
-};
-
-
-// TODO: move all the callbacks to their own individual functions so that this init looks cleaner (scope rearrange)
-exports.init = async function (bot, auth, Channels) {
-    let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
-    this.spotifyPlayer.accesses = new Map(JSON.parse(data.Body.toString()));
-
-    this.bot = bot;
-    this.auth = auth;
-
-    this.generalChannel = Channels.find((channel) => {
-        if (channel.name == "General") return channel;
-    });
-
-    this.musicChannel = Channels.find((channel) => {
+exports.init = async function () {
+    let musicChannel = metaData.channels.find((channel) => {
         if (channel.name == "Music") return channel;
     });
 
-    var self = this;
+    let musicChannelID = musicChannel.id;
 
-    let Channel = await new Discord.Channel(bot, {
-        id: this.musicChannel.id
+    let discordMusicChannel = await new Discord.Channel(metaData.bot, {
+        id: musicChannel.id
     }).fetch();
 
-    var qMessage = await new Discord.Message(bot, {
-        id: this.musicChannel.embedMessage
-    }, Channel).fetch();
+    var qMessage = await new Discord.Message(metaData.bot, {
+        id: musicChannel.embedMessage
+    }, discordMusicChannel).fetch();
 
     await qMessage.edit({
         "content": "Player",
@@ -92,7 +79,7 @@ exports.init = async function (bot, auth, Channels) {
             "title": "Music Player",
             "description": "Showing the Queue...",
             "footer": {
-                "text": "The queue is " + this.spotifyPlayer.songs.length + " songs long!"
+                "text": "The queue is " + spotifyPlayer.songs.length + " songs long!"
             },
             "fields": [{
                 "name": "There are no songs in the queue!",
@@ -109,168 +96,174 @@ exports.init = async function (bot, auth, Channels) {
     await qMessage.react('🔉');
     qMessage.react('🔊');
 
-    let backFilter = (reaction, user) => reaction.emoji.name == '◀️' && reaction.count == 2;
-
-    let backListener = qMessage.createReactionCollector(backFilter, {
+    let backListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '◀️' && reaction.count == 2, {
         time: 0
     });
-    let playPauseFilter = (reaction, user) => reaction.emoji.name == '⏯️' && reaction.count == 2;
-    let playPauseListener = qMessage.createReactionCollector(playPauseFilter, {
+    let playPauseListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '⏯️' && reaction.count == 2, {
         time: 0
     });
-    let stopFilter = (reaction, user) => reaction.emoji.name == '🇽' && reaction.count == 2;
-    let stopListener = qMessage.createReactionCollector(stopFilter, {
+    let stopListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '🇽' && reaction.count == 2, {
         time: 0
     });
-    let skipFilter = (reaction, user) => reaction.emoji.name == '▶️' && reaction.count == 2;
-    let skipListener = qMessage.createReactionCollector(skipFilter, {
+    let skipListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '▶️' && reaction.count == 2, {
         time: 0
     });
-    let decrVolFilter = (reaction, user) => reaction.emoji.name == '🔉' && reaction.count == 2;
-    let decrVolListener = qMessage.createReactionCollector(decrVolFilter, {
-        time: 0
-    });
-    let incrVolFilter = (reaction, user) => reaction.emoji.name == '🔊' && reaction.count == 2;
-    let incrVolListener = qMessage.createReactionCollector(incrVolFilter, {
+    let decrVolListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '🔉' && reaction.count == 2, {
         time: 0
     });
 
-    backListener.on('collect', reaction => {
-        console.log("Music: Previous!");
-        let lastSong = self.spotifyPlayer.oldSongs.pop();
-        if (lastSong) {
-            console.log("-\tGoing back one song in the queue!");
-            self.spotifyPlayer.songs.push(lastSong);
-            self.spotifyPlayer.skipped = true;
-            self.spotifyPlayer.connection.dispatcher.end();
+    let incrVolListener = qMessage.createReactionCollector((reaction, user) => reaction.emoji.name == '🔊' && reaction.count == 2, {
+        time: 0
+    });
+
+    backListener.on('collect', (reaction) => backPressed());
+    playPauseListener.on('collect', (reaction) => pausePlayPressed(reaction, musicChannelID));
+    stopListener.on('collect', (reaction) => stopPressed());
+    skipListener.on('collect', (reaction) => skipPressed());
+    decrVolListener.on('collect', (reaction) => decrVolPressed());
+    incrVolListener.on('collect', (reaction) => incrVolPressed());
+}
+
+function backPressed() {
+    console.log("Music: Previous!");
+    let lastSong = spotifyPlayer.oldSongs.pop();
+    if (lastSong) {
+        console.log("-\tGoing back one song in the queue!");
+        spotifyPlayer.songs.push(lastSong);
+        spotifyPlayer.skipped = true;
+        spotifyPlayer.connection.dispatcher.end();
+    } else {
+        console.log("-\tNo song in the old queue! Cannot go back!");
+    }
+}
+
+async function pausePlayPressed(reaction, musicChannelID) {
+    console.log("Music: Play/Pause!");
+
+    if (spotifyPlayer.playing && spotifyPlayer.connection && spotifyPlayer.connection.dispatcher) {
+        console.log("-\tPausing!");
+        spotifyPlayer.player.pause();
+        spotifyPlayer.playing = false;
+
+    } else if (!spotifyPlayer.playing) {
+        if (spotifyPlayer.player && spotifyPlayer.connection && spotifyPlayer.connection.dispatcher) {
+            console.log("-\tResuming!");
+            spotifyPlayer.player.resume();
+            spotifyPlayer.playing = true;
         } else {
-            console.log("-\tNo song in the old queue! Cannot go back!");
-        }
-    });
+            console.log("-\tJoining the channel of the user and begining playing!");
+            let user = metaData.bot.channels.cache
+                .get(musicChannelID).guild.members.cache
+                .get(reaction.users.cache.last().id);
 
-    playPauseListener.on('collect', async reaction => {
-        console.log("Music: Play/Pause!");
+            let voiceChannel = user.voice.channel;
+            if (voiceChannel) {
+                let permissions = voiceChannel.permissionsFor(metaData.bot.user);
+                if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
 
-        if (self.spotifyPlayer.playing && self.spotifyPlayer.connection && self.spotiftyData.connection.dispatcher) {
-            console.log("-\tPausing!");
-            self.spotifyPlayer.player.pause();
-            self.spotifyPlayer.playing = false;
-
-        } else if (!self.spotifyPlayer.playing) {
-            if (self.spotifyPlayer.player && self.spotifyPlayer.connection && self.spotiftyData.connection.dispatcher) {
-                console.log("-\tResuming!");
-                self.spotifyPlayer.player.resume();
-                self.spotifyPlayer.playing = true;
-            } else {
-                console.log("-\tJoining the channel of the user and begining playing!");
-                let user = self.bot.channels.cache
-                    .get(self.generalChannel.id).guild.members.cache
-                    .get(reaction.users.cache.last().id);
-
-                let voiceChannel = user.voice.channel;
-                if (voiceChannel) {
-                    let permissions = voiceChannel.permissionsFor(self.bot.user);
-                    if (permissions.has("CONNECT") && permissions.has("SPEAK")) {
-
-                        try {
-                            self.spotifyPlayer.voiceChannel = voiceChannel;
-                            self.spotifyPlayer.connection = await voiceChannel.join();
-                            self.spotifyPlayer.playing = true;
-                            play(self.spotifyPlayer, self.bot, self.musicChannel, self);
-                        } catch (err) {
-                            self.spotifyPlayer.playing = false;
-                            console.error(err);
-                        }
-                    } else {
-                        console.log("-\tUser is not in a channel with permissions for bot! Cannot join!");
-                        user.send("I need permissions to be able to join the voice channel!");
+                    try {
+                        spotifyPlayer.voiceChannel = voiceChannel;
+                        spotifyPlayer.connection = await voiceChannel.join();
+                        spotifyPlayer.playing = true;
+                        play();
+                    } catch (err) {
+                        spotifyPlayer.playing = false;
+                        console.error(err);
                     }
                 } else {
                     console.log("-\tUser is not in a channel with permissions for bot! Cannot join!");
-                    user.send("You need to be in a voice channel for me to join!");
+                    user.send("I need permissions to be able to join the voice channel!");
                 }
+            } else {
+                console.log("-\tUser is not in a channel with permissions for bot! Cannot join!");
+                user.send("You need to be in a voice channel for me to join!");
             }
-        } else {
-            console.log("Dispacter is dead!");
-            self.spotifyPlayer.playing = false;
-            if (self.spotifyPlayer.voiceChannel) self.spotifyPlayer.voiceChannel.leave();
-            self.spotifyPlayer.voiceChannel = null;
-            self.spotifyPlayer.connection = null;
-            self.spotifyPlayer.player = null;
         }
-    });
-
-    stopListener.on('collect', reaction => {
-        console.log("Music: Stop!");
-        self.spotifyPlayer.songs = [];
-        self.spotifyPlayer.oldSongs = [];
-        if (self.spotifyPlayer &&
-            self.spotifyPlayer.connection) {
-            self.spotifyPlayer.connection.dispatcher.end();
-        } else {
-            console.log("Dispacter is already dead!");
-            self.spotifyPlayer.playing = false;
-            if (self.spotifyPlayer.voiceChannel) self.spotifyPlayer.voiceChannel.leave();
-            self.spotifyPlayer.voiceChannel = null;
-            self.spotifyPlayer.connection = null;
-            self.spotifyPlayer.player = null;
-        }
-    });
-
-    skipListener.on('collect', reaction => {
-        console.log("Music: Skip!");
-        if (self.spotifyPlayer.connection) {
-            self.spotifyPlayer.connection.dispatcher.end();
-        } else {
-            console.log("Dispacter is dead!");
-            self.spotifyPlayer.playing = false;
-            if (self.spotifyPlayer.voiceChannel) self.spotifyPlayer.voiceChannel.leave();
-            self.spotifyPlayer.voiceChannel = null;
-            self.spotifyPlayer.connection = null;
-            self.spotifyPlayer.player = null;
-        }
-    });
-
-    decrVolListener.on('collect', reaction => {
-        console.log("Music: Decrease Volume!");
-        if (self.spotifyPlayer.volume > 0) self.spotifyPlayer.volume -= 1;
-        if (self.spotifyPlayer.player && self.spotifyPlayer.connection)
-            self.spotifyPlayer.player.setVolumeLogarithmic(spotifyPlayer.volume / 10);
-        else {
-            console.log("Dispacter is dead!");
-            self.spotifyPlayer.playing = false;
-            if (self.spotifyPlayer.voiceChannel) self.spotifyPlayer.voiceChannel.leave();
-            self.spotifyPlayer.voiceChannel = null;
-            self.spotifyPlayer.connection = null;
-            self.spotifyPlayer.player = null;
-        }
-    });
-
-    incrVolListener.on('collect', reaction => {
-        console.log("Music: Increase Volume!");
-        if (self.spotifyPlayer.volume < 20) self.spotifyPlayer.volume += 1;
-        if (self.spotifyPlayer.player && self.spotifyPlayer.connection)
-            self.spotifyPlayer.player.setVolumeLogarithmic(spotifyPlayer.volume / 10);
-        else {
-            console.log("Dispacter is dead!");
-            self.spotifyPlayer.playing = false;
-            if (self.spotifyPlayer.voiceChannel) self.spotifyPlayer.voiceChannel.leave();
-            self.spotifyPlayer.voiceChannel = null;
-            self.spotifyPlayer.connection = null;
-            self.spotifyPlayer.player = null;
-        }
-    });
+    } else {
+        console.log("Dispacter is dead!");
+        spotifyPlayer.playing = false;
+        if (spotifyPlayer.voiceChannel) spotifyPlayer.voiceChannel.leave();
+        spotifyPlayer.voiceChannel = null;
+        spotifyPlayer.connection = null;
+        spotifyPlayer.player = null;
+    }
 }
 
-async function updateList(spotifyPlayer, bot, musicChannel) {
+let stopPressed = function () {
+    console.log("Music: Stop!");
+    spotifyPlayer.songs = [];
+    spotifyPlayer.oldSongs = [];
+    if (spotifyPlayer &&
+        spotifyPlayer.connection) {
+        spotifyPlayer.connection.dispatcher.end();
+    } else {
+        console.log("Dispacter is already dead!");
+        spotifyPlayer.playing = false;
+        if (spotifyPlayer.voiceChannel) spotifyPlayer.voiceChannel.leave();
+        spotifyPlayer.voiceChannel = null;
+        spotifyPlayer.connection = null;
+        spotifyPlayer.player = null;
+    }
+}
+
+let skipPressed = function () {
+    console.log("Music: Skip!");
+    if (spotifyPlayer.connection) {
+        spotifyPlayer.connection.dispatcher.end();
+    } else {
+        console.log("Dispacter is dead!");
+        spotifyPlayer.playing = false;
+        if (spotifyPlayer.voiceChannel) spotifyPlayer.voiceChannel.leave();
+        spotifyPlayer.voiceChannel = null;
+        spotifyPlayer.connection = null;
+        spotifyPlayer.player = null;
+    }
+}
+
+let decrVolPressed = function () {
+    console.log("Music: Decrease Volume!");
+    if (spotifyPlayer.volume > 0) spotifyPlayer.volume -= 1;
+    if (spotifyPlayer.player && spotifyPlayer.connection)
+        spotifyPlayer.player.setVolumeLogarithmic(spotifyPlayer.volume / 10);
+    else {
+        console.log("Dispacter is dead!");
+        spotifyPlayer.playing = false;
+        if (spotifyPlayer.voiceChannel) spotifyPlayer.voiceChannel.leave();
+        spotifyPlayer.voiceChannel = null;
+        spotifyPlayer.connection = null;
+        spotifyPlayer.player = null;
+    }
+}
+
+let incrVolPressed = function () {
+    console.log("Music: Increase Volume!");
+    if (spotifyPlayer.volume < 20) spotifyPlayer.volume += 1;
+    if (spotifyPlayer.player && spotifyPlayer.connection)
+        spotifyPlayer.player.setVolumeLogarithmic(spotifyPlayer.volume / 10);
+    else {
+        console.log("Dispacter is dead!");
+        spotifyPlayer.playing = false;
+        if (spotifyPlayer.voiceChannel) spotifyPlayer.voiceChannel.leave();
+        spotifyPlayer.voiceChannel = null;
+        spotifyPlayer.connection = null;
+        spotifyPlayer.player = null;
+    }
+}
+
+async function updateList() {
     console.log("-\tUpdating the music list!");
-    let Channel = await new Discord.Channel(bot, {
+
+    let musicChannel = metaData.channels.find((channel) => {
+        if (channel.name == "Music") return channel;
+    });
+
+    let discordMusicChannel = await new Discord.Channel(metaData.bot, {
         id: musicChannel.id
     }).fetch();
 
-    var qMessage = await new Discord.Message(bot, {
+    var qMessage = await new Discord.Message(metaData.bot, {
         id: musicChannel.embedMessage
-    }, Channel).fetch();
+    }, discordMusicChannel).fetch();
 
     if (spotifyPlayer.songs.length == 0) {
         qMessage.edit({
@@ -359,12 +352,12 @@ exports.addByURL = function (messageReceived, args) {
         ytdl.getInfo(args[0], (err, data) => {
             if (!err) {
                 console.log("-\t*\tAdding " + data.title + " to the queue! (From url " + data.video_url + ")");
-                this.spotifyPlayer.songs.unshift({
+                spotifyPlayer.songs.unshift({
                     id: data.video_id,
                     title: data.title,
                     image: "https://i.ytimg.com/vi/" + data.video_id + "/default.jpg"
                 });
-                updateList(this.spotifyPlayer, this.bot, this.musicChannel);
+                updateList();
             }
         });
     }
@@ -382,12 +375,12 @@ exports.addBySearch = function (messageReceived, argumentString) {
     }, (err, r) => {
         if (!err && r.videos.length > 0) {
             console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue!");
-            this.spotifyPlayer.songs.unshift({
+            spotifyPlayer.songs.unshift({
                 id: r.videos[0].videoId,
                 title: r.videos[0].title,
                 image: "https://i.ytimg.com/vi/" + r.videos[0].videoId + "/default.jpg"
             });
-            updateList(this.spotifyPlayer, this.bot, this.musicChannel);
+            updateList();
         } else {
             console.log(err);
             console.log(r);
@@ -400,29 +393,29 @@ exports.addBySearch = function (messageReceived, argumentString) {
 exports.qSpotify = function (messageReceived, argumentString) {
     console.log("-\tQueuing spotify closest matching string (" + argumentString + ")!");
 
-    if (this.spotifyPlayer.accesses.has(messageReceived.author.id)) {
+    if (metaData.accesses.has(messageReceived.author.id)) {
         console.log("-\tThe user already has a token!");
-        getPlaylists(0, this, messageReceived.author.id, argumentString);
+        getPlaylists(0, messageReceived.author.id, argumentString);
     } else {
         console.log("-\tRequesting the token for the user!");
         messageReceived.author.send("Connect your spotify account!", {
             embed: {
                 "title": "Connect your spotify account",
-                "description": "[Click here to link your spotify account](" + this.auth.spotifyRedirect + ")",
+                "description": "[Click here to link your spotify account](" + metaData.auth.spotifyRedirect + ")",
                 "thumbnail": {
                     "url": "https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif"
                 },
-                "url": this.auth.spotifyDiscordConnectUrl
+                "url": metaData.auth.spotifyDiscordConnectUrl
             }
         });
     }
     messageReceived.delete();
 }
 
-function addPlaylistToQ(playlistUrl, userId, self) {
+function addPlaylistToQ(playlistUrl, userId) {
     rp.get(playlistUrl, {
         headers: {
-            Authorization: "Bearer " + self.spotifyPlayer.accesses.get(userId).spotifyAccess
+            Authorization: "Bearer " + metaData.accesses.get(userId).spotifyAccess
         }
     }, (error, response, body) => {
         if (!error && response.statusCode == 200) {
@@ -437,7 +430,7 @@ function addPlaylistToQ(playlistUrl, userId, self) {
                 }, (err, r) => {
                     if (!err && r.videos[0]) {
                         console.log("-\t*\t\tAdding " + r.videos[0].title + " to the queue! (From query '" + track.track.name + "')");
-                        self.spotifyPlayer.songs.unshift({
+                        spotifyPlayer.songs.unshift({
                             id: r.videos[0].videoId,
                             title: r.videos[0].title,
                             image: track.track.album.images[1].url
@@ -446,7 +439,7 @@ function addPlaylistToQ(playlistUrl, userId, self) {
                         console.log(err);
                         console.error("-\t*\t\tCould not find the query song (" + track.track.name + ")!");
                     }
-                    if (playlistObject.tracks.items[playlistObject.tracks.items.length - 1] == track) updateList(self.spotifyPlayer, self.bot, self.musicChannel);
+                    if (playlistObject.tracks.items[playlistObject.tracks.items.length - 1] == track) updateList();
                 });
             }
         } else {
@@ -458,10 +451,10 @@ function addPlaylistToQ(playlistUrl, userId, self) {
     })
 }
 
-function getPlaylists(offset, self, userId, argumentString) {
+function getPlaylists(offset, userId, argumentString) {
     rp.get("https://api.spotify.com/v1/me/playlists?limit=50&offset=" + offset, {
         headers: {
-            Authorization: "Bearer " + self.spotifyPlayer.accesses.get(userId).spotifyAccess
+            Authorization: "Bearer " + metaData.accesses.get(userId).spotifyAccess
         }
     }, (error, response, body) => {
         if (!error && response.statusCode == 200) {
@@ -474,14 +467,14 @@ function getPlaylists(offset, self, userId, argumentString) {
 
             if (result) {
                 console.log("-\tAdding songs of playlist:'" + result.name + "' to queue!");
-                addPlaylistToQ(result.href, userId, self);
+                addPlaylistToQ(result.href, userId);
             } else {
-                getPlaylists(offset + 50, self, userId, argumentString);
+                getPlaylists(offset + 50, userId, argumentString);
             }
         } else if (response.statusCode == 401) {
             console.log("-\tToken expired, refreshing!");
-            refreshToken(userId, self);
-            getPlaylists(offset, self, userId, argumentString);
+            refreshToken(userId);
+            getPlaylists(offset, userId, argumentString);
         } else {
             console.log(response.statusCode);
             console.error(error);
@@ -490,30 +483,27 @@ function getPlaylists(offset, self, userId, argumentString) {
     })
 }
 
-function refreshToken(userId, self) {
+function refreshToken(userId) {
     rp.post('https://accounts.spotify.com/api/token', {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: "Basic " + Buffer.from(self.auth.spotifyClientId + ":" + self.auth.spotifyClientSecret).toString('base64')
+            Authorization: "Basic " + Buffer.from(metaData.auth.spotifyClientId + ":" + metaData.auth.spotifyClientSecret).toString('base64')
         },
         form: {
             grant_type: "refresh_token",
-            refresh_token: self.spotifyPlayer.accesses.get(userId).spotifyRefresh
+            refresh_token: metaData.accesses.get(userId).spotifyRefresh
         }
     }, (error, response, body) => {
         if (!error && response.statusCode == 200) {
             let spotifyAuthContent = JSON.parse(body);
 
-            self.spotifyPlayer.accesses.set(userId, {
-                spotifyCode: self.spotifyPlayer.accesses.get(userId).spotifyCode,
-                spotifyRefresh: self.spotifyPlayer.accesses.get(userId).spotifyRefresh,
-                spotifyAccess: spotifyAuthContent.access_token,
-                discordCode: self.spotifyPlayer.accesses.get(userId).discordCode,
-                discordRefresh: self.spotifyPlayer.accesses.get(userId).discordRefresh,
-                discordAccess: self.spotifyPlayer.accesses.get(userId).discordAccess
-            });
+            let updateAccess = metaData.accesses.get(userId);
+            updateAccess.spotifyAccess = spotifyAuthContent.access_token;
 
-            awsUtils.save("store.mmrree.co.uk", "config/AccessMaps.json", JSON.stringify(Array.from(self.spotifyPlayer.accesses)));
+            console.log(updateAccess);
+
+            metaData.accesses.set(userId, updateAccess);
+            awsUtils.save("store.mmrree.co.uk", "config/AccessMaps.json", JSON.stringify(Array.from(metaData.accesses)));
 
             console.log("-\tUpdated the user token!");
         } else {
@@ -524,6 +514,5 @@ function refreshToken(userId, self) {
     });
 }
 
-function initWebhooks(auth, self) {
 
-}
+exports.spotifyPlayer = spotifyPlayer;

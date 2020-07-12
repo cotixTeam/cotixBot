@@ -1,20 +1,23 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
-const awsUtils = require('./bot/awsUtils');
+const rp = require('request-promise-native')
 
 // Custom classes
+const awsUtils = require('./bot/awsUtils');
+const fileConversion = require('./bot/fileConversion.js');
+const gamesFinder = require('./bot/gamesFinder.js');
 const general = require('./bot/general.js');
 const ideas = require('./bot/ideas.js');
 const leaderboard = require('./bot/leaderboard.js');
-const reminder = require('./bot/reminder.js');
 const music = require('./bot/music.js');
-const gamesFinder = require('./bot/gamesFinder.js');
+const reminder = require('./bot/reminder.js');
 const webHooks = require('./bot/webHooks.js');
-
 
 // Parsed JSON files & prevent fatal crashes with catches
 let channels;
 let auth;
+let accesses = new Map();
+
 try {
     if (process.env.DISCORD_BOT_TOKEN) {
         console.log("Using s3 Channels file!")
@@ -42,23 +45,6 @@ try {
     process.exit();
 }
 
-function JSONObjectToMap(JSONObject) {
-    let map = new Map();
-    let object = {};
-    let objectRet = false;
-    for (let key of Object.keys(JSONObject)) {
-        if (JSONObject[key] instanceof Object) {
-            map.set(key, JSONObjectToMap(JSONObject[key]));
-        } else {
-            objectRet = true;
-            object[key.toString()] = JSONObject[key];
-        }
-    }
-
-    if (objectRet) return object;
-    return map;
-}
-
 // Object creation
 const bot = new Discord.Client();
 
@@ -76,16 +62,19 @@ bot.on('ready', async () => { // Run init code
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
     let tempStorage = await awsUtils.load("store.mmrree.co.uk", "stats/Users.json");
+    userStatsMap = fileConversion.JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
+    exports.userStatsMap = userStatsMap;
 
-    userStatsMap = JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
+    let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
+    accesses = new Map(JSON.parse(data.Body.toString()));
+    exports.accesses = accesses;
 
-
-    reminder.init(bot);
-    music.init(bot, auth, channels);
-    ideas.init(bot, channels);
-    leaderboard.init(bot, channels);
-    general.init(bot, channels, userStatsMap);
-    webHooks.init(auth);
+    reminder.init();
+    music.init();
+    ideas.init();
+    leaderboard.init();
+    general.init();
+    webHooks.init();
 });
 
 bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
@@ -313,3 +302,7 @@ process
         console.error(err, 'Uncaught Exception thrown');
         process.exit(1);
     });
+
+exports.bot = bot;
+exports.channels = channels;
+exports.auth = auth;

@@ -1,6 +1,6 @@
-"use strict";
-
 const Discord = require('discord.js');
+
+const metaData = require('../bot.js');
 
 exports.add = async function (messageReceived, ideaArg) {
     console.log("-\tAdding listeners to the idea: " + ideaArg + "!");
@@ -21,7 +21,7 @@ exports.add = async function (messageReceived, ideaArg) {
 
     addListener.on('collect', reaction => {
         console.log(ideaArg + " has received enough votes to be added!");
-        new Discord.Message(this.bot, {
+        new Discord.Message(metaData.bot, {
                 id: this.ideasChannel.todo
             }, messageReceived.channel)
             .fetch()
@@ -36,7 +36,7 @@ exports.add = async function (messageReceived, ideaArg) {
 
     rejectListener.on('collect', reaction => {
         console.log(ideaArg + " has received enough rejections to be removed!");
-        new Discord.Message(this.bot, {
+        new Discord.Message(metaData.bot, {
                 id: this.ideasChannel.bad
             }, messageReceived.channel)
             .fetch()
@@ -60,7 +60,7 @@ exports.add = async function (messageReceived, ideaArg) {
 
 exports.addVeto = function (messageReceived, idea) {
     console.log("-\tBypassing votes and adding the idea: '" + idea + "' to the list!");
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.todo
         }, messageReceived.channel)
         .fetch()
@@ -76,7 +76,7 @@ exports.addVeto = function (messageReceived, idea) {
 
 exports.completed = function (messageReceived, queryIdea) {
     console.log("-\tMarking anything with the string '" + queryIdea + "' as a completed idea!");
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.todo
         }, messageReceived.channel)
         .fetch()
@@ -97,7 +97,7 @@ exports.completed = function (messageReceived, queryIdea) {
             todoMessage
                 .edit('Ideas:\n' + todoStringsArray.join(""))
                 .then(() => {
-                    new Discord.Message(this.bot, {
+                    new Discord.Message(metaData.bot, {
                             id: this.ideasChannel.completed
                         }, messageReceived.channel)
                         .fetch()
@@ -122,7 +122,7 @@ exports.completed = function (messageReceived, queryIdea) {
 
 exports.unfinished = function (messageReceived, queryIdea) {
     console.log("-\tMarking anything with the string '" + queryIdea + "' as an unfinished idea!");
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.completed
         }, messageReceived.channel)
         .fetch()
@@ -143,7 +143,7 @@ exports.unfinished = function (messageReceived, queryIdea) {
             completedMessage
                 .edit("Completed:\n" + completedStringsArray.join(""))
                 .then(() => {
-                    new Discord.Message(this.bot, {
+                    new Discord.Message(metaData.bot, {
                             id: this.ideasChannel.todo
                         }, messageReceived.channel)
                         .fetch()
@@ -160,7 +160,7 @@ exports.unfinished = function (messageReceived, queryIdea) {
 
 exports.remove = function (messageReceived, queryIdea) {
     console.log("-\tRemoving anything with the string '" + queryIdea + "' as a todo idea!");
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.todo
         }, messageReceived.channel)
         .fetch()
@@ -185,7 +185,7 @@ exports.remove = function (messageReceived, queryIdea) {
 
 exports.reset = function (messageReceived) {
     console.log("-\tResetting the entire todo list!");
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.todo
         }, messageReceived.channel)
         .fetch()
@@ -193,7 +193,7 @@ exports.reset = function (messageReceived) {
             todoMessage.edit("Ideas:")
         });
 
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.bad
         }, messageReceived.channel)
         .fetch()
@@ -201,7 +201,7 @@ exports.reset = function (messageReceived) {
             badIdeasMessage.edit("Bad Ideas:");
         })
 
-    new Discord.Message(this.bot, {
+    new Discord.Message(metaData.bot, {
             id: this.ideasChannel.completed
         }, messageReceived.channel)
         .fetch()
@@ -212,9 +212,8 @@ exports.reset = function (messageReceived) {
     messageReceived.delete();
 }
 
-exports.init = function (bot, channels) {
-    this.bot = bot;
-    for (let channel of channels) {
+exports.init = function () {
+    for (let channel of metaData.channels) {
         if (channel.name == "Ideas") {
             this.ideasChannel = channel;
             this.majority = channel.majority;

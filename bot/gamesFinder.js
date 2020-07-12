@@ -1,7 +1,11 @@
 const rp = require('request-promise-native');
-var me = "76561198037408655";
+
+const metaData = require('../bot.js');
+
 const steamKey = "2C16D2888B4E4709FCDAB4D8A33B92EE";
+var me = "76561198037408655";
 var friendsUsernames = ['Gavin8a2can', 'MisterE', 'thialfi'];
+var cache = new Map();
 
 // This all works as intended, but steam api randomly does not provide the results for games libraries.
 // This means a work around has to be made so that when the results are missing, a cached version is used, and then that can be compared
@@ -9,7 +13,6 @@ var friendsUsernames = ['Gavin8a2can', 'MisterE', 'thialfi'];
 // Notifying the users that steam api is being a bitch, otherwise continue by using the cached / updated lists
 // The cache will not be backed up anything (such as s3) so will be lost between restarts, but this does not seem like that big of an issue
 
-var cache = new Map();
 
 async function fillFriendsIDList(refSteamID, friendsUsernames) {
     let foundFriends = [];

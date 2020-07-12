@@ -1,11 +1,12 @@
 "use strict";
 
 const Discord = require('discord.js');
+
+const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 
-exports.init = async function (bot, channels) {
-    this.bot = bot;
-    for (let channel of channels) {
+exports.init = async function () {
+    for (let channel of metaData.channels) {
         if (channel.name == "Leaderboards") this.channel = channel;
     }
 
@@ -29,7 +30,7 @@ exports.addPlayer = async function (messageReceived, args) {
             console.log("-\tAdding player '" + playerQuery + "' to the leaderboard '" + leaderboardQuery + "'");
             if (!leaderboard.users) leaderboard.users = []; // Initialise if users do not exists (only used during conversion)
             if (leaderboard.users.every((user) => user.id != playerQuery)) {
-                let discordUser = await new Discord.User(this.bot, {
+                let discordUser = await new Discord.User(metaData.bot, {
                     "id": playerQuery
                 }).fetch();
 
@@ -193,7 +194,7 @@ exports.remLeaderboard = function (messageReceived, args) {
 
     if (found) {
         // Remove the message
-        new Discord.Message(this.bot, {
+        new Discord.Message(metaData.bot, {
             id: found.messageId
         }, messageReceived.channel).fetch().then((leaderboardMessage) => {
             leaderboardMessage.delete();
