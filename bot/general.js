@@ -1,5 +1,3 @@
-"use strict";
-
 const Discord = require('discord.js');
 const rp = require('request-promise-native');
 const cheerio = require('cheerio');
@@ -189,6 +187,8 @@ async function getFbPosts(pageUrl) {
         }, crushamptonChannel).fetch();
 
         lastMessage = lastMessage.first();
+        let regExp = /(?:#Crushampton)*([0-9]+)/;
+        let lastMessageNumber = parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]);
 
         return rp.get({
             url: pageUrl,
@@ -208,10 +208,10 @@ async function getFbPosts(pageUrl) {
                 let $post = cheerio.load(postObject.html());
                 let post = $post('.userContent');
 
-                if (post.text().includes("#Crushampton")) {
-                    let regExp = /(?:#Crushampton)*([0-9]+)/;
+                if (post.text().startsWith("#Crushampton")) {
+                    let postNumber = parseInt(regExp.exec(post.text())[1]);
 
-                    if (parseInt(regExp.exec(post.text())[1]) > (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]))) {
+                    if (postNumber > lastMessageNumber) {
                         recentPosts.unshift({
                             text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                             url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
@@ -219,7 +219,7 @@ async function getFbPosts(pageUrl) {
                         });
                     }
 
-                    if (parseInt(regExp.exec(post.text())[1]) <= (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]) + 1)) {
+                    if (postNumber <= lastMessageNumber + 1) {
                         reachedLast = true;
                         return;
                     }
@@ -230,11 +230,7 @@ async function getFbPosts(pageUrl) {
                 // Ajax request for more posts
                 let morePosts = $('.uiMorePager').map((i, el) => $(el)).get();
                 let link = morePosts.map((link) => {
-                    return "https://www.facebook.com" + encodeURI(/ajaxify="([\s\S]+)" href/.exec(link)[1].replace(" ", "").replace(/\"www_/g, "www_"))
-                        .replace(/,/g, "%2C")
-                        .replace(/&amp;/g, "&")
-                        .replace(/%25/g, "%")
-                        .replace(/:/g, "%3A")
+                    return encodeURI("https://www.facebook.com" + /ajaxify="([\s\S]+)" href/.exec(link)[1].replace(/&amp;/g, "&")).replace(/%25/g, "%")
                         .replace("unit_count=8", "unit_count=100") +
                         "&fb_dtsg_ag" +
                         "&__user=0" +
@@ -245,16 +241,17 @@ async function getFbPosts(pageUrl) {
 
                 await rp.get({
                     "url": link,
+                    "credentials": "omit",
                     "headers": {
-                        "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0"
-                    }
-                }, async (err, res, body) => {
-                    if (!err && res.statusCode == 200) {
-                        await ajax(body, lastMessage, recentPosts);
-                    } else {
-                        console.error(err);
-                        console.group(res);
-                    }
+                        "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0",
+                        "Accept": "*/*",
+                        "Accept-Language": "en-US,en;q=0.5"
+                    },
+                    "referrer": "https://www.facebook.com/pg/Crushampton/posts/",
+                    "method": "GET",
+                    "mode": "cors"
+                }).then(async (res) => {
+                    await ajax(res, lastMessageNumber, recentPosts);
                 });
             }
 
@@ -268,7 +265,7 @@ async function getFbPosts(pageUrl) {
     }
 }
 
-async function ajax(body, lastMessage, recentPosts) {
+async function ajax(body, lastMessageNumber, recentPosts) {
     let $ = cheerio.load(unescape(JSON.parse('"' + /\_\_html\"\:\"([\s\S]+)\"}]],\"jsmods\"/g.exec(body)[1] + '"')));
     let timeLinePostEls = $('.userContentWrapper').map((i, el) => $(el)).get();
 
@@ -279,10 +276,11 @@ async function ajax(body, lastMessage, recentPosts) {
             let $post = cheerio.load(postObject.html());
             let post = $post('.userContent');
 
-            if (post.text().includes("#Crushampton")) {
+            if (post.text().startsWith("#Crushampton")) {
                 let regExp = /(?:Crushampton #)*([0-9]+)/;
+                let postNumber = parseInt(regExp.exec(post.text())[1]);
 
-                if (parseInt(regExp.exec(post.text())[1]) > (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]))) {
+                if (postNumber > lastMessageNumber) {
                     recentPosts.unshift({
                         text: cheerio.load(post.html().replace(/<(?:p)*?>/gm, '\n').replace(/<(?:br)*?>/gm, '\n').replace(/<(?:.)*?>/gm, '')).text(),
                         url: "https://www.facebook.com" + $post("[data-testid=story-subtitle]")[0].firstChild.firstChild.firstChild.attribs.href,
@@ -290,8 +288,8 @@ async function ajax(body, lastMessage, recentPosts) {
                     });
                 }
 
-                if (parseInt(regExp.exec(post.text())[1]) <= (parseInt(regExp.exec(lastMessage.content ? lastMessage.content : "0")[1]) + 1)) {
-                    finished = true;
+                if (postNumber <= lastMessageNumber + 1) {
+                    reachedLast = true;
                     return;
                 }
             };

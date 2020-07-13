@@ -401,7 +401,7 @@ exports.qSpotify = function (messageReceived, argumentString) {
         messageReceived.author.send("Connect your spotify account!", {
             embed: {
                 "title": "Connect your spotify account",
-                "description": "[Click here to link your spotify account](" + metaData.auth.spotifyRedirect + ")",
+                "description": "[Click here to link your spotify account](" + metaData.auth.root + "/spotifyAuthenticate)",
                 "thumbnail": {
                     "url": "https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif"
                 },

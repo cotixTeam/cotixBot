@@ -14,6 +14,7 @@
         "ffmpeg": "0.0.4",
         "fluent-ffmpeg": "^2.1.2",
         "fs": "0.0.1-security",
+        "openid": "^2.0.6",
         "request": "^2.88.2",
         "request-promise-native": "^1.0.8",
         "xml2js": "^0.4.23",

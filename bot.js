@@ -23,15 +23,14 @@ try {
         console.log("Using s3 Channels file!")
         auth = {
             "discordBotToken": process.env.DISCORD_BOT_TOKEN,
-            "discordCallback": process.env.DISCORD_CALLBACK,
             "discordClientId": process.env.DISCORD_CLIENT_ID,
             "discordClientSecret": process.env.DISCORD_CLIENT_SECRET,
-            "spotifyCallback": process.env.SPOTIFY_CALLBACK,
-            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
-            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
+            "root": process.env.ROOT,
             "spotifyDiscordConnectUrl": process.env.SPOTIFY_DISCORD_CONNECT_URL,
-            "googleToken": process.env.YOUTUBE_KEY,
-            "spotifyRedirect": process.env.SPOTIFY_REDIRECT
+            "googleToken": process.env.GOOGLE_KEY,
+            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
+            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
+            "steamKey": process.env.STEAMKEY
         }
     } else {
         const FileSystem = require('fs');
