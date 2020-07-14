@@ -37,6 +37,7 @@ try {
         console.log("Using local Channels file!");
         channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
         auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
+        exports.channels = channels;
     }
     console.log(auth);
 } catch (err) {
@@ -55,18 +56,19 @@ bot.on('ready', async () => { // Run init code
     if (!channels) {
         let tempChannels = await awsUtils.load("store.mmrree.co.uk", "config/Channels.json");
         channels = JSON.parse(tempChannels.Body.toString());
+        exports.channels = channels;
     }
 
     console.log('Connected!');
     console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
     let tempStorage = await awsUtils.load("store.mmrree.co.uk", "stats/Users.json");
-    userStatsMap = fileConversion.JSONObjectToMap(JSON.parse(tempStorage.Body.toString()));
-    exports.userStatsMap = userStatsMap;
+    userStatsMap = await fileConversion.JSONObjectToMap(await JSON.parse(tempStorage.Body.toString()));
+    exports.userStatsMap = await userStatsMap;
 
     let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
-    accesses = new Map(JSON.parse(data.Body.toString()));
-    exports.accesses = accesses;
+    accesses = await new Map(await JSON.parse(data.Body.toString()));
+    exports.accesses = await accesses;
 
     reminder.init();
     music.init();
@@ -303,5 +305,4 @@ process
     });
 
 exports.bot = bot;
-exports.channels = channels;
 exports.auth = auth;

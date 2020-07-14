@@ -26,11 +26,45 @@ exports.add = async function (messageReceived, ideaArg) {
             }, messageReceived.channel)
             .fetch()
             .then((editMessage) => {
-                editMessage
-                    .edit(editMessage.content + '\n`- [ ] ' + ideaAndAuthorString + '`')
-                    .then(() => {
-                        messageReceived.delete();
+                let fields = [];
+                let messageAddition = '`- [ ] ' + ideaAndAuthorString + '`';
+
+                if (editMessage.embeds.length != 0) {
+                    editMessage.embeds[0].fields.forEach((field, index, array) => {
+                        if (index != array.length - 1) {
+                            fields.push(field);
+                        } else {
+                            if (field.value.length + messageAddition.length > 1024 - 1) {
+                                fields.push(field);
+                                fields.push({
+                                    "name": "Ideas:",
+                                    "value": messageAddition
+                                });
+                            } else {
+                                fields.push({
+                                    "name": "Ideas:",
+                                    "value": field.value + "\n" + messageAddition
+                                });
+                            }
+                        }
                     });
+                }
+
+                if (fields.length == 0) {
+                    fields.push({
+                        "name": "Ideas:",
+                        "value": messageAddition
+                    })
+                }
+
+                editMessage.edit({
+                    "content": "Ideas:",
+                    "embed": {
+                        "title": "Ideas:",
+                        "fields": fields
+                    }
+                });
+                messageReceived.delete();
             });
     });
 
@@ -41,19 +75,45 @@ exports.add = async function (messageReceived, ideaArg) {
             }, messageReceived.channel)
             .fetch()
             .then((editMessage) => {
-                if (editMessage.content.substring(editMessage.content.length - 2) == "||") {
-                    editMessage
-                        .edit(editMessage.content.substring(0, editMessage.content.length - 2) + '\n`- ' + ideaAndAuthorString + '`||')
-                        .then(() => {
-                            messageReceived.delete();
-                        });
-                } else {
-                    editMessage
-                        .edit(editMessage.content + '\n||`- ' + ideaAndAuthorString + '`||')
-                        .then(() => {
-                            messageReceived.delete();
-                        });
+                let fields = [];
+                let messageAddition = '`- ' + ideaAndAuthorString + '`';
+
+                if (editMessage.embeds.length != 0) {
+                    editMessage.embeds[0].fields.forEach((field, index, array) => {
+                        if (index != array.length - 1) {
+                            fields.push(field);
+                        } else {
+                            if (field.value.length + messageAddition.length > 1024 - 5) {
+                                fields.push(field);
+                                fields.push({
+                                    "name": "Bad Ideas:",
+                                    "value": "||" + messageAddition + "||"
+                                });
+                            } else {
+                                fields.push({
+                                    "name": "Bad Ideas:",
+                                    "value": field.value.substring(0, field.value.length - 2) + "\n" + messageAddition + "||"
+                                });
+                            }
+                        }
+                    });
                 }
+
+                if (fields.length == 0) {
+                    fields.push({
+                        "name": "Bad Ideas:",
+                        "value": "||" + messageAddition + "||"
+                    })
+                }
+
+                editMessage.edit({
+                    "content": "Bad Ideas:",
+                    "embed": {
+                        "title": "Bad Ideas:",
+                        "fields": fields
+                    }
+                });
+                messageReceived.delete();
             });
     });
 }
@@ -65,13 +125,47 @@ exports.addVeto = function (messageReceived, idea) {
         }, messageReceived.channel)
         .fetch()
         .then((editMessage) => {
-            let messageAddition = '\n`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
-            editMessage
-                .edit(editMessage.content + messageAddition)
-                .then(() => {
-                    messageReceived.delete();
+            let messageAddition = '`- [ ] ' + idea + ' (by ' + messageReceived.author.username + ')`';
+            let fields = [];
+
+            // Addition of new field if required
+            if (editMessage.embeds.length != 0) {
+                editMessage.embeds[0].fields.forEach((field, index, array) => {
+                    if (index != array.length - 1) {
+                        fields.push(field);
+                    } else {
+                        if (field.value.length + messageAddition.length > 1024 - 1) {
+                            fields.push(field);
+                            fields.push({
+                                "name": "Ideas:",
+                                "value": messageAddition
+                            });
+                        } else {
+                            fields.push({
+                                "name": "Ideas:",
+                                "value": field.value + "\n" + messageAddition
+                            });
+                        }
+                    }
                 });
+            }
+
+            if (fields.length == 0) {
+                fields.push({
+                    "name": "Ideas:",
+                    "value": messageAddition
+                })
+            }
+
+            editMessage.edit({
+                "content": "Ideas:",
+                "embed": {
+                    "title": "Ideas:",
+                    "fields": fields
+                }
+            });
         });
+    messageReceived.delete();
 }
 
 exports.completed = function (messageReceived, queryIdea) {
@@ -81,43 +175,106 @@ exports.completed = function (messageReceived, queryIdea) {
         }, messageReceived.channel)
         .fetch()
         .then((todoMessage) => {
-            let ideasMatch;
-
+            let todoFields = [];
+            let completedFields = [];
             let todoStringsArray = [];
             let completedStringsArray = [];
+            let ideasMatch;
+            let regex = this.ideaRegex;
 
-            while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
+            // Convert the old format
+            while (ideasMatch = regex.exec(todoMessage.content)) {
                 if (ideasMatch[1].includes(queryIdea)) {
-                    completedStringsArray.push("\n`- [x] " + ideasMatch[1] + "`");
+                    completedStringsArray.push("`- [x] " + ideasMatch[1] + "`");
                 } else {
-                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
+                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
                 }
             }
 
-            todoMessage
-                .edit('Ideas:\n' + todoStringsArray.join(""))
+            // New embed format
+            if (todoMessage.embeds.length != 0) {
+                todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                    while (ideasMatch = regex.exec(field.value)) {
+                        if (ideasMatch[1].includes(queryIdea)) {
+                            completedStringsArray.push("`- [x] " + ideasMatch[1] + "`");
+                        } else {
+                            if (todoStringsArray.join("\n").length + ("`- [ ] " + ideasMatch[1] + "`").length > 1024) {
+                                todoFields.push({
+                                    "name": "Ideas:",
+                                    "value": todoStringsArray.join("\n")
+                                });
+                                todoStringsArray = [];
+                            }
+                            todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
+                        }
+                    }
+
+                    if (index == array.length - 1 && todoStringsArray.join("\n") != "") {
+                        todoFields.push({
+                            "name": "Ideas:",
+                            "value": todoStringsArray.join("\n")
+                        });
+                    }
+                });
+            } else {
+                todoFields.push({
+                    "name": "Ideas:",
+                    "value": todoStringsArray.join("\n")
+                });
+            }
+
+            todoMessage.edit({
+                    "content": 'Ideas:',
+                    "embed": {
+                        "title": "Ideas:",
+                        "fields": todoFields
+                    }
+                })
                 .then(() => {
                     new Discord.Message(metaData.bot, {
                             id: this.ideasChannel.completed
                         }, messageReceived.channel)
                         .fetch()
                         .then((completedMessage) => {
-                            if (completedMessage.content.substring(completedMessage.content.length - 2) == "||") {
-                                completedMessage
-                                    .edit(completedMessage.content.substring(0, completedMessage.content.length - 2) + completedStringsArray.join("") + "||")
-                                    .then(() => {
-                                        messageReceived.delete();
-                                    });
-                            } else {
-                                completedMessage
-                                    .edit(completedMessage.content + "||" + completedStringsArray.join("") + "||")
-                                    .then(() => {
-                                        messageReceived.delete();
-                                    })
+                            if (completedMessage.embeds.length != 0) {
+                                completedMessage.embeds[0].fields.forEach((field, index, array) => {
+                                    if (index != array.length - 1) {
+                                        completedFields.push(field);
+                                    } else {
+                                        if (field.value.length + completedStringsArray.join("\n").length > 1024 - 1) {
+                                            completedFields.push(field);
+                                            completedFields.push({
+                                                "name": "Completed:",
+                                                "value": "||" + completedStringsArray.join("\n") + "||"
+                                            });
+                                        } else {
+                                            completedFields.push({
+                                                "name": "Completed:",
+                                                "value": field.value.substring(0, field.value.length - 2) + "\n" + completedStringsArray.join("\n") + "||"
+                                            });
+                                        }
+                                    }
+                                });
                             }
-                        })
-                })
-        })
+
+                            if (completedFields.length == 0) {
+                                completedFields.push({
+                                    "name": "Completed:",
+                                    "value": "||" + completedStringsArray.join("\n") + "||"
+                                })
+                            }
+
+                            completedMessage.edit({
+                                "content": 'Completed:',
+                                "embed": {
+                                    "title": "Completed:",
+                                    "fields": completedFields
+                                }
+                            })
+                        });
+                });
+        });
+    messageReceived.delete();
 }
 
 exports.unfinished = function (messageReceived, queryIdea) {
@@ -127,35 +284,105 @@ exports.unfinished = function (messageReceived, queryIdea) {
         }, messageReceived.channel)
         .fetch()
         .then((completedMessage) => {
-            let ideasMatch;
-
+            let todoFields = [];
+            let completedFields = [];
             let todoStringsArray = [];
             let completedStringsArray = [];
+            let ideasMatch;
+            let regex = this.ideaRegex;
 
-            while (ideasMatch = this.ideaRegex.exec(completedMessage.content)) {
+            // Converting from old method
+            while (ideasMatch = regex.exec(completedMessage.content)) {
                 if (ideasMatch[1].includes(queryIdea)) {
-                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
+                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
                 } else {
-                    completedStringsArray.push("\n`- [x] " + ideasMatch[1] + "`");
+                    completedStringsArray.push("`- [x] " + ideasMatch[1] + "`");
                 }
             }
 
-            completedMessage
-                .edit("Completed:\n" + completedStringsArray.join(""))
+            // New method using embeds
+            if (completedMessage.embeds.length != 0) {
+                completedMessage.embeds[0].fields.forEach((field, index, array) => {
+                    while (ideasMatch = regex.exec(field.value)) {
+                        if (!ideasMatch[1].includes(queryIdea)) {
+                            if (completedStringsArray.join("\n").length + ("`- [x] " + ideasMatch[1] + "`").length > 1024 - 4) {
+                                completedFields.push({
+                                    "name": "Completed:",
+                                    "value": "||" + completedStringsArray.join("\n") + "||"
+                                });
+                                completedStringsArray = [];
+                            }
+                            completedStringsArray.push("`- [x] " + ideasMatch[1] + "`");
+                        } else {
+                            todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
+                        }
+                    }
+                    if (index == array.length - 1 && completedStringsArray.join("\n") != "") {
+                        completedFields.push({
+                            "name": "Completed:",
+                            "value": "||" + completedStringsArray.join("\n") + "||"
+                        });
+                    }
+                });
+            } else {
+                completedFields.push({
+                    "name": "Completed:",
+                    "value": "||" + completedStringsArray.join("\n") + "||"
+                });
+            }
+
+            completedMessage.edit({
+                    "content": "Completed:",
+                    "embed": {
+                        "title": "Completed:",
+                        "fields": completedFields
+                    }
+                })
                 .then(() => {
                     new Discord.Message(metaData.bot, {
                             id: this.ideasChannel.todo
                         }, messageReceived.channel)
                         .fetch()
                         .then((todoMessage) => {
-                            todoMessage
-                                .edit(todoMessage.content + "\n" + todoStringsArray.join(""))
-                                .then(() => {
-                                    messageReceived.delete();
+                            if (todoMessage.embeds.length != 0) {
+                                todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                                    if (index != array.length - 1) {
+                                        todoFields.push(field);
+                                    } else {
+                                        if (field.value.length + todoStringsArray.join("\n").length > 1024 - 1) {
+                                            todoFields.push(field);
+                                            todoFields.push({
+                                                "name": "Ideas:",
+                                                "value": todoStringsArray.join("\n")
+                                            });
+                                        } else {
+                                            todoFields.push({
+                                                "name": "Ideas:",
+                                                "value": field.value + "\n" + todoStringsArray.join("\n")
+                                            });
+                                        }
+                                    }
                                 });
-                        })
-                })
+                            }
+
+                            if (todoFields.length == 0 && todoStringsArray.join("\n") != "") {
+                                todoFields.push({
+                                    "name": "Ideas:",
+                                    "value": todoStringsArray.join("\n")
+                                })
+                            }
+
+                            todoMessage.edit({
+                                "content": "Ideas:",
+                                "embed": {
+                                    "title": "Ideas:",
+                                    "fields": todoFields
+                                }
+                            });
+                        });
+                });
         });
+    messageReceived.delete();
 }
 
 exports.remove = function (messageReceived, queryIdea) {
@@ -165,22 +392,63 @@ exports.remove = function (messageReceived, queryIdea) {
         }, messageReceived.channel)
         .fetch()
         .then((todoMessage) => {
+            let fields = [];
+            let todoStringsArray = [];
             let ideasMatch;
 
-            let todoStringsArray = []
-
+            // convert from current format if required
             while (ideasMatch = this.ideaRegex.exec(todoMessage.content)) {
-                if (!ideasMatch[1].includes(queryIdea)) {
-                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`\n");
+                if (ideasMatch[1].includes(queryIdea)) {
+                    if (todoStringsArray.join("\n").length + ("`- [ ] " + ideasMatch[1] + "`").length > 1024) {
+                        fields.push({
+                            "name": "Ideas:",
+                            "value": todoStringsArray.join("\n")
+                        });
+                        todoStringsArray = [];
+                    }
+                    todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
                 }
             }
-            todoMessage
-                .edit("Ideas:\n" + todoStringsArray.join(''))
-                .then(() => {
-                    messageReceived.delete();
-                })
 
+            // Using new embeds
+            if (todoMessage.embeds.length != 0) {
+                todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                    while (ideasMatch = this.ideaRegex.exec(field.value)) {
+                        if (!ideasMatch[1].includes(queryIdea)) {
+                            if (todoStringsArray.join("\n").length + ("`- [ ] " + ideasMatch[1] + "`").length > 1024) {
+                                fields.push({
+                                    "name": "Ideas:",
+                                    "value": todoStringsArray.join("\n")
+                                });
+                                todoStringsArray = [];
+                            }
+                            todoStringsArray.push("`- [ ] " + ideasMatch[1] + "`");
+                        }
+                    }
+
+                    if (index == array.length - 1 && todoStringsArray.join("\n") != "") {
+                        fields.push({
+                            "name": "Ideas:",
+                            "value": todoStringsArray.join("\n")
+                        });
+                    }
+                });
+            } else {
+                fields.push({
+                    "name": "Ideas:",
+                    "value": todoStringsArray.join("\n")
+                });
+            }
+
+            todoMessage.edit({
+                "content": "Ideas:",
+                "embed": {
+                    "title": "Ideas:",
+                    "fields": fields
+                }
+            });
         });
+    messageReceived.delete();
 }
 
 exports.reset = function (messageReceived) {
@@ -190,7 +458,12 @@ exports.reset = function (messageReceived) {
         }, messageReceived.channel)
         .fetch()
         .then((todoMessage) => {
-            todoMessage.edit("Ideas:")
+            todoMessage.edit({
+                "content": "Ideas:",
+                "embed": {
+                    "title": "Ideas:"
+                }
+            });
         });
 
     new Discord.Message(metaData.bot, {
@@ -198,16 +471,26 @@ exports.reset = function (messageReceived) {
         }, messageReceived.channel)
         .fetch()
         .then((badIdeasMessage) => {
-            badIdeasMessage.edit("Bad Ideas:");
-        })
+            badIdeasMessage.edit({
+                "content": "Bad Ideas:",
+                "embed": {
+                    "title": "Bad Ideas:"
+                }
+            });
+        });
 
     new Discord.Message(metaData.bot, {
             id: this.ideasChannel.completed
         }, messageReceived.channel)
         .fetch()
         .then((completedMessage) => {
-            completedMessage.edit("Completed:");
-        })
+            completedMessage.edit({
+                "content": "Completed:",
+                "embed": {
+                    "title": "Completed:"
+                }
+            });
+        });
 
     messageReceived.delete();
 }
@@ -220,5 +503,5 @@ exports.init = function () {
         }
     }
 
-    this.ideaRegex = /(?:`- \[ \] )([\w \S]+)(?:`)/g;
+    this.ideaRegex = /(?:`- \[[ x]\] )([\w \S]+)(?:`)/g;
 }
