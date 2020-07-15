@@ -158,9 +158,6 @@ exports.init = function () {
 
     webhook.set('port', process.env.PORT || 3000);
     webhook.use(bodyParser.json());
-    webhook.use(Express.static('public'));
-    webhook.use(Express.static('files'));
-    webhook.use('/', Express.static(Path.join(__dirname + "/landing/")));
 
     webhook.get('/spotifyAuthenticate', (req, res) => {
         console.log("/spotifyAuthenticate accessed!");
