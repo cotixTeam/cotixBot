@@ -38,8 +38,8 @@ exports.init = async function init() {
  */
 exports.addPlayer = async function addPlayer(messageReceived, args) {
     /**@todo Change the addition of users to allow multiple to be added at once. */
-    let playerQuery = /<@[!]*([0-9]+)>/g.exec(args[0])[1];
-    let leaderboardQuery = args[1];
+    let leaderboardQuery = args[0];
+    let playerQuery = /<@[!]*([0-9]+)>/g.exec(args[1])[1];
 
     for (let leaderboard of this.leaderboards) {
         if (leaderboardQuery == leaderboard.name) {
@@ -76,8 +76,8 @@ exports.addPlayer = async function addPlayer(messageReceived, args) {
  */
 exports.remPlayer = function remPlayer(messageReceived, args) {
     /**@todo Change the removal of users to allow multiple to be added at once. */
-    let playerQuery = args[0];
-    let leaderboardQuery = args[1];
+    let leaderboardQuery = args[0];
+    let playerQuery = args[1];
     let changed = false;
 
     for (let leaderboard of this.leaderboards) {

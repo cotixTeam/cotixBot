@@ -1012,13 +1012,23 @@ function quoteMacro(quoteMessageContent, userId, time) {
  * @param {Discord.Message} toxicMessage The message to be marked as toxic.
  */
 async function toxicMacro(toxicMessage) {
-    if (!metaData.userStatsMap.has(toxicMessage.author.id))
-        metaData.userStatsMap.set(toxicMessage.author.id, new Map());
-    metaData.userStatsMap.get(toxicMessage.author.id).set('toxicCount', {
-        count: metaData.userStatsMap.get(toxicMessage.author.id).has('toxicCount')
-            ? metaData.userStatsMap.get(toxicMessage.author.id).get('toxicCount').count + 1
-            : 1,
-    });
+    if (toxicMessage.author.bot) {
+        let originalUser = /<@[!]*([0-9]+)>$/g.exec(toxicMessage.content)[1];
+        if (!metaData.userStatsMap.has(originalUser)) metaData.userStatsMap.set(originalUser, new Map());
+        metaData.userStatsMap.get(originalUser).set('toxicCount', {
+            count: metaData.userStatsMap.get(originalUser).has('toxicCount')
+                ? metaData.userStatsMap.get(originalUser).get('toxicCount').count + 1
+                : 1,
+        });
+    } else {
+        if (!metaData.userStatsMap.has(toxicMessage.author.id))
+            metaData.userStatsMap.set(toxicMessage.author.id, new Map());
+        metaData.userStatsMap.get(toxicMessage.author.id).set('toxicCount', {
+            count: metaData.userStatsMap.get(toxicMessage.author.id).has('toxicCount')
+                ? metaData.userStatsMap.get(toxicMessage.author.id).get('toxicCount').count + 1
+                : 1,
+        });
+    }
 
     await toxicMessage.react('🇹');
     await toxicMessage.react('🇴');
@@ -1051,15 +1061,16 @@ exports.toxicId = function toxicId(messageReceived, args) {
  * @param {Discord.Message} messageReceived The message to identify the channel to search in.
  * @param {String} argumentString The query string to search for in each message.
  */
-exports.toxic = function toxic(messageReceived, argumentString) {
+exports.toxic = async function toxic(messageReceived, argumentString) {
     console.info('-\tSearching for the message to mark as toxic (' + argumentString + ')!');
-    messageReceived.channel.messages
+    let toxicTest = new RegExp(argumentString, 'gi');
+    await messageReceived.channel.messages
         .fetch({
             limit: 20,
         })
         .then((messageArray) => {
             messageArray.forEach((message) => {
-                if (message.content.includes(argumentString) && message != messageReceived) {
+                if (toxicTest.test(message.content) && message.id != messageReceived.id) {
                     toxicMacro(message);
                 }
             });
