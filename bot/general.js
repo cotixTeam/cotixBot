@@ -850,7 +850,13 @@ exports.help = function help(messageReceived) {
                 lastChannel = command.channel;
             }
             message +=
-                '\n`' + command.channel + '`-`' + command.name + ' ' + command.arguments + '` = ' + command.description;
+                '\n`' +
+                command.channel +
+                '`-`' +
+                command.name +
+                (command.arguments ? ' ' + command.arguments : '') +
+                '` = ' +
+                command.description;
         } else {
             messageReceived.author.send(message);
             message =
