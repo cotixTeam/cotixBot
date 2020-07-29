@@ -1,6 +1,6 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
-const rp = require('request-promise-native')
+const { findBestMatch } = require('string-similarity');
 
 // Custom classes
 const awsUtils = require('./bot/awsUtils');
@@ -20,26 +20,26 @@ let accesses = new Map();
 
 try {
     if (process.env.DISCORD_BOT_TOKEN) {
-        console.log("Using s3 Channels file!")
+        console.info('Using s3 Channels file!');
         auth = {
-            "discordBotToken": process.env.DISCORD_BOT_TOKEN,
-            "discordClientId": process.env.DISCORD_CLIENT_ID,
-            "discordClientSecret": process.env.DISCORD_CLIENT_SECRET,
-            "root": process.env.ROOT,
-            "spotifyDiscordConnectUrl": process.env.SPOTIFY_DISCORD_CONNECT_URL,
-            "googleToken": process.env.GOOGLE_KEY,
-            "spotifyClientSecret": process.env.SPOTIFY_CLIENT_SECRET,
-            "spotifyClientId": process.env.SPOTIFY_CLIENT_ID,
-            "steamKey": process.env.STEAMKEY
-        }
+            discordBotToken: process.env.DISCORD_BOT_TOKEN,
+            discordClientId: process.env.DISCORD_CLIENT_ID,
+            discordClientSecret: process.env.DISCORD_CLIENT_SECRET,
+            root: process.env.ROOT,
+            spotifyDiscordConnectUrl: process.env.SPOTIFY_DISCORD_CONNECT_URL,
+            googleToken: process.env.GOOGLE_KEY,
+            spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+            spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
+            steamKey: process.env.STEAMKEY,
+        };
     } else {
         const FileSystem = require('fs');
-        console.log("Using local Channels file!");
-        channels = JSON.parse(FileSystem.readFileSync("./local/Channels.json"));
-        auth = JSON.parse(FileSystem.readFileSync("./local/auth.json"));
+        console.info('Using local Channels file!');
+        channels = JSON.parse(FileSystem.readFileSync('./local/Channels.json'));
+        auth = JSON.parse(FileSystem.readFileSync('./local/auth.json'));
         exports.channels = channels;
     }
-    console.log(auth);
+    console.info(auth);
 } catch (err) {
     console.error(err);
     process.exit();
@@ -52,54 +52,68 @@ bot.login(auth.discordBotToken);
 
 var userStatsMap = new Map();
 
-bot.on('ready', async () => { // Run init code
+bot.on('ready', async () => {
+    // Run init code
     if (!channels) {
-        let tempChannels = await awsUtils.load("store.mmrree.co.uk", "config/Channels.json");
-        channels = JSON.parse(tempChannels.Body.toString());
+        let tempChannels = await awsUtils.load('store.mmrree.co.uk', 'config/Channels.json');
+        channels = JSON.parse(tempChannels);
         exports.channels = channels;
     }
 
-    console.log('Connected!');
-    console.log('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
+    console.info('Connected!');
+    console.info('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
-    let tempStorage = await awsUtils.load("store.mmrree.co.uk", "stats/Users.json");
-    userStatsMap = await fileConversion.JSONObjectToMap(await JSON.parse(tempStorage.Body.toString()));
+    let tempStorage = await awsUtils.load('store.mmrree.co.uk', 'stats/Users.json');
+    userStatsMap = await fileConversion.JSONObjectToMap(await JSON.parse(tempStorage));
     exports.userStatsMap = await userStatsMap;
 
-    let data = await awsUtils.load("store.mmrree.co.uk", "config/AccessMaps.json");
-    accesses = await new Map(await JSON.parse(data.Body.toString()));
+    let data = await awsUtils.load('store.mmrree.co.uk', 'config/AccessMaps.json');
+    accesses = await new Map(await JSON.parse(data));
     exports.accesses = await accesses;
 
+    general.init();
     reminder.init();
     music.init();
     ideas.init();
     leaderboard.init();
-    general.init();
     webHooks.init();
 });
 
-bot.on('message', async (messageReceived) => { // only use await if you care what order things happen in
-    if (messageReceived.author.id != bot.user.id) { // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
-        console.log(messageReceived.author.username + " sent '" + messageReceived.content + "':");
-        if (messageReceived.content.substring(0, 1) == "!") { // If its a command
+bot.on('message', async (messageReceived) => {
+    // only use await if you care what order things happen in
+    if (messageReceived.author.id != bot.user.id) {
+        // NEED TO CHECK BECAUSE @MATT BROKE EVERYTHING
+        console.info(messageReceived.author.username + " sent '" + messageReceived.content + "':");
+        if (messageReceived.content.substring(0, 1) == '!') {
+            // If its a command
 
             let args = messageReceived.content.substring(1).split(' ');
             let cmd = args[0];
+
+            let commandList = require('./bot/commands').list;
+            let justCommands = commandList.map((command) => command.name);
+            let bestMatch = findBestMatch('!' + cmd, justCommands);
+
+            if (bestMatch.bestMatch.rating > 0.9) {
+                console.info('Changed to closest command!');
+                cmd = bestMatch.bestMatch.target.substring(1, bestMatch.bestMatch.target.length);
+            }
 
             args = args.splice(1);
 
             let argumentString = args.join(' ');
 
-            switch (cmd) { // General server wide commands
-                case "findGames":
+            switch (cmd) {
+                // General server wide commands
+                case 'findGames':
                     gamesFinder.findGames(messageReceived, args);
                     break;
 
-                case "toggleModerator":
+                case 'toggleModerator':
                     general.toggleModerator(messageReceived);
                     break;
 
-                case "sendPlaceholder":
+                case 'sendPlaceholder':
                     general.sendPlaceholder(messageReceived);
                     break;
 
@@ -115,7 +129,7 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                     general.toxic(messageReceived, argumentString);
                     break;
 
-                case "toxicId":
+                case 'toxicId':
                     general.toxicId(messageReceived, args);
                     break;
 
@@ -149,17 +163,19 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
 
                 default:
                     // Find the relative channel, then use to decided in the switch statement
-                    let channel = channels
-                        .find((item) => {
-                            return item.id === messageReceived.channel.id
-                        });
+                    let channel = channels.find((item) => {
+                        return item.id === messageReceived.channel.id;
+                    });
 
-                    if (!channel) channel = {
-                        "name": "this is a failsafe - go to default!"
-                    };
+                    if (!channel)
+                        channel = {
+                            name: 'this is a failsafe - go to default!',
+                        };
 
-                    switch (channel.name) { // Checking the channel for the specific commands
-                        case "Music":
+                    switch (
+                        channel.name // Checking the channel for the specific commands
+                    ) {
+                        case 'Music':
                             switch (cmd) {
                                 case 'qUrl':
                                     music.addByURL(messageReceived, args);
@@ -175,8 +191,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             }
                             break;
 
-                        case "Settings":
-                            switch (cmd) { // Channel specific commands
+                        case 'Settings':
+                            switch (
+                                cmd // Channel specific commands
+                            ) {
                                 case 'listEvents':
                                     reminder.listEvents(messageReceived);
                                     break;
@@ -195,8 +213,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             }
                             break;
 
-                        case "Ideas":
-                            switch (cmd) { // channel specific commands
+                        case 'Ideas':
+                            switch (
+                                cmd // channel specific commands
+                            ) {
                                 case 'add':
                                     ideas.add(messageReceived, argumentString);
                                     break;
@@ -227,9 +247,10 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             }
                             break;
 
-
-                        case "Leaderboards":
-                            switch (cmd) { // Channel specific commands
+                        case 'Leaderboards':
+                            switch (
+                                cmd // Channel specific commands
+                            ) {
                                 case 'clearUsers':
                                     leaderboard.clearUsers(messageReceived, args[0]);
                                     break;
@@ -273,22 +294,24 @@ bot.on('message', async (messageReceived) => { // only use await if you care wha
                             break;
                     }
             }
-        } else { // If not a command
+        } else {
+            // If not a command
             general.updateMessageStats(messageReceived, userStatsMap);
 
-            if (messageReceived.content.includes(bot.user.id)) { // Check if the message includes AFTER its been checked for a command (to not respond to a command)
+            if (messageReceived.content.includes(bot.user.id)) {
+                // Check if the message includes AFTER its been checked for a command (to not respond to a command)
                 general.insultResponse(messageReceived);
             }
 
-            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/]
+            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/];
 
-            if (starWarsRegex.some(regex => regex.test(messageReceived.content))) { // checks if any starWarsString is in messageReceived.content
+            if (starWarsRegex.some((regex) => regex.test(messageReceived.content))) {
+                // checks if any starWarsString is in messageReceived.content
                 general.starWarsResponse(messageReceived);
             }
         }
     }
 });
-
 
 bot.on('voiceStateUpdate', (oldState, newState) => {
     general.updateVoiceStats(oldState, newState);
@@ -299,7 +322,7 @@ process
     .on('unhandledRejection', (reason, p) => {
         console.error(reason, 'Unhandled Rejection at Promise', p);
     })
-    .on('uncaughtException', err => {
+    .on('uncaughtException', (err) => {
         console.error(err, 'Uncaught Exception thrown');
         process.exit(1);
     });
