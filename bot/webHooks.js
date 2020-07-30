@@ -70,8 +70,8 @@ function discordSpotifyCallback(req, res) {
                                         let spotifyAuthContent = JSON.parse(body);
 
                                         // This prevents overriding other data that is not these keys
-                                        let updatedAcesses = metaData.accesses.has(discordUserContent.id)
-                                            ? metaData.accesses.get(discordUserContent.id)
+                                        let updatedAcesses = metaData.accessStorage.has(discordUserContent.id)
+                                            ? metaData.accessStorage.get(discordUserContent.id)
                                             : {};
 
                                         updatedAcesses.spotifyCode = localReq.query.state;
@@ -82,15 +82,15 @@ function discordSpotifyCallback(req, res) {
                                         updatedAcesses.discordRefresh = discordAuthContent.refresh_token;
                                         updatedAcesses.discordAccess = discordAuthContent.access_token;
 
-                                        metaData.accesses.set(discordUserContent.id, updatedAcesses);
+                                        metaData.accessStorage.set(discordUserContent.id, updatedAcesses);
 
                                         awsUtils.save(
                                             'store.mmrree.co.uk',
                                             'config/AccessMaps.json',
-                                            JSON.stringify(Array.from(metaData.accesses))
+                                            JSON.stringify(Array.from(metaData.accessStorage))
                                         );
                                         console.info('-\tAdded access to Map:');
-                                        console.info(metaData.accesses.get(discordUserContent.id));
+                                        console.info(metaData.accessStorage.get(discordUserContent.id));
                                     } else {
                                         console.info('Failed at https://accounts.spotify.com/api/token');
                                         console.info(response.statusCode);
@@ -157,8 +157,8 @@ function discordSteamCallback(req, res) {
                             var discordUserContent = JSON.parse(body);
 
                             // This prevents overriding other data that is not these keys
-                            let updatedAcesses = metaData.accesses.has(discordUserContent.id)
-                                ? metaData.accesses.get(discordUserContent.id)
+                            let updatedAcesses = metaData.accessStorage.has(discordUserContent.id)
+                                ? metaData.accessStorage.get(discordUserContent.id)
                                 : {};
 
                             updatedAcesses.steamId = localReq.query.state;
@@ -167,15 +167,15 @@ function discordSteamCallback(req, res) {
                             updatedAcesses.discordRefresh = discordAuthContent.refresh_token;
                             updatedAcesses.discordAccess = discordAuthContent.access_token;
 
-                            metaData.accesses.set(discordUserContent.id, updatedAcesses);
+                            metaData.accessStorage.set(discordUserContent.id, updatedAcesses);
 
                             awsUtils.save(
                                 'store.mmrree.co.uk',
                                 'config/AccessMaps.json',
-                                JSON.stringify(Array.from(metaData.accesses))
+                                JSON.stringify(Array.from(metaData.accessStorage))
                             );
                             console.info('-\tAdded access to Map:');
-                            console.info(metaData.accesses.get(discordUserContent.id));
+                            console.info(metaData.accessStorage.get(discordUserContent.id));
                         } else {
                             console.info('Failed at https://discord.com/api/v6/users/@me');
                             console.info(response.statusCode);

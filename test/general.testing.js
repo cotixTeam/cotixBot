@@ -3,9 +3,9 @@ const assert = chai.assert;
 const expect = chai.expect;
 const should = chai.should();
 
-const general = require('../../bot/general.js');
-const metaData = require('../../bot.js');
-const { messageReceived } = require('../helperMessage.js');
+const general = require('../bot/general.js');
+const metaData = require('../bot.js');
+const { messageReceived } = require('./helperMessage.js');
 
 var infoo = console.info;
 

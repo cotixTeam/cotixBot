@@ -33,8 +33,7 @@ function reminderTimeouts(reminderEvent, bot) {
 /** Initialises the timeouts for all the unique reminders after loading it from the storage.
  */
 exports.init = async function () {
-    let data = await awsUtils.load('store.mmrree.co.uk', 'config/Reminders.json');
-    this.remindersArray = JSON.parse(data);
+    this.remindersArray = await awsUtils.load('store.mmrree.co.uk', 'config/Reminders.json');
     let reminderDate = new Date();
     let now = new Date();
     reminderDate.setSeconds(0);

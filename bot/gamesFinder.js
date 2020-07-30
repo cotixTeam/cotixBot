@@ -102,8 +102,8 @@ function chooseGame(gameList) {
 async function getRandomGame(messageReceived, args) {
     let userArgs = args.map((arg) => /<@[!]*([0-9]+)>/g.exec(arg)[1]).filter((arg) => arg != null);
 
-    if (userArgs.every((user) => metaData.accesses.get(user) && metaData.accesses.get(user)['steamId'])) {
-        var friendsIDs = userArgs.map((user) => metaData.accesses.get(user)['steamId']);
+    if (userArgs.every((user) => metaData.accessStorage.get(user) && metaData.accessStorage.get(user)['steamId'])) {
+        var friendsIDs = userArgs.map((user) => metaData.accessStorage.get(user)['steamId']);
 
         var gameLists = await getGameList(friendsIDs);
 
@@ -137,7 +137,9 @@ async function getRandomGame(messageReceived, args) {
         let chosenGame = chooseGame(combinedResults);
         return new Array(chosenGame, combinedResults);
     } else {
-        userArgs = userArgs.filter((user) => !(metaData.accesses.get(user) && metaData.accesses.get(user)['steamId']));
+        userArgs = userArgs.filter(
+            (user) => !(metaData.accessStorage.get(user) && metaData.accessStorage.get(user)['steamId'])
+        );
         messageReceived.channel.send(
             '<@!' +
                 userArgs.join('>, <@!') +

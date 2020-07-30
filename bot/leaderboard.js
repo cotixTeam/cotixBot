@@ -21,15 +21,9 @@ exports.init = async function init() {
         if (channel.name == 'Leaderboards') this.channel = channel;
     }
 
-    if (process.env.DISCORD_BOT_TOKEN) {
-        let data = await awsUtils.load('store.mmrree.co.uk', 'config/Leaderboards.json');
-        this.leaderboards = JSON.parse(data);
-        console.info(this.leaderboards);
-    } else {
-        const FileSystem = require('fs');
-        this.leaderboards = JSON.parse(FileSystem.readFileSync('./local/Leaderboards.json'));
-        this.dev = true;
-    }
+    let leaderboard = await awsUtils.load('store.mmrree.co.uk', 'config/Leaderboards.json');
+    console.log(leaderboard);
+    this.leaderboards = leaderboard;
 };
 
 /** Adds a player to the leaderboard given in the arguments.
@@ -110,25 +104,11 @@ exports.remPlayer = function remPlayer(messageReceived, args) {
         }
     }
     if (changed) {
-        saveLeaderboards(this);
+        awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
     }
 
     messageReceived.delete();
 };
-
-/** Macro to save either locally, or onto the s3 server if in production.
- * @param {Class} self The exports object, used to check if the environment is production or developper.
- */
-function saveLeaderboards(self) {
-    if (self.dev) {
-        // Save locally
-        const FileSystem = require('fs');
-        FileSystem.writeFileSync('./local/Leaderboards.json', JSON.stringify(self.leaderboards));
-    } else {
-        // Save on s3
-        awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(self.leaderboards));
-    }
-}
 
 /** Macro to update the leaderboard with the correct values for winners.
  * @param {Leaderboard} leaderboard The leaderboard object to update.
@@ -229,7 +209,7 @@ exports.addLeaderboard = async function addLeaderboard(messageReceived, args) {
 
         this.leaderboards.push(newLeaderboard);
 
-        saveLeaderboards(this);
+        awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
     } else {
         console.info('Already exists!');
         messageReceived.author.send("Sorry, '" + args[0] + "' is already being used for another leaderboard!");
@@ -267,7 +247,7 @@ exports.remLeaderboard = function remLeaderboard(messageReceived, args) {
             return leaderboard != found;
         });
 
-        saveLeaderboards(this);
+        awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         console.info(this.leaderboards);
     } else {
         console.info('Does not exists!');
@@ -293,7 +273,7 @@ exports.clearScores = function clearScores(messageReceived, argString) {
             this.leaderboards[this.leaderboards.indexOf(leaderboard)] = leaderboard;
 
             updateLeaderboard(leaderboard, messageReceived.channel, this);
-            saveLeaderboards(this);
+            awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         }
     }
     messageReceived.delete();
@@ -310,11 +290,11 @@ exports.clearUsers = function clearUsers(messageReceived, argString) {
             leaderboard.users = [];
             this.leaderboards[this.leaderboards.indexOf(leaderboard)] = leaderboard;
             updateLeaderboard(leaderboard, messageReceived.channel, this);
-            saveLeaderboards(this);
+            awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         }
     }
 
-    saveLeaderboards(this);
+    awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
     messageReceived.delete();
 };
 
@@ -361,7 +341,7 @@ exports.win = function win(messageReceived, args) {
             }
             // load the message and then edit with the new responses (do through embed)
             updateLeaderboard(leaderboard, messageReceived.channel, this);
-            saveLeaderboards(this);
+            awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         }
     }
     console.info(this.leaderboards);
@@ -410,7 +390,7 @@ exports.winOther = function winOther(messageReceived, args) {
             }
             // load the message and then edit with the new responses (do through embed)
             updateLeaderboard(leaderboard, messageReceived.channel, this);
-            saveLeaderboards(this);
+            awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         }
     }
     console.info(this.leaderboards);

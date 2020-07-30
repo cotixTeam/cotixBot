@@ -17,10 +17,11 @@ const webHooks = require('./bot/webHooks.js');
 let channels;
 let auth;
 let accesses = new Map();
+var userStatsMap = new Map();
 
 try {
     if (process.env.DISCORD_BOT_TOKEN) {
-        console.info('Using s3 Channels file!');
+        console.log('Production Env');
         auth = {
             discordBotToken: process.env.DISCORD_BOT_TOKEN,
             discordClientId: process.env.DISCORD_CLIENT_ID,
@@ -33,11 +34,9 @@ try {
             steamKey: process.env.STEAMKEY,
         };
     } else {
+        console.log('Local Dev Env');
         const FileSystem = require('fs');
-        console.info('Using local Channels file!');
-        channels = JSON.parse(FileSystem.readFileSync('./local/Channels.json'));
         auth = JSON.parse(FileSystem.readFileSync('./local/auth.json'));
-        exports.channels = channels;
     }
     console.info(auth);
 } catch (err) {
@@ -50,26 +49,21 @@ const bot = new Discord.Client();
 
 bot.login(auth.discordBotToken);
 
-var userStatsMap = new Map();
-
 bot.on('ready', async () => {
     // Run init code
-    if (!channels) {
-        let tempChannels = await awsUtils.load('store.mmrree.co.uk', 'config/Channels.json');
-        channels = JSON.parse(tempChannels);
-        exports.channels = channels;
-    }
-
     console.info('Connected!');
     console.info('Logged in as: ' + bot.user.username + ' (' + bot.user.id + ')!');
 
-    let tempStorage = await awsUtils.load('store.mmrree.co.uk', 'stats/Users.json');
-    userStatsMap = await fileConversion.JSONObjectToMap(await JSON.parse(tempStorage));
-    exports.userStatsMap = await userStatsMap;
+    channels = await awsUtils.load('store.mmrree.co.uk', 'config/Channels.json');
+    exports.channels = channels;
 
-    let data = await awsUtils.load('store.mmrree.co.uk', 'config/AccessMaps.json');
-    accesses = await new Map(await JSON.parse(data));
-    exports.accesses = await accesses;
+    let usersStorage = await awsUtils.load('store.mmrree.co.uk', 'stats/Users.json');
+    userStatsMap = await fileConversion.JSONObjectToMap(usersStorage);
+    exports.userStatsMap = userStatsMap;
+
+    let accessStorage = await awsUtils.load('store.mmrree.co.uk', 'config/AccessMaps.json');
+    accesses = new Map(accessStorage);
+    exports.accesses = accesses;
 
     general.init();
     reminder.init();

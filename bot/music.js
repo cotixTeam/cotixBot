@@ -470,7 +470,7 @@ exports.addBySearch = function addBySearch(messageReceived, argumentString) {
 exports.qSpotify = function qSpotify(messageReceived, argumentString) {
     console.info('-\tQueuing spotify closest matching string (' + argumentString + ')!');
 
-    if (metaData.accesses.has(messageReceived.author.id)) {
+    if (metaData.accessStorage.has(messageReceived.author.id)) {
         console.info('-\tThe user already has a token!');
         getPlaylists(0, messageReceived.author.id, argumentString);
     } else {
@@ -499,7 +499,7 @@ function addPlaylistToQ(playlistUrl, userId) {
         playlistUrl,
         {
             headers: {
-                Authorization: 'Bearer ' + metaData.accesses.get(userId).spotifyAccess,
+                Authorization: 'Bearer ' + metaData.accessStorage.get(userId).spotifyAccess,
             },
         },
         (error, response, body) => {
@@ -557,7 +557,7 @@ async function getPlaylists(offset, userId, argumentString) {
         'https://api.spotify.com/v1/me/playlists?limit=50&offset=' + offset,
         {
             headers: {
-                Authorization: 'Bearer ' + metaData.accesses.get(userId).spotifyAccess,
+                Authorization: 'Bearer ' + metaData.accessStorage.get(userId).spotifyAccess,
             },
         },
         async (error, response, body) => {
@@ -606,23 +606,23 @@ async function refreshToken(userId) {
             },
             form: {
                 grant_type: 'refresh_token',
-                refresh_token: metaData.accesses.get(userId).spotifyRefresh,
+                refresh_token: metaData.accessStorage.get(userId).spotifyRefresh,
             },
         },
         async (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 let spotifyAuthContent = JSON.parse(body);
 
-                let updateAccess = metaData.accesses.get(userId);
+                let updateAccess = metaData.accessStorage.get(userId);
                 updateAccess.spotifyAccess = spotifyAuthContent.access_token;
 
                 console.info(updateAccess);
 
-                metaData.accesses.set(userId, updateAccess);
+                metaData.accessStorage.set(userId, updateAccess);
                 await awsUtils.save(
                     'store.mmrree.co.uk',
                     'config/AccessMaps.json',
-                    JSON.stringify(Array.from(metaData.accesses))
+                    JSON.stringify(Array.from(metaData.accessStorage))
                 );
 
                 console.info('-\tUpdated the user token!');
