@@ -18,68 +18,68 @@ before(function (done) {
 
 describe('general.js suite', function () {
     describe('#toggleModerator(messageReceived)', async () => {
-        let psudoMod = '729306365562191912';
+        let pseudoMod = '729306365562191912';
         let moderator = '730778077386506250';
 
         it('Roles unchanged [incorrect permissions]', async () => {
             messageReceived.deleted = false;
 
-            expect(messageReceived.member.roles.cache).to.not.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.not.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.not.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.false;
 
             await general.toggleModerator(messageReceived);
 
-            expect(messageReceived.member.roles.cache).to.not.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.not.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.not.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.true;
 
             messageReceived.deleted = false;
         });
 
-        it('Remove mod, add psudoAdmin [mod]', async () => {
+        it('Remove mod, add pseudoAdmin [mod]', async () => {
             messageReceived.member.roles.cache.set(moderator);
             messageReceived.deleted = false;
 
-            expect(messageReceived.member.roles.cache).to.not.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.not.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.false;
 
             await general.toggleModerator(messageReceived);
 
-            expect(messageReceived.member.roles.cache).to.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.not.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.true;
 
             messageReceived.deleted = false;
         });
 
-        it('Add mod [psudoAdmin]', async () => {
+        it('Add mod [pseudoAdmin]', async () => {
             messageReceived.deleted = false;
 
-            expect(messageReceived.member.roles.cache).to.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.not.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.false;
 
             await general.toggleModerator(messageReceived);
 
-            expect(messageReceived.member.roles.cache).to.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.true;
 
             messageReceived.deleted = false;
         });
 
-        it('Remove mod [mod, psudoAdmin]', async () => {
+        it('Remove mod [mod, pseudoAdmin]', async () => {
             messageReceived.deleted = false;
 
-            expect(messageReceived.member.roles.cache).to.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.false;
 
             await general.toggleModerator(messageReceived);
 
-            expect(messageReceived.member.roles.cache).to.have.any.keys(psudoMod);
+            expect(messageReceived.member.roles.cache).to.have.any.keys(pseudoMod);
             expect(messageReceived.member.roles.cache).to.not.have.any.keys(moderator);
             expect(messageReceived.deleted).to.be.true;
 

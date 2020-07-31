@@ -439,43 +439,43 @@ exports.updateVoiceStats = async function updateVoiceStats(oldState, newState) {
     console.info(metaData.userStatsMap.get(newState.id));
 };
 
-/** Changes the users roles to have a moderator role, or a psudo moderator role to view the server as a user without admin permissions (without risking them being removed from an admin role).
+/** Changes the users roles to have a moderator role, or a pseudo moderator role to view the server as a user without admin permissions (without risking them being removed from an admin role).
  * @param {Discord.Message} messageReceived The message this command was sent on, used to identify the sender.
  */
 
 exports.toggleModerator = function toggleModerator(messageReceived) {
     console.info('-\tToggle user to normal view for ' + messageReceived.author.username + '!');
-    let psudoModRole;
+    let pseudoModRole;
     let modRole;
     if (process.env.DISCORD_BOT_TOKEN) {
-        psudoModRole = '730775933581263028';
+        pseudoModRole = '730775933581263028';
         modRole = '668465816894832641';
     } else {
-        psudoModRole = '729306365562191912';
+        pseudoModRole = '729306365562191912';
         modRole = '730778077386506250';
     }
 
-    if (!messageReceived.member.roles.cache.has(modRole) && messageReceived.member.roles.cache.has(psudoModRole)) {
+    if (!messageReceived.member.roles.cache.has(modRole) && messageReceived.member.roles.cache.has(pseudoModRole)) {
         messageReceived.member.roles.add
             ? messageReceived.member.roles.add(modRole)
             : messageReceived.member.roles.cache.set(modRole);
     } else if (
         messageReceived.member.roles.cache.has(modRole) &&
-        messageReceived.member.roles.cache.has(psudoModRole)
+        messageReceived.member.roles.cache.has(pseudoModRole)
     ) {
         messageReceived.member.roles.remove
             ? messageReceived.member.roles.remove(modRole)
             : messageReceived.member.roles.cache.delete(modRole);
     } else if (
         messageReceived.member.roles.cache.has(modRole) &&
-        !messageReceived.member.roles.cache.has(psudoModRole)
+        !messageReceived.member.roles.cache.has(pseudoModRole)
     ) {
         messageReceived.member.roles.remove
             ? messageReceived.member.roles.remove(modRole)
             : messageReceived.member.roles.cache.delete(modRole);
         messageReceived.member.roles.add
-            ? messageReceived.member.roles.add(psudoModRole)
-            : messageReceived.member.roles.cache.set(psudoModRole);
+            ? messageReceived.member.roles.add(pseudoModRole)
+            : messageReceived.member.roles.cache.set(pseudoModRole);
     }
     messageReceived.delete();
 };

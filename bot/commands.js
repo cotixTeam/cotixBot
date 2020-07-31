@@ -10,7 +10,7 @@ module.exports = {
             channel: 'All',
             name: '!toggleModerator',
             description:
-                "Adds a psudo role to your account that can't be removed if you have an admin permission. The bot will then quickly toggle the actual admin and the psudo admin to view the server from a normal users view.",
+                "Adds a pseudo role to your account that can't be removed if you have an admin permission. The bot will then quickly toggle the actual admin and the pseudo admin to view the server from a normal users view.",
         },
         {
             channel: 'All',
