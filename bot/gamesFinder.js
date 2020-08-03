@@ -102,8 +102,8 @@ function chooseGame(gameList) {
 async function getRandomGame(messageReceived, args) {
     let userArgs = args.map((arg) => /<@[!]*([0-9]+)>/g.exec(arg)[1]).filter((arg) => arg != null);
 
-    if (userArgs.every((user) => metaData.accessStorage.get(user) && metaData.accessStorage.get(user)['steamId'])) {
-        var friendsIDs = userArgs.map((user) => metaData.accessStorage.get(user)['steamId']);
+    if (userArgs.every((user) => metaData.accesses.get(user) && metaData.accesses.get(user)['steamId'])) {
+        var friendsIDs = userArgs.map((user) => metaData.accesses.get(user)['steamId']);
 
         var gameLists = await getGameList(friendsIDs);
 
@@ -137,9 +137,7 @@ async function getRandomGame(messageReceived, args) {
         let chosenGame = chooseGame(combinedResults);
         return new Array(chosenGame, combinedResults);
     } else {
-        userArgs = userArgs.filter(
-            (user) => !(metaData.accessStorage.get(user) && metaData.accessStorage.get(user)['steamId'])
-        );
+        userArgs = userArgs.filter((user) => !(metaData.accesses.get(user) && metaData.accesses.get(user)['steamId']));
         messageReceived.channel.send(
             '<@!' +
                 userArgs.join('>, <@!') +
@@ -156,56 +154,60 @@ async function getRandomGame(messageReceived, args) {
  * @param {String[]} args The array of players who are to be compared with their steam games.
  */
 exports.findGames = function findGames(messageReceived, args) {
-    messageReceived.channel.send('Finding your common games...\nThis might take a while!').then(async (message) => {
-        let results = await getRandomGame(messageReceived, args);
+    if (args.length == 0) {
+        messageReceived.channel.send('Finding your common games...\nThis might take a while!').then(async (message) => {
+            let results = await getRandomGame(messageReceived, args);
 
-        if (results[0] != false && results[1] != false) {
-            let chosenGame = results[0];
-            let list = results[1];
+            if (results[0] != false && results[1] != false) {
+                let chosenGame = results[0];
+                let list = results[1];
 
-            let fields = [];
-            if (list != null && list.length > 0 && chosenGame != null) {
-                for (let game of list) {
-                    fields.push({
-                        name: game.name,
-                        value: '... or ...',
-                        inline: true,
-                    });
-                }
-
-                let first = true;
-
-                while (fields.length != 0) {
-                    let currentFields = fields.slice(0, 25);
-                    if (first) {
-                        first = false;
-                        await message.edit({
-                            content: chosenGame,
-                            embed: {
-                                title: 'The game chosen was :    ' + chosenGame,
-                                description: 'or you could have played...',
-                                fields: currentFields,
-                            },
-                        });
-                    } else {
-                        await messageReceived.channel.send({
-                            content: chosenGame,
-                            embed: {
-                                title: 'The game chosen was :    ' + chosenGame,
-                                description: 'or you could have played...',
-                                fields: currentFields,
-                            },
+                let fields = [];
+                if (list != null && list.length > 0 && chosenGame != null) {
+                    for (let game of list) {
+                        fields.push({
+                            name: game.name,
+                            value: '... or ...',
+                            inline: true,
                         });
                     }
-                    fields = fields.splice(25);
-                    console.info(fields);
+
+                    let first = true;
+
+                    while (fields.length != 0) {
+                        let currentFields = fields.slice(0, 25);
+                        if (first) {
+                            first = false;
+                            await message.edit({
+                                content: chosenGame,
+                                embed: {
+                                    title: 'The game chosen was :    ' + chosenGame,
+                                    description: 'or you could have played...',
+                                    fields: currentFields,
+                                },
+                            });
+                        } else {
+                            await messageReceived.channel.send({
+                                content: chosenGame,
+                                embed: {
+                                    title: 'The game chosen was :    ' + chosenGame,
+                                    description: 'or you could have played...',
+                                    fields: currentFields,
+                                },
+                            });
+                        }
+                        fields = fields.splice(25);
+                        console.info(fields);
+                    }
+                } else {
+                    message.edit('Based on analysis, you have no games in common on steam, sorry!');
                 }
             } else {
-                message.edit('Based on analysis, you have no games in common on steam, sorry!');
+                message.delete();
             }
-        } else {
-            message.delete();
-        }
-    });
+        });
+    } else {
+        messageReceived.author.send('You have not included any users in the string, need users to search games!');
+    }
     if (messageReceived.content) messageReceived.delete();
 };

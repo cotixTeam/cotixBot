@@ -1,8 +1,6 @@
 const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 
-/** @todo add a macro to save into a local (or s3) bucket depending on whether it is a prod or dev env */
-
 /**
  * @typedef {Object} Reminder
  * @property {String} name
@@ -32,7 +30,7 @@ function reminderTimeouts(reminderEvent, bot) {
 
 /** Initialises the timeouts for all the unique reminders after loading it from the storage.
  */
-exports.init = async function () {
+exports.init = async function init() {
     this.remindersArray = await awsUtils.load('store.mmrree.co.uk', 'config/Reminders.json');
     let reminderDate = new Date();
     let now = new Date();
@@ -60,21 +58,36 @@ exports.init = async function () {
     }
 };
 
-/** @todo change this to send using an embed instead */
 /** Sends the user who invoked a message with a list of all the commands for all the channels.
  * @param {Discord.Message} messageReceived The message the command was sent from.
  */
-exports.listEvents = function (messageReceived) {
+exports.listEvents = function listEvents(messageReceived) {
     console.info('-\tListing events that can be added to reminder!');
-    let workingStrings = [];
-    let index = 0;
+    let message = {
+        content: 'The list of events are:',
+        embed: {
+            title: 'Events',
+            fields: [],
+        },
+    };
+
     for (let reminder of this.remindersArray) {
-        if (reminder.name) workingStrings[index++] = reminder.name;
+        if (reminder.name) {
+            let days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            let minute = reminder.minute;
+
+            if (reminder.minute < 10) minute = '0' + reminder.minute;
+            else minute = reminder.minute.toString();
+
+            message.embed.fields.push({
+                name: reminder.name,
+                value: days[reminder.day - 1] + ' at ' + reminder.hour + ':' + minute,
+                inline: true,
+            });
+        }
     }
 
-    let sendString = 'The list of events are:\n' + workingStrings.join('\n');
-
-    messageReceived.author.send(sendString);
+    messageReceived.author.send(message);
     messageReceived.delete();
 };
 
@@ -82,7 +95,7 @@ exports.listEvents = function (messageReceived) {
  * @param {Discord.Message} messageReceived The message the command was sent from.
  * @param {Strring} argumentString The string to be queried matching the reminder name.
  */
-exports.joinReminder = function (messageReceived, argumentString) {
+exports.joinReminder = function joinReminder(messageReceived, argumentString) {
     console.info('-\tJoining notification list for event!');
     for (let reminder of this.remindersArray) {
         if (reminder.name == argumentString) {
@@ -102,7 +115,7 @@ exports.joinReminder = function (messageReceived, argumentString) {
  * @param {Discord.Message} messageReceived The message the command was sent from.
  * @param {Strring} argumentString The string to be queried matching the reminder name.
  */
-exports.leaveReminder = function (messageReceived, argumentString) {
+exports.leaveReminder = function leaveReminder(messageReceived, argumentString) {
     console.info('-\tLeaving notification list for event!');
     for (let reminder of this.remindersArray) {
         if (reminder.name == argumentString) {

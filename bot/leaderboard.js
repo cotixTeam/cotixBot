@@ -22,7 +22,6 @@ exports.init = async function init() {
     }
 
     let leaderboard = await awsUtils.load('store.mmrree.co.uk', 'config/Leaderboards.json');
-    console.log(leaderboard);
     this.leaderboards = leaderboard;
 };
 
@@ -76,18 +75,14 @@ exports.remPlayer = function remPlayer(messageReceived, args) {
 
     for (let leaderboard of this.leaderboards) {
         if (leaderboardQuery == leaderboard.name) {
-            console.info(
-                "-\tRemoving player '" +
-                    /<@[!]*([0-9]+)>/g.exec(playerQuery)[1] +
-                    "' to the leaderboard '" +
-                    leaderboardQuery +
-                    "'"
-            );
+            let query = /<@[!]*([0-9]+)>/g.exec(playerQuery)[1];
+
+            console.info("-\tRemoving player '" + query + "' to the leaderboard '" + leaderboardQuery + "'");
             if (!leaderboard.users) leaderboard.users = []; // Initialise if users do not exists (only used during conversion)
 
             // remove user if exists, otherwise leave the same
             leaderboard.users = leaderboard.users.filter((value) => {
-                if (value.id != /<@[!]*([0-9]+)>/g.exec(playerQuery)[1]) {
+                if (value.id != query) {
                     changed = true;
                     return true;
                 }

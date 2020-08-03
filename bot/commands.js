@@ -25,7 +25,7 @@ module.exports = {
         {
             channel: 'All',
             name: '!stats',
-            arguments: '[NULL] || [User to query] [Other user to query] ...',
+            arguments: '[null] | [User to query] [Other user to query] ...',
             description:
                 'Sends a message of your own stats if no other users are provided, otherwise sends the stats for every user queried.',
         },
@@ -98,6 +98,7 @@ module.exports = {
         {
             channel: 'Music',
             name: '!qSpotify',
+            arguments: '[Playlist name]',
             description: 'Adds a spotify playlist to the queue for music playing.',
         },
         {

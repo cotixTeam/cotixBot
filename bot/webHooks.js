@@ -8,8 +8,6 @@ const openid = require('openid');
 const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils.js');
 
-/** @todo add a method to save locally if the device is not on prod */
-
 /** Callback used for connecting a discord account and a spotify account.
  * @param {Object} req The request values used in accessing the page.
  * @param {Object} res The response values to be set before responding.
@@ -70,8 +68,8 @@ function discordSpotifyCallback(req, res) {
                                         let spotifyAuthContent = JSON.parse(body);
 
                                         // This prevents overriding other data that is not these keys
-                                        let updatedAcesses = metaData.accessStorage.has(discordUserContent.id)
-                                            ? metaData.accessStorage.get(discordUserContent.id)
+                                        let updatedAcesses = metaData.accesses.has(discordUserContent.id)
+                                            ? metaData.accesses.get(discordUserContent.id)
                                             : {};
 
                                         updatedAcesses.spotifyCode = localReq.query.state;
@@ -82,15 +80,15 @@ function discordSpotifyCallback(req, res) {
                                         updatedAcesses.discordRefresh = discordAuthContent.refresh_token;
                                         updatedAcesses.discordAccess = discordAuthContent.access_token;
 
-                                        metaData.accessStorage.set(discordUserContent.id, updatedAcesses);
+                                        metaData.accesses.set(discordUserContent.id, updatedAcesses);
 
                                         awsUtils.save(
                                             'store.mmrree.co.uk',
                                             'config/AccessMaps.json',
-                                            JSON.stringify(Array.from(metaData.accessStorage))
+                                            JSON.stringify(Array.from(metaData.accesses))
                                         );
                                         console.info('-\tAdded access to Map:');
-                                        console.info(metaData.accessStorage.get(discordUserContent.id));
+                                        console.info(metaData.accesses.get(discordUserContent.id));
                                     } else {
                                         console.info('Failed at https://accounts.spotify.com/api/token');
                                         console.info(response.statusCode);
@@ -157,8 +155,8 @@ function discordSteamCallback(req, res) {
                             var discordUserContent = JSON.parse(body);
 
                             // This prevents overriding other data that is not these keys
-                            let updatedAcesses = metaData.accessStorage.has(discordUserContent.id)
-                                ? metaData.accessStorage.get(discordUserContent.id)
+                            let updatedAcesses = metaData.accesses.has(discordUserContent.id)
+                                ? metaData.accesses.get(discordUserContent.id)
                                 : {};
 
                             updatedAcesses.steamId = localReq.query.state;
@@ -167,15 +165,15 @@ function discordSteamCallback(req, res) {
                             updatedAcesses.discordRefresh = discordAuthContent.refresh_token;
                             updatedAcesses.discordAccess = discordAuthContent.access_token;
 
-                            metaData.accessStorage.set(discordUserContent.id, updatedAcesses);
+                            metaData.accesses.set(discordUserContent.id, updatedAcesses);
 
                             awsUtils.save(
                                 'store.mmrree.co.uk',
                                 'config/AccessMaps.json',
-                                JSON.stringify(Array.from(metaData.accessStorage))
+                                JSON.stringify(Array.from(metaData.accesses))
                             );
                             console.info('-\tAdded access to Map:');
-                            console.info(metaData.accessStorage.get(discordUserContent.id));
+                            console.info(metaData.accesses.get(discordUserContent.id));
                         } else {
                             console.info('Failed at https://discord.com/api/v6/users/@me');
                             console.info(response.statusCode);

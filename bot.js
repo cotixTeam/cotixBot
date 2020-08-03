@@ -61,8 +61,8 @@ bot.on('ready', async () => {
     userStatsMap = await fileConversion.JSONObjectToMap(usersStorage);
     exports.userStatsMap = userStatsMap;
 
-    let accessStorage = await awsUtils.load('store.mmrree.co.uk', 'config/AccessMaps.json');
-    accesses = new Map(accessStorage);
+    let accessesStorage = await awsUtils.load('store.mmrree.co.uk', 'config/AccessMaps.json');
+    accesses = new Map(accessesStorage);
     exports.accesses = accesses;
 
     general.init();
@@ -88,8 +88,8 @@ bot.on('message', async (messageReceived) => {
             let justCommands = commandList.map((command) => command.name);
             let bestMatch = findBestMatch('!' + cmd, justCommands);
 
-            if (bestMatch.bestMatch.rating > 0.9) {
-                console.info('Changed to closest command!');
+            if (bestMatch.bestMatch.rating > 0.7 && '!' + cmd != bestMatch.bestMatch.target) {
+                console.info('Changed to closest command (' + bestMatch.bestMatch.target + ')!');
                 cmd = bestMatch.bestMatch.target.substring(1, bestMatch.bestMatch.target.length);
             }
 

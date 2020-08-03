@@ -7,8 +7,6 @@ const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 const fileConversion = require('./fileConversion.js');
 
-/** @todo add a method to save locall if not on prod */
-
 /** Initialises the running of timed events (and runs them once).
  */
 exports.init = function init() {
@@ -47,7 +45,7 @@ function initHourlyUpdater() {
 }
 
 /**
- * @param {Bool} initialHourly Used to ensure that on the initial setup the timeout doesn't begin (to prevent having timeouts not on the hour).
+ * @property {Bool} initialHourly Used to ensure that on the initial setup the timeout doesn't begin (to prevent having timeouts not on the hour).
  */
 let initialHourly = true;
 
@@ -544,7 +542,7 @@ exports.notImplementedCommand = function notImplementedCommand(messageReceived, 
     let bestMatching = findBestMatch('!' + cmd, justCommands);
     let workingString = 'Hi ' + messageReceived.author.username + ",\n'" + cmd + "' is not an implemented command!";
 
-    if (bestMatching.bestMatch.rating > 0.5) {
+    if (bestMatching.bestMatch.rating > 0.25) {
         workingString += '\nPerhaps you meant: ' + bestMatching.bestMatch.target;
     }
     messageReceived.author.send(workingString);
@@ -825,14 +823,15 @@ exports.bulkDelete = async function bulkDelete(messageReceived, args) {
     }
 };
 
+/**@todo change so that the help command usese embeds for each channel */
 /** Runs through the documentation for the commands and sends a formatted message to the user.
  * @param {Discord.Message} messageReceived The message used to identify the user who sent the message.
  */
-exports.help = function help(messageReceived) {
+exports.help = async function help(messageReceived) {
     console.info('-\tSending a help list of all the commands to the user!');
     let message = {
         content: 'List of commands:',
-        embeds: {
+        embed: {
             title: 'List of commands:',
             fields: [],
         },
@@ -841,29 +840,20 @@ exports.help = function help(messageReceived) {
 
     let lastChannel = commandList[0].channel;
 
-    let currentField = {};
-
     for (let command of commandList) {
-        if (message.length + 250 < 2000) {
-            if (command.channel != lastChannel) {
-                message.embeds;
-                lastChannel = command.channel;
-            }
-            message +=
-                '\n`' +
-                command.channel +
-                '`-`' +
-                command.name +
-                (command.arguments ? ' ' + command.arguments : '') +
-                '` = ' +
-                command.description;
-        } else {
-            messageReceived.author.send(message);
-            message =
-                '`' + command.channel + '`-`' + command.name + ' ' + command.arguments + '` = ' + command.description;
+        if (command.channel != lastChannel) {
+            await messageReceived.author.send(message);
+            message.embed.title = command.channel;
+            message.embed.fields = [];
+            lastChannel = command.channel;
         }
+        message.embed.fields.push({
+            name: command.name + (command.arguments ? ' ' + command.arguments : ''),
+            value: command.description,
+            inline: true,
+        });
     }
-    messageReceived.author.send(message);
+    if (message.embed.fields.length != 0) messageReceived.author.send(message);
     if (messageReceived.guild != null) messageReceived.delete();
 };
 
@@ -900,8 +890,8 @@ exports.eightBall = function eightBall(messageReceived, argumentString) {
 };
 
 /** Automatically performs a cAmEl CaSe transformation on the string provided and sends it back to the channel attributed to the user.
- * @param {*} messageReceived The message the command is sent in to identify the user and the channel.
- * @param {*} argumentString The string to be transformed into camel case.
+ * @param {Discord.Message} messageReceived The message the command is sent in to identify the user and the channel.
+ * @param {String} argumentString The string to be transformed into camel case.
  */
 exports.camel = function camel(messageReceived, argumentString) {
     console.info('-\tResponding with cAmEl FoNt!');
