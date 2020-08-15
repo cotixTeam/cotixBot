@@ -839,9 +839,10 @@ exports.help = async function help(messageReceived) {
     let commandList = require('./commands').list;
 
     let lastChannel = commandList[0].channel;
+    message.embed.title = lastChannel;
 
     for (let command of commandList) {
-        if (command.channel != lastChannel) {
+        if (command.channel != lastChannel || message.embed.fields.length >= 25) {
             await messageReceived.author.send(message);
             message.embed.title = command.channel;
             message.embed.fields = [];
