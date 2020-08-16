@@ -1,0 +1,20 @@
+branch-defaults:
+  Release:
+    environment: cotixBot-dev
+  master:
+    environment: cotixBot-dev
+    group_suffix: null
+global:
+  application_name: cotixBot
+  branch: null
+  default_ec2_keyname: DiscordAWS
+  default_platform: Node.js
+  default_region: eu-west-2
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: eb-cli
+  repository: null
+  sc: git
+  workspace_type: Application
