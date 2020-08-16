@@ -13,6 +13,7 @@
         "body-parser": "^1.19.0",
         "cheerio": "^1.0.0-rc.3",
         "discord.js": "^12.2.0",
+        "@discordjs/opus": "^0.3.2",
         "express": "^4.17.1",
         "ffmpeg": "0.0.4",
         "fluent-ffmpeg": "^2.1.2",
@@ -29,7 +30,6 @@
         "test": "mocha --recursive --exit || true"
     },
     "devDependencies": {
-        "@discordjs/opus": "^0.3.2",
         "chai": "^4.2.0",
         "fs": "0.0.1-security",
         "mocha": "^8.0.1"
