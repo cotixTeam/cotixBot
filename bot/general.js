@@ -1091,6 +1091,16 @@ exports.sendPlaceholder = function sendPlaceholder(messageReceived) {
 exports.react = function react(messageReceived, argumentString) {
     let [searchString, reactString] = argumentString.split(',', 2);
     console.info('-\tSearching for the message to quote (' + searchString + ')!');
+
+    if (reactString == null) {
+        console.log('Message does not have a comma!');
+        messageReceived.author.send(
+            "Hi, unfortunately '" + argumentString + "' needs to have a comma so that the reaction can be identified!"
+        );
+        if (messageReceived.guild != null) messageReceived.delete();
+        return;
+    }
+
     let hashtable = {};
     for (let i = 0, len = reactString.length; i < len; i++) {
         if (hashtable[reactString[i]] != null) {
@@ -1144,7 +1154,7 @@ exports.react = function react(messageReceived, argumentString) {
         })
         .then((messageArray) => {
             messageArray.forEach(async (message) => {
-                if (message.content.includes(searchString) && message != messageReceived) {
+                if (message.content.includes(searchString) && message.content != messageReceived.content) {
                     await message.reactions.removeAll();
                     for (let i = 0, len = reactString.length; i < len; i++) {
                         let value = reactString.toLowerCase().charCodeAt(i) - 97;
