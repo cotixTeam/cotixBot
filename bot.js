@@ -127,16 +127,16 @@ bot.on('message', async (messageReceived) => {
                     general.toxicId(messageReceived, args);
                     break;
 
-                case 'quoteMessage':
-                    general.quoteMessage(messageReceived, argumentString);
+                case 'quote':
+                    general.quote(messageReceived, argumentString);
                     break;
 
                 case 'quoteId':
                     general.quoteId(messageReceived, args);
                     break;
 
-                case 'quote':
-                    general.quote(messageReceived, args);
+                case 'quoteText':
+                    general.quoteText(messageReceived, args);
                     break;
 
                 case 'camel':
@@ -153,6 +153,10 @@ bot.on('message', async (messageReceived) => {
 
                 case 'bulkDelete':
                     general.bulkDelete(messageReceived, args);
+                    break;
+
+                case 'react':
+                    general.react(messageReceived, argumentString);
                     break;
 
                 default:

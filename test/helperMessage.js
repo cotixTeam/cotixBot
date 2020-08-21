@@ -48,6 +48,10 @@ exports.messageReceived = {
         },
         send: function (string) {
             this.receivedMessage = string;
+            this.pinned = false;
+            this.pin = function () {
+                this.pinned = true;
+            };
             return new Promise(function (resolve, reject) {
                 resolve(this);
             });

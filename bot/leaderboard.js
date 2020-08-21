@@ -196,6 +196,7 @@ exports.addLeaderboard = async function addLeaderboard(messageReceived, args) {
         };
 
         await messageReceived.channel.send(message).then((sentMessage) => {
+            console.log(sentMessage.receivedMessage);
             sentMessage.pin();
             newLeaderboard.messageId = sentMessage.id;
         });

@@ -920,7 +920,7 @@ exports.camel = function camel(messageReceived, argumentString) {
  * @param {Discord.Message} messageReceived The message the command to delete it.
  * @param {String[]} args Array where the first element is the @ of the user to attribute the quote to and the rest are the individual words in the string.
  */
-exports.quote = function quote(messageReceived, args) {
+exports.quoteText = function quoteText(messageReceived, args) {
     let userId = /<@[!]*([0-9]+)>/g.exec(args[0])[1];
     args = args.splice(1);
     let quoteString = args.join(' ');
@@ -957,7 +957,7 @@ exports.quoteId = function quoteId(messageReceived, args) {
  * @param {Discord.Message} messageReceived The message to identify the channel to search in.
  * @param {String} argumentString The query string to search for in each message.
  */
-exports.quoteMessage = function quoteMessage(messageReceived, argumentString) {
+exports.quote = function quote(messageReceived, argumentString) {
     console.info('-\tSearching for the message to quote (' + argumentString + ')!');
     messageReceived.channel.messages
         .fetch({
@@ -1081,5 +1081,78 @@ exports.toxic = async function toxic(messageReceived, argumentString) {
 exports.sendPlaceholder = function sendPlaceholder(messageReceived) {
     console.info('-\tSending placeholder!');
     messageReceived.channel.send('Placeholder Message');
+    if (messageReceived.guild != null) messageReceived.delete();
+};
+
+/** React to the query message with the unique string included in the argument.
+ * @param {Discord.Message} messageReceived The message to identify the channel to search in.
+ * @param {String} argumentString The query string to search for in each message and the string to react with (if unique).
+ */
+exports.react = function react(messageReceived, argumentString) {
+    let [searchString, reactString] = argumentString.split(',', 2);
+    console.info('-\tSearching for the message to quote (' + searchString + ')!');
+    let hashtable = {};
+    for (let i = 0, len = reactString.length; i < len; i++) {
+        if (hashtable[reactString[i]] != null) {
+            hashtable[reactString[i]] = 1;
+            // seen another value of the same
+            console.log(reactString + ' has two of the same values within it!');
+            messageReceived.author.send(
+                "Hi, unfortunately '" +
+                    reactString +
+                    "' has at least two of the same letters, and so cannot be made out of emojis!"
+            );
+            if (messageReceived.guild != null) messageReceived.delete();
+            return;
+        } else {
+            hashtable[reactString[i]] = 0;
+        }
+    }
+
+    let regionalEmojis = [
+        '🇦',
+        '🇧',
+        '🇨',
+        '🇩',
+        '🇪',
+        '🇫',
+        '🇬',
+        '🇭',
+        '🇮',
+        '🇯',
+        '🇰',
+        '🇱',
+        '🇲',
+        '🇳',
+        '🇴',
+        '🇵',
+        '🇶',
+        '🇷',
+        '🇸',
+        '🇹',
+        '🇺',
+        '🇻',
+        '🇼',
+        '🇽',
+        '🇾',
+        '🇿',
+    ];
+
+    messageReceived.channel.messages
+        .fetch({
+            limit: 20,
+        })
+        .then((messageArray) => {
+            messageArray.forEach(async (message) => {
+                if (message.content.includes(searchString) && message != messageReceived) {
+                    await message.reactions.removeAll();
+                    for (let i = 0, len = reactString.length; i < len; i++) {
+                        let value = reactString.toLowerCase().charCodeAt(i) - 97;
+                        if (value < 0 || value > 26) continue;
+                        message.react(regionalEmojis[value]);
+                    }
+                }
+            });
+        });
     if (messageReceived.guild != null) messageReceived.delete();
 };
