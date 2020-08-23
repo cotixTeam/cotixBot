@@ -26,7 +26,7 @@
         "ytdl-core": "^2.1.7"
     },
     "scripts": {
-        "start": "nodemon bot.js",
+        "start": "node bot.js",
         "test": "mocha --recursive --exit || true"
     },
     "devDependencies": {

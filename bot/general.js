@@ -1176,68 +1176,140 @@ exports.RLStats = async function RLStats(messageReceived, args) {
     let steamId = metaData.accesses.get(messageReceived.author.id).steamId;
     if (args) steamId = args[0];
 
-    let response = await rp.get({
-        url:
-            'https://ballchasing.com/?' +
-            'title=' +
-            '&player-name=Steam%3A' +
-            steamId +
-            '&season=' +
-            '&min-rank=' +
-            '&max-rank=' +
-            '&map=' +
-            '&replay-after=' +
-            todayISO +
-            '&replay-before=' +
-            todayISO +
-            '&upload-after=' +
-            '&upload-before=' +
-            '&playlist=13',
-        method: 'GET',
-        mode: 'cors',
-    });
+    if (steamId == null) {
+        messageReceived.author.send(
+            'Either you have not given a user, or there is none on record for you, head to ' +
+                metaData.auth.root +
+                '/steamAuthenticate to fix that!'
+        );
+    } else {
+        let response = await rp.get({
+            url:
+                'https://ballchasing.com/?' +
+                'title=' +
+                '&player-name=Steam%3A' +
+                steamId +
+                '&season=' +
+                '&min-rank=' +
+                '&max-rank=' +
+                '&map=' +
+                '&replay-after=' +
+                todayISO +
+                '&replay-before=' +
+                todayISO +
+                '&upload-after=' +
+                '&upload-before=' +
+                '&playlist=13',
+            method: 'GET',
+            mode: 'cors',
+        });
 
-    let $ = cheerio.load(response);
+        let $ = cheerio.load(response);
 
-    let stats = {
-        wins: 0,
-        losses: 0,
-        goalsFor: 0,
-        goalsAgainst: 0,
-    };
+        let stats = {
+            wins: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            secondsPlayed: 0,
+            overtimePlayed: 0,
+        };
 
-    $('.creplays > li').each((index, replay) => {
-        let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
-        let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
+        if ($('.creplays > li').length > 0) {
+            $('.creplays > li').each((index, replay) => {
+                // Scores read
+                let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
+                let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
 
-        if (/Win -/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
-            stats.wins++;
-            stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
-            stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
+                // Minutes played read
+                let [minutes, seconds] = cheerio(replay)
+                    .find('.main > .extra-info > [title="Duration"]')
+                    .text()
+                    .split(':');
+                stats.secondsPlayed += parseInt(minutes) * 60 + parseInt(seconds);
+
+                // Overtime read (if exists)
+                if (cheerio(replay).find('.main > .extra-info > [title="Overtime"]').length != 0) {
+                    let [totalOvertime, ...ignore] = cheerio(replay)
+                        .find('.main > .extra-info > [title="Overtime"]')
+                        .text()
+                        .split(' ');
+                    let [overtimeMintes, overtimeSeconds] = totalOvertime.split(':');
+                    stats.overtimePlayed += parseInt(overtimeMintes) * 60 + parseInt(overtimeSeconds);
+                }
+
+                // Win or loss recording and scores based on win or loss
+                if (/Win -/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
+                    stats.wins++;
+                    stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
+                    stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
+                } else {
+                    stats.losses++;
+                    stats.goalsFor += blueScore > orangeScore ? orangeScore : blueScore;
+                    stats.goalsAgainst += blueScore > orangeScore ? blueScore : orangeScore;
+                }
+
+                // Average game rank (find for the latest game)
+                if (!stats.rank) {
+                    let [rank, ...throwaways] = cheerio(replay)
+                        .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
+                        .attribs.title.split('(');
+                    let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0].attribs
+                        .src;
+                    stats.rank = rank + ' (Average rank)';
+                    stats.rank_img = 'https://ballchasing.com' + rankImg;
+
+                    // User query rank
+                    stats.userRank = cheerio(replay).find(
+                        '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
+                    )[0].attribs.title;
+
+                    stats.userRank_img =
+                        'https://ballchasing.com' +
+                        cheerio(replay).find(
+                            '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
+                        )[0].attribs.src;
+
+                    stats.userName = /([\w\d]+)/g.exec(
+                        cheerio(replay)
+                            .find('.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"]')
+                            .text()
+                    )[1];
+                }
+            });
+
+            let discordEmbed = new Discord.MessageEmbed();
+            discordEmbed
+                .setTitle('Rocket league stats for ' + todayISO)
+                .setAuthor(stats.rank, stats.rank_img)
+                .addField('Wins', stats.wins, true)
+                .addField('Losses', stats.losses, true)
+                .addField('Goals For', stats.goalsFor, true)
+                .addField('Goals Against', stats.goalsAgainst, true)
+                .addField(
+                    'Total Time Played',
+                    Math.floor(stats.secondsPlayed / 60).toString() +
+                        ':' +
+                        (stats.secondsPlayed - 60 * Math.floor(stats.secondsPlayed / 60)).toString(),
+                    true
+                )
+                .setFooter(stats.userName + ' is: ' + stats.userRank, stats.userRank_img);
+
+            if (stats.overtimePlayed != 0) {
+                discordEmbed.addField(
+                    'Time in OT',
+                    Math.floor(stats.overtimePlayed / 60).toString() +
+                        ':' +
+                        (stats.overtimePlayed - 60 * Math.floor(stats.overtimePlayed / 60)).toString(),
+                    true
+                );
+            }
+
+            messageReceived.channel.send(discordEmbed);
         } else {
-            stats.losses++;
-            stats.goalsFor += blueScore > orangeScore ? orangeScore : blueScore;
-            stats.goalsAgainst += blueScore > orangeScore ? blueScore : orangeScore;
+            messageReceived.channel.send('You have not played any RL games today to show stats for!');
         }
-
-        let [rank, ...throwaways] = cheerio(replay)
-            .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
-            .attribs.title.split('(');
-        let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0].attribs.src;
-        stats.rank = rank;
-        stats.rank_img = 'https://ballchasing.com' + rankImg;
-    });
-
-    let discordEmbed = new Discord.MessageEmbed();
-    discordEmbed
-        .setTitle('Rocket league stats for ' + todayISO)
-        .setAuthor(stats.rank, stats.rank_img)
-        .addField('Wins', stats.wins, true)
-        .addField('Losses', stats.losses, true)
-        .addField('Goals For', stats.goalsFor, true)
-        .addField('Goals Against', stats.goalsAgainst, true);
-
-    messageReceived.channel.send(discordEmbed);
+    }
 
     messageReceived.delete();
 };
