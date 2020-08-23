@@ -6,6 +6,7 @@ const { findBestMatch } = require('string-similarity');
 const metaData = require('../bot.js');
 const awsUtils = require('./awsUtils');
 const fileConversion = require('./fileConversion.js');
+const { fstat } = require('fs');
 
 /** Initialises the running of timed events (and runs them once).
  */
@@ -1165,4 +1166,78 @@ exports.react = function react(messageReceived, argumentString) {
             });
         });
     if (messageReceived.guild != null) messageReceived.delete();
+};
+
+exports.RLStats = async function RLStats(messageReceived, args) {
+    let today = new Date();
+
+    let todayISO = today.toISOString().substring(0, 10);
+
+    let steamId = metaData.accesses.get(messageReceived.author.id).steamId;
+    if (args) steamId = args[0];
+
+    let response = await rp.get({
+        url:
+            'https://ballchasing.com/?' +
+            'title=' +
+            '&player-name=Steam%3A' +
+            steamId +
+            '&season=' +
+            '&min-rank=' +
+            '&max-rank=' +
+            '&map=' +
+            '&replay-after=' +
+            todayISO +
+            '&replay-before=' +
+            todayISO +
+            '&upload-after=' +
+            '&upload-before=' +
+            '&playlist=13',
+        method: 'GET',
+        mode: 'cors',
+    });
+
+    let $ = cheerio.load(response);
+
+    let stats = {
+        wins: 0,
+        losses: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+    };
+
+    $('.creplays > li').each((index, replay) => {
+        let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
+        let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
+
+        if (/Win -/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
+            stats.wins++;
+            stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
+            stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
+        } else {
+            stats.losses++;
+            stats.goalsFor += blueScore > orangeScore ? orangeScore : blueScore;
+            stats.goalsAgainst += blueScore > orangeScore ? blueScore : orangeScore;
+        }
+
+        let [rank, ...throwaways] = cheerio(replay)
+            .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
+            .attribs.title.split('(');
+        let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0].attribs.src;
+        stats.rank = rank;
+        stats.rank_img = 'https://ballchasing.com' + rankImg;
+    });
+
+    let discordEmbed = new Discord.MessageEmbed();
+    discordEmbed
+        .setTitle('Rocket league stats for ' + todayISO)
+        .setAuthor(stats.rank, stats.rank_img)
+        .addField('Wins', stats.wins, true)
+        .addField('Losses', stats.losses, true)
+        .addField('Goals For', stats.goalsFor, true)
+        .addField('Goals Against', stats.goalsAgainst, true);
+
+    messageReceived.channel.send(discordEmbed);
+
+    messageReceived.delete();
 };

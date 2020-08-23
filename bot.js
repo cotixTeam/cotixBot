@@ -159,6 +159,10 @@ bot.on('message', async (messageReceived) => {
                     general.react(messageReceived, argumentString);
                     break;
 
+                case 'RLStats':
+                    general.RLStats(messageReceived, args);
+                    break;
+
                 default:
                     // Find the relative channel, then use to decided in the switch statement
                     let channel = channels.find((item) => {
