@@ -243,7 +243,7 @@ async function getFbPosts(pageUrl) {
 
         return rp
             .get({
-                url: pageUrl,
+                uri: pageUrl,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0',
                 },
@@ -1175,6 +1175,22 @@ exports.RLStats = async function RLStats(messageReceived, args) {
 
     let steamId = metaData.accesses.get(messageReceived.author.id).steamId;
     if (args) steamId = args[0];
+    let playlist;
+    switch (args[1]) {
+        case 'solos':
+            playlist = 10;
+            break;
+        case 'duos':
+            playlist = 11;
+            break;
+        case 'threes':
+            playlist = 13;
+            break;
+        default:
+            console.log('running default');
+            playlist = 13;
+            break;
+    }
 
     if (steamId == null) {
         messageReceived.author.send(
@@ -1199,10 +1215,29 @@ exports.RLStats = async function RLStats(messageReceived, args) {
                 todayISO +
                 '&upload-after=' +
                 '&upload-before=' +
-                '&playlist=13',
+                '&playlist=' +
+                playlist,
             method: 'GET',
             mode: 'cors',
         });
+
+        // Need to figure out how to get the user id used in the tracker
+        let rlTrackerUserInfo = await rp.get({
+            url: 'https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/' + steamId,
+        });
+        let rlTrackerUserInfoJSON = await JSON.parse(rlTrackerUserInfo);
+        let RLTrackerUserId = rlTrackerUserInfoJSON.data.metadata.playerId;
+
+        // then user the user id for the stats and to find the mmr gained or lost
+        let userStatsResponse = await rp.get({
+            url: 'https://api.tracker.gg/api/v1/rocket-league/player-history/mmr/' + RLTrackerUserId,
+        });
+        let userStatsResponseJSON = JSON.parse(userStatsResponse);
+        let playlistArray = userStatsResponseJSON.data[playlist];
+        let currentMMR = playlistArray[playlistArray.length - 1].rating;
+        let mmrDifference =
+            parseInt(playlistArray[playlistArray.length - 1].rating) -
+            parseInt(playlistArray[playlistArray.length - 2].rating);
 
         let $ = cheerio.load(response);
 
@@ -1284,6 +1319,7 @@ exports.RLStats = async function RLStats(messageReceived, args) {
                 .setAuthor(stats.rank, stats.rank_img)
                 .addField('Wins', stats.wins, true)
                 .addField('Losses', stats.losses, true)
+                .addField('MMR Change Today', mmrDifference > 0 ? '+' + mmrDifference : mmrDifference, true)
                 .addField('Goals For', stats.goalsFor, true)
                 .addField('Goals Against', stats.goalsAgainst, true)
                 .addField(
@@ -1293,7 +1329,7 @@ exports.RLStats = async function RLStats(messageReceived, args) {
                         (stats.secondsPlayed - 60 * Math.floor(stats.secondsPlayed / 60)).toString(),
                     true
                 )
-                .setFooter(stats.userName + ' is: ' + stats.userRank, stats.userRank_img);
+                .setFooter(stats.userName + ' is at ' + currentMMR + ' MMR: ' + stats.userRank, stats.userRank_img);
 
             if (stats.overtimePlayed != 0) {
                 discordEmbed.addField(
