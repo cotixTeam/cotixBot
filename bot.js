@@ -305,7 +305,7 @@ bot.on('message', async (messageReceived) => {
                 general.insultResponse(messageReceived);
             }
 
-            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/];
+            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\bstorm\b/, /\btrooper\b/];
 
             if (starWarsRegex.some((regex) => regex.test(messageReceived.content))) {
                 // checks if any starWarsString is in messageReceived.content

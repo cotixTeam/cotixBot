@@ -1,7 +1,6 @@
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
-const rp = require('request-promise-native');
-const cheerio = require('cheerio');
+const fetch = require('node-fetch');
 const ytSearch = require('yt-search');
 
 const metaData = require('../bot.js');
@@ -472,7 +471,7 @@ exports.qSpotify = function qSpotify(messageReceived, argumentString) {
 
     if (metaData.accesses.has(messageReceived.author.id)) {
         console.info('-\tThe user already has a token!');
-        getPlaylists(0, messageReceived.author.id, argumentString);
+        getPlaylists(0, messageReceived, argumentString);
     } else {
         console.info('-\tRequesting the token for the user!');
         messageReceived.author.send('Connect your spotify account!', {
@@ -495,7 +494,7 @@ exports.qSpotify = function qSpotify(messageReceived, argumentString) {
  * @param {String} userId The user ID sending the message to get their authentication for their spotify.
  */
 function addPlaylistToQ(playlistUrl, userId) {
-    rp.get(
+    fetch(
         playlistUrl,
         {
             headers: {
@@ -552,39 +551,47 @@ function addPlaylistToQ(playlistUrl, userId) {
  * @param {String} userId The user ID sending the message to get their authentication for their spotify.
  * @param {String} argumentString The string used to identify if one of the playlists match the query string.
  */
-async function getPlaylists(offset, userId, argumentString) {
-    await rp.get(
-        'https://api.spotify.com/v1/me/playlists?limit=50&offset=' + offset,
-        {
-            headers: {
-                Authorization: 'Bearer ' + metaData.accesses.get(userId).spotifyAccess,
-            },
+async function getPlaylists(offset, messageReceived, argumentString) {
+    let userId = messageReceived.author.id;
+    let spotifyResponse = await fetch('https://api.spotify.com/v1/me/playlists?limit=50&offset=' + offset, {
+        headers: {
+            Authorization: 'Bearer ' + metaData.accesses.get(userId).spotifyAccess,
         },
-        async (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let playlistsContent = JSON.parse(body);
+    });
 
-                let result = playlistsContent.items.find((playlist) => {
-                    if (playlist.name.includes(argumentString)) return playlist;
-                });
+    // TODO: fix the spotify bug by using fetches -> and make sure there are no more depreciated rp / request gets in the app, use node fetch throughout
 
-                if (result) {
-                    console.info("-\tAdding songs of playlist:'" + result.name + "' to queue!");
-                    addPlaylistToQ(result.href, userId);
-                } else {
-                    await getPlaylists(offset + 50, userId, argumentString);
-                }
-            } else if (response.statusCode == 401) {
-                console.info('-\tToken expired, refreshing!');
-                await refreshToken(userId);
-                await getPlaylists(offset, userId, argumentString);
-            } else {
-                console.info(response.statusCode);
-                console.error(error);
-                console.info(body);
-            }
+    console.log(spotifyResponse);
+
+    if (spotifyResponse.status == 200) {
+        let playlistsContent = await spotifyResponse.json();
+
+        let result = playlistsContent.items.find((playlist) => {
+            if (playlist.name.includes(argumentString)) return playlist;
+        });
+
+        if (result) {
+            console.info("-\tAdding songs of playlist:'" + result.name + "' to queue!");
+            addPlaylistToQ(result.href, userId);
+        } else {
+            await getPlaylists(offset + 50, messageReceived, argumentString);
         }
-    );
+    } else if (spotifyResponse.status == 401) {
+        // if status code 401 token expired, refresh
+        if (await refreshToken(userId)) await getPlaylists(offset, messageReceived, argumentString);
+        else
+            messageReceived.author.send('Connect your spotify account!', {
+                embed: {
+                    title: 'Connect your spotify account',
+                    description:
+                        '[Click here to link your spotify account](' + metaData.auth.root + '/spotifyAuthenticate)',
+                    thumbnail: {
+                        url: 'https://www.designtagebuch.de/wp-content/uploads/mediathek//2015/06/spotify-logo.gif',
+                    },
+                    url: metaData.auth.spotifyDiscordConnectUrl,
+                },
+            });
+    }
 }
 
 /** Macro used to refresh the token of the user before they request their playlist.
@@ -592,46 +599,39 @@ async function getPlaylists(offset, userId, argumentString) {
  * @param {String} userId The user ID of the token to refresh.
  */
 async function refreshToken(userId) {
-    await rp.post(
-        'https://accounts.spotify.com/api/token',
-        {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                Authorization:
-                    'Basic ' +
-                    Buffer.from(metaData.auth.spotifyClientId + ':' + metaData.auth.spotifyClientSecret).toString(
-                        'base64'
-                    ),
-            },
-            form: {
-                grant_type: 'refresh_token',
-                refresh_token: metaData.accesses.get(userId).spotifyRefresh,
-            },
+    let refreshTokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization:
+                'Basic ' +
+                Buffer.from(metaData.auth.spotifyClientId + ':' + metaData.auth.spotifyClientSecret).toString('base64'),
         },
-        async (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let spotifyAuthContent = JSON.parse(body);
+        form: {
+            grant_type: 'refresh_token',
+            refresh_token: metaData.accesses.get(userId).spotifyRefresh,
+        },
+        method: 'POST',
+    });
 
-                let updateAccess = metaData.accesses.get(userId);
-                updateAccess.spotifyAccess = spotifyAuthContent.access_token;
+    console.log(refreshTokenResponse);
 
-                console.info(updateAccess);
+    if (refreshTokenResponse.status == 200) {
+        let spotifyAuthContent = await refreshTokenResponse.json();
 
-                metaData.accesses.set(userId, updateAccess);
-                await awsUtils.save(
-                    'store.mmrree.co.uk',
-                    'config/AccessMaps.json',
-                    JSON.stringify(Array.from(metaData.accesses))
-                );
+        let updateAccess = metaData.accesses.get(userId);
+        updateAccess.spotifyAccess = spotifyAuthContent.access_token;
 
-                console.info('-\tUpdated the user token!');
-            } else {
-                console.info(response.statusCode);
-                console.error(error);
-                console.info(body);
-            }
-        }
-    );
+        console.info(updateAccess);
+
+        metaData.accesses.set(userId, updateAccess);
+        await awsUtils.save(
+            'store.mmrree.co.uk',
+            'config/AccessMaps.json',
+            JSON.stringify(Array.from(metaData.accesses))
+        );
+        console.info('-\tUpdated the user token!');
+        return true;
+    } else return false;
 }
 
 exports.spotifyPlayer = spotifyPlayer;

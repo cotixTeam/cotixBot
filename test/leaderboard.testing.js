@@ -5,9 +5,10 @@ const should = chai.should();
 
 const leaderboard = require('../bot/leaderboard.js');
 const metaData = require('../bot.js');
-const { messageReceived } = require('./helperMessage.js');
+const { messageReceivedGenerator } = require('./helperMessage.js');
 
 var infoo = console.info;
+var messageReceived = new messageReceivedGenerator();
 
 before(function (done) {
     this.timeout(10 * 1000);
@@ -21,9 +22,18 @@ describe('leaderboard.js suite', function () {
         it('Check for valid response', () => {
             messageReceived.channel.receivedMessage = '';
 
-            expect(messageReceived.channel.receivedMessage).to.be.empty;
+            //expect(messageReceived.channel.receivedMessage).to.be.empty;
 
             leaderboard.addLeaderboard(messageReceived, ['test', 'This is a test!']);
+
+            var checkMessage = new messageReceivedGenerator();
+            console.log(checkMessage);
+            checkMessage.content = 'test';
+            checkMessage.embed.title = 'test';
+            checkMessage.embed.description = 'This is a test!';
+            checkMessage.embed.fields = [];
+            console.log(checkMessage);
+            console.log(messageReceived.channel.receivedMessage);
 
             expect(messageReceived.channel.receivedMessage).to.equal({
                 content: 'test',
