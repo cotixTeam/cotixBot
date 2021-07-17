@@ -35,7 +35,7 @@ function discordSpotifyCallback(req, res) {
             if (!error & (response.statusCode == 200)) {
                 var discordAuthContent = JSON.parse(body);
 
-                rp.get(
+                fetch(
                     'https://discord.com/api/v6/users/@me',
                     {
                         headers: {
@@ -143,7 +143,7 @@ function discordSteamCallback(req, res) {
             if (!error & (response.statusCode == 200)) {
                 var discordAuthContent = JSON.parse(body);
 
-                rp.get(
+                fetch(
                     'https://discord.com/api/v6/users/@me',
                     {
                         headers: {

@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const rp = require('request-promise-native');
+const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const { findBestMatch } = require('string-similarity');
 
@@ -62,10 +62,6 @@ function hourlyUpdate() {
         );
         setTimeout(hourlyUpdate, 60 * 60 * 1000);
     } else initialHourly = false;
-
-    getFbPosts('https://www.facebook.com/pg/Crushampton/posts/').then((posts) => {
-        sendFbPosts(posts);
-    });
 
     updateLeaderboards();
 }
@@ -165,10 +161,12 @@ async function updateCountStat(leaderboardChannel, stat, message) {
         .then((board) => board.edit(message));
 }
 
-/** Macro to send an array of fb posts to the 'crushampton' chanenl.
+/** Macro to send an array of fb posts to the 'crushampton' chanenl. (UNUSED - Deprecated)
+ * @deprecated
  * @param {Array} posts Posts retrieved from any source, with properies of 'text', 'url' and 'image'.
  * @async
  */
+/*
 async function sendFbPosts(posts) {
     let channel = metaData.channels.find((item) => {
         return item.name === 'Crushampton';
@@ -210,13 +208,15 @@ async function sendFbPosts(posts) {
         console.error('No such channel, check the config files!');
     }
 }
+*/
 
-/** Macro to help with retrieving the last unseen posts from a url.
+/** Macro to help with retrieving the last unseen posts from a url. (UNUSED - Deprecated)
+ * @deprecated
  * @async
  * @param {String} pageUrl The facebook url from which the posts will be retrieved.
  * @returns {Promise} Containing an array of the posts retrieved.
  */
-
+/*
 async function getFbPosts(pageUrl) {
     let channel = metaData.channels.find((item) => {
         return item.name === 'Crushampton';
@@ -240,108 +240,103 @@ async function getFbPosts(pageUrl) {
         let regExp = /(?:#Crushampton)*([0-9]+)/;
         let lastMessageNumber = parseInt(regExp.exec(lastMessage.content ? lastMessage.content : '0')[1]);
 
-        return rp
-            .get({
-                url: pageUrl,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0',
-                },
-            })
-            .then(async (postsHtml) => {
-                let reachedLast = false;
-                let $ = cheerio.load(postsHtml);
+        return fetch(pageUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0',
+            },
+        }).then(async (postsHtml) => {
+            let reachedLast = false;
+            let $ = cheerio.load(postsHtml);
 
-                let posts = [];
+            let posts = [];
 
-                let recentPosts = [];
+            let recentPosts = [];
 
-                let timeLinePostEls = $('.userContentWrapper')
+            let timeLinePostEls = $('.userContentWrapper')
+                .map((i, el) => $(el))
+                .get();
+            timeLinePostEls.forEach((postObject) => {
+                let $post = cheerio.load(postObject.html());
+                let post = $post('.userContent');
+
+                if (post.text().startsWith('#Crushampton')) {
+                    let postNumber = parseInt(regExp.exec(post.text())[1]);
+
+                    if (postNumber > lastMessageNumber) {
+                        recentPosts.unshift({
+                            text: cheerio
+                                .load(
+                                    post
+                                        .html()
+                                        .replace(/<(?:p)*?>/gm, '\n')
+                                        .replace(/<(?:br)*?>/gm, '\n')
+                                        .replace(/<(?:.)*?>/gm, '')
+                                )
+                                .text(),
+                            url:
+                                'https://www.facebook.com' +
+                                $post('[data-testid=story-subtitle]')[0].firstChild.firstChild.firstChild.attribs.href,
+                            image: $post('.uiScaledImageContainer')[0]
+                                ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src
+                                : null,
+                        });
+                    }
+
+                    if (postNumber <= lastMessageNumber + 1) {
+                        reachedLast = true;
+                        return;
+                    }
+                }
+            });
+
+            if (!reachedLast) {
+                // Ajax request for more posts
+                let morePosts = $('.uiMorePager')
                     .map((i, el) => $(el))
                     .get();
-                timeLinePostEls.forEach((postObject) => {
-                    let $post = cheerio.load(postObject.html());
-                    let post = $post('.userContent');
-
-                    if (post.text().startsWith('#Crushampton')) {
-                        let postNumber = parseInt(regExp.exec(post.text())[1]);
-
-                        if (postNumber > lastMessageNumber) {
-                            recentPosts.unshift({
-                                text: cheerio
-                                    .load(
-                                        post
-                                            .html()
-                                            .replace(/<(?:p)*?>/gm, '\n')
-                                            .replace(/<(?:br)*?>/gm, '\n')
-                                            .replace(/<(?:.)*?>/gm, '')
-                                    )
-                                    .text(),
-                                url:
-                                    'https://www.facebook.com' +
-                                    $post('[data-testid=story-subtitle]')[0].firstChild.firstChild.firstChild.attribs
-                                        .href,
-                                image: $post('.uiScaledImageContainer')[0]
-                                    ? $post('.uiScaledImageContainer')[0].firstChild.attribs.src
-                                    : null,
-                            });
-                        }
-
-                        if (postNumber <= lastMessageNumber + 1) {
-                            reachedLast = true;
-                            return;
-                        }
-                    }
+                let link = morePosts.map((link) => {
+                    return (
+                        encodeURI(
+                            'https://www.facebook.com' + /ajaxify="([\s\S]+)" href/.exec(link)[1].replace(/&amp;/g, '&')
+                        )
+                            .replace(/%25/g, '%')
+                            .replace('unit_count=8', 'unit_count=100') +
+                        '&fb_dtsg_ag' +
+                        '&__user=0' +
+                        '&__a=1' +
+                        '&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m'
+                    );
                 });
+                link = link[0];
 
-                if (!reachedLast) {
-                    // Ajax request for more posts
-                    let morePosts = $('.uiMorePager')
-                        .map((i, el) => $(el))
-                        .get();
-                    let link = morePosts.map((link) => {
-                        return (
-                            encodeURI(
-                                'https://www.facebook.com' +
-                                    /ajaxify="([\s\S]+)" href/.exec(link)[1].replace(/&amp;/g, '&')
-                            )
-                                .replace(/%25/g, '%')
-                                .replace('unit_count=8', 'unit_count=100') +
-                            '&fb_dtsg_ag' +
-                            '&__user=0' +
-                            '&__a=1' +
-                            '&__dyn=7AgNe5Gmawgrolg9odoyGxu4QjFwn8S2Sq2i5U4e1qzEjyQdxK5WAx-bxWUW16whoS2S4ogU9EdEO0w8kwUx61cw9yEuxm0wpk2u2-263WWwSxu15wgE46fw9C48sz-0JohwKx-8wgolzUOmVo7y1NwRz8cHAy8aEaoGqfwl8cE5S5o9kbxSEtx-2y2O0B8bUbGwCxe1lwlE-7Eoxmm1jxe3C0D888cobEaUe85m'
-                        );
+                if (link) {
+                    let fbResponse = await fetch(link, {
+                        credentials: 'omit',
+                        headers: {
+                            'User-Agent':
+                                'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0',
+                            Accept: '* /*',
+                            'Accept-Language': 'en-US,en;q=0.5',
+                        },
+                        referrer: 'https://www.facebook.com/pg/Crushampton/posts/',
+                        method: 'GET',
+                        mode: 'cors',
                     });
-                    link = link[0];
-
-                    await rp
-                        .get({
-                            url: link,
-                            credentials: 'omit',
-                            headers: {
-                                'User-Agent':
-                                    'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0',
-                                Accept: '*/*',
-                                'Accept-Language': 'en-US,en;q=0.5',
-                            },
-                            referrer: 'https://www.facebook.com/pg/Crushampton/posts/',
-                            method: 'GET',
-                            mode: 'cors',
-                        })
-                        .then(async (res) => {
-                            await ajax(res, lastMessageNumber, recentPosts);
-                        });
+                    let fbText = await fbResponse.text();
+                    await ajax(fbText, lastMessageNumber, recentPosts);
                 }
+            }
 
-                for (let post of recentPosts) {
-                    posts.push(post);
-                }
-                return posts;
-            });
+            for (let post of recentPosts) {
+                posts.push(post);
+            }
+            return posts;
+        });
     } else {
         console.error('No such channel, check the config files!');
     }
 }
+ */
 
 /** Macro to help query facebook as if a browser was open (for more posts).
  * @async
@@ -704,20 +699,14 @@ exports.starWarsResponse = async function starWarsResponse(messageReceived) {
             messageReceived.author.username +
             ') included a star wars string!\n\tResponding with star wars gif'
     );
-    await rp.get(
+    let rawResponse = await fetch(
         'https://api.tenor.com/v1/search?q=' +
             'star wars' +
-            '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU',
-        async (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let content = JSON.parse(body);
-                let item = Math.floor(Math.random() * content.results.length); // The far right number is the top X results value
-                await messageReceived.channel.send('Star wars!\n' + content.results[item].url);
-            } else {
-                console.error(error + ' ' + response);
-            }
-        }
+            '&ar_range=standard&media_filter=minimal&api_key=RRAGVB36GEVU'
     );
+    let content = await rawResponse.json();
+    let item = Math.floor(Math.random() * content.results.length); // The far right number is the top X results value
+    await messageReceived.channel.send('Star wars!\n' + content.results[item].url);
 };
 
 /** Sends a message with a random insult to the channel of the user.
@@ -732,15 +721,11 @@ exports.insultResponse = async function insultResponse(messageReceived) {
             messageReceived.author.username +
             ') mentioned the bot!\n\tResponding with insult'
     );
-    if (new Date().getDay() != 2)
-        await rp.get('https://evilinsult.com/generate_insult.php?lang=en&type=json', async (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                let content = JSON.parse(body);
-                await messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
-            } else {
-                console.error(error + ' ' + response);
-            }
-        });
+    if (new Date().getDay() != 2) {
+        let insultResponse = await fetch('https://evilinsult.com/generate_insult.php?lang=en&type=json');
+        let content = await insultResponse.json();
+        await messageReceived.reply(content.insult[0].toLowerCase() + content.insult.slice(1));
+    }
 };
 
 /**
@@ -823,7 +808,6 @@ exports.bulkDelete = async function bulkDelete(messageReceived, args) {
     }
 };
 
-/**@todo change so that the help command usese embeds for each channel */
 /** Runs through the documentation for the commands and sends a formatted message to the user.
  * @param {Discord.Message} messageReceived The message used to identify the user who sent the message.
  */
@@ -920,7 +904,7 @@ exports.camel = function camel(messageReceived, argumentString) {
  * @param {Discord.Message} messageReceived The message the command to delete it.
  * @param {String[]} args Array where the first element is the @ of the user to attribute the quote to and the rest are the individual words in the string.
  */
-exports.quote = function quote(messageReceived, args) {
+exports.quoteText = function quoteText(messageReceived, args) {
     let userId = /<@[!]*([0-9]+)>/g.exec(args[0])[1];
     args = args.splice(1);
     let quoteString = args.join(' ');
@@ -937,7 +921,7 @@ exports.quote = function quote(messageReceived, args) {
  */
 exports.quoteId = function quoteId(messageReceived, args) {
     let regexURIQuote = new RegExp(
-        '(https://discordapp.com/channels/[1-9][0-9]{0,18}/[1-9][0-9]{0,18}/)?([1-9][0-9]{0,18})'
+        '(https://discord(app)?.com/channels/[1-9][0-9]{0,18}/[1-9][0-9]{0,18}/)?([1-9][0-9]{0,18})'
     );
 
     let quoteMatch = args[0].match(regexURIQuote);
@@ -957,7 +941,7 @@ exports.quoteId = function quoteId(messageReceived, args) {
  * @param {Discord.Message} messageReceived The message to identify the channel to search in.
  * @param {String} argumentString The query string to search for in each message.
  */
-exports.quoteMessage = function quoteMessage(messageReceived, argumentString) {
+exports.quote = function quote(messageReceived, argumentString) {
     console.info('-\tSearching for the message to quote (' + argumentString + ')!');
     messageReceived.channel.messages
         .fetch({
@@ -1040,7 +1024,7 @@ async function toxicMacro(toxicMessage) {
  */
 exports.toxicId = function toxicId(messageReceived, args) {
     let regexURIToxic = new RegExp(
-        '(https://discordapp.com/channels/[1-9][0-9]{0,18}/[1-9][0-9]{0,18}/)?([1-9][0-9]{0,18})'
+        '(https://discord(app)?.com/channels/[1-9][0-9]{0,18}/[1-9][0-9]{0,18}/)?([1-9][0-9]{0,18})'
     );
 
     let matchToxic = args[0].match(regexURIToxic);
@@ -1082,4 +1066,365 @@ exports.sendPlaceholder = function sendPlaceholder(messageReceived) {
     console.info('-\tSending placeholder!');
     messageReceived.channel.send('Placeholder Message');
     if (messageReceived.guild != null) messageReceived.delete();
+};
+
+/** React to the query message with the unique string included in the argument.
+ * @param {Discord.Message} messageReceived The message to identify the channel to search in.
+ * @param {String} argumentString The query string to search for in each message and the string to react with (if unique).
+ */
+exports.react = function react(messageReceived, argumentString) {
+    let [searchString, reactString] = argumentString.split(',', 2);
+    console.info('-\tSearching for the message to quote (' + searchString + ')!');
+
+    if (reactString == null) {
+        console.log('Message does not have a comma!');
+        messageReceived.author.send(
+            "Hi, unfortunately '" + argumentString + "' needs to have a comma so that the reaction can be identified!"
+        );
+        if (messageReceived.guild != null) messageReceived.delete();
+        return;
+    }
+
+    let hashtable = {};
+    for (let i = 0, len = reactString.length; i < len; i++) {
+        if (hashtable[reactString[i]] != null) {
+            hashtable[reactString[i]] = 1;
+            // seen another value of the same
+            console.log(reactString + ' has two of the same values within it!');
+            messageReceived.author.send(
+                "Hi, unfortunately '" +
+                    reactString +
+                    "' has at least two of the same letters, and so cannot be made out of emojis!"
+            );
+            if (messageReceived.guild != null) messageReceived.delete();
+            return;
+        } else {
+            hashtable[reactString[i]] = 0;
+        }
+    }
+
+    let regionalEmojis = [
+        '🇦',
+        '🇧',
+        '🇨',
+        '🇩',
+        '🇪',
+        '🇫',
+        '🇬',
+        '🇭',
+        '🇮',
+        '🇯',
+        '🇰',
+        '🇱',
+        '🇲',
+        '🇳',
+        '🇴',
+        '🇵',
+        '🇶',
+        '🇷',
+        '🇸',
+        '🇹',
+        '🇺',
+        '🇻',
+        '🇼',
+        '🇽',
+        '🇾',
+        '🇿',
+    ];
+
+    messageReceived.channel.messages
+        .fetch({
+            limit: 20,
+        })
+        .then((messageArray) => {
+            messageArray.forEach(async (message) => {
+                if (message.content.includes(searchString) && message.content != messageReceived.content) {
+                    await message.reactions.removeAll();
+                    for (let i = 0, len = reactString.length; i < len; i++) {
+                        let value = reactString.toLowerCase().charCodeAt(i) - 97;
+                        if (value < 0 || value > 26) continue;
+                        message.react(regionalEmojis[value]);
+                    }
+                }
+            });
+        });
+    if (messageReceived.guild != null) messageReceived.delete();
+};
+
+/** React to the message ID with the unique string included in the argument.
+ * @param {Discord.Message} messageReceived The message to identify the channel to search in.
+ * @param {String} argumentString The query string for message ID and the string to react with (if unique).
+ */
+exports.reactId = function reactId(messageReceived, argumentString) {
+    let [searchString, reactString] = argumentString.split(',', 2);
+
+    let regexURIToxic = new RegExp(
+        '(https://discord(app)?.com/channels/[1-9][0-9]{0,18}/[1-9][0-9]{0,18}/)?([1-9][0-9]{0,18})'
+    );
+
+    let matchReact = searchString.match(regexURIToxic);
+    console.info(
+        "-\tMarking the id'd message (" +
+            matchReact[matchReact.length - 1] +
+            ') with the react (' +
+            reactString +
+            ') [if unique]!'
+    );
+
+    if (matchReact) {
+        if (reactString == null) {
+            console.log('Message does not have a comma!');
+            messageReceived.author.send(
+                "Hi, unfortunately '" +
+                    argumentString +
+                    "' needs to have a comma so that the reaction can be identified!"
+            );
+            if (messageReceived.guild != null) messageReceived.delete();
+            return;
+        }
+
+        let hashtable = {};
+        for (let i = 0, len = reactString.length; i < len; i++) {
+            if (hashtable[reactString[i]] != null) {
+                hashtable[reactString[i]] = 1;
+                // seen another value of the same
+                console.log(reactString + ' has two of the same values within it!');
+                messageReceived.author.send(
+                    "Hi, unfortunately '" +
+                        reactString +
+                        "' has at least two of the same letters, and so cannot be made out of emojis!"
+                );
+                if (messageReceived.guild != null) messageReceived.delete();
+                return;
+            } else {
+                hashtable[reactString[i]] = 0;
+            }
+        }
+
+        let regionalEmojis = [
+            '🇦',
+            '🇧',
+            '🇨',
+            '🇩',
+            '🇪',
+            '🇫',
+            '🇬',
+            '🇭',
+            '🇮',
+            '🇯',
+            '🇰',
+            '🇱',
+            '🇲',
+            '🇳',
+            '🇴',
+            '🇵',
+            '🇶',
+            '🇷',
+            '🇸',
+            '🇹',
+            '🇺',
+            '🇻',
+            '🇼',
+            '🇽',
+            '🇾',
+            '🇿',
+        ];
+
+        messageReceived.channel.messages.fetch(matchReact[matchReact.length - 1]).then(async (reactMessage) => {
+            await reactMessage.reactions.removeAll();
+            for (let i = 0, len = reactString.length; i < len; i++) {
+                let value = reactString.toLowerCase().charCodeAt(i) - 97;
+                if (value < 0 || value > 26) continue;
+                reactMessage.react(regionalEmojis[value]);
+            }
+        });
+    }
+
+    if (messageReceived.guild != null) messageReceived.delete();
+};
+
+exports.RLStats = async function RLStats(messageReceived, args) {
+    let today = new Date();
+
+    let todayISO = today.toISOString().substring(0, 10);
+
+    let steamId = metaData.accesses.get(messageReceived.author.id).steamId;
+    if (args) steamId = args[0];
+    let playlist;
+    console.log(args[1]);
+    switch (args[1]) {
+        case 'solos':
+            playlist = 10;
+            break;
+        case 'duos':
+            playlist = 11;
+            break;
+        case 'threes':
+            playlist = 13;
+            break;
+        default:
+            console.log('running default');
+            playlist = 13;
+            break;
+    }
+
+    if (steamId == null) {
+        messageReceived.author.send(
+            'Either you have not given a user, or there is none on record for you, head to ' +
+                metaData.auth.root +
+                '/steamAuthenticate to fix that!'
+        );
+    } else {
+        let ballchasingResponseRaw = await fetch(
+            'https://ballchasing.com/?' +
+                'title=' +
+                '&player-name=Steam%3A' +
+                steamId +
+                '&season=' +
+                '&min-rank=' +
+                '&max-rank=' +
+                '&map=' +
+                '&replay-after=' +
+                todayISO +
+                '&replay-before=' +
+                todayISO +
+                '&upload-after=' +
+                '&upload-before=' +
+                '&playlist=' +
+                playlist,
+            {
+                method: 'GET',
+                mode: 'cors',
+            }
+        );
+
+        // Need to figure out how to get the user id used in the tracker
+        let rlTrackerUserInfo = await fetch(
+            'https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/' + steamId
+        );
+        let rlTrackerUserInfoJSON = await rlTrackerUserInfo.json();
+        let RLTrackerUserId = rlTrackerUserInfoJSON.data.metadata.playerId;
+
+        //https://steamcommunity.com/profiles/76561198991615060/home
+        // then user the user id for the stats and to find the mmr gained or lost
+        let userStatsResponse = await fetch(
+            'https://api.tracker.gg/api/v1/rocket-league/player-history/mmr/' + RLTrackerUserId
+        );
+        let userStatsResponseJSON = await userStatsResponse.json();
+        let playlistArray = userStatsResponseJSON.data[playlist];
+        let currentMMR = playlistArray[playlistArray.length - 1].rating;
+        let mmrDifference =
+            parseInt(playlistArray[playlistArray.length - 1].rating) -
+            parseInt(playlistArray[playlistArray.length - 2].rating);
+
+        let ballchasingResponse = await ballchasingResponseRaw.text();
+        let $ = cheerio.load(ballchasingResponse);
+
+        let stats = {
+            wins: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            secondsPlayed: 0,
+            overtimePlayed: 0,
+        };
+
+        if ($('.creplays > li').length > 0) {
+            $('.creplays > li').each((index, replay) => {
+                // Scores read
+                let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
+                let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
+
+                // Minutes played read
+                let [minutes, seconds] = cheerio(replay)
+                    .find('.main > .extra-info > [title="Duration"]')
+                    .text()
+                    .split(':');
+                stats.secondsPlayed += parseInt(minutes) * 60 + parseInt(seconds);
+
+                // Overtime read (if exists)
+                if (cheerio(replay).find('.main > .extra-info > [title="Overtime"]').length != 0) {
+                    let [totalOvertime, ...ignore] = cheerio(replay)
+                        .find('.main > .extra-info > [title="Overtime"]')
+                        .text()
+                        .split(' ');
+                    let [overtimeMintes, overtimeSeconds] = totalOvertime.split(':');
+                    stats.overtimePlayed += parseInt(overtimeMintes) * 60 + parseInt(overtimeSeconds);
+                }
+
+                // Win or loss recording and scores based on win or loss
+                if (/Win -/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
+                    stats.wins++;
+                    stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
+                    stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
+                } else {
+                    stats.losses++;
+                    stats.goalsFor += blueScore > orangeScore ? orangeScore : blueScore;
+                    stats.goalsAgainst += blueScore > orangeScore ? blueScore : orangeScore;
+                }
+
+                // Average game rank (find for the latest game)
+                if (!stats.rank) {
+                    let [rank, ...throwaways] = cheerio(replay)
+                        .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
+                        .attribs.title.split('(');
+                    let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0].attribs
+                        .src;
+                    stats.rank = rank + ' (Average rank)';
+                    stats.rank_img = 'https://ballchasing.com' + rankImg;
+
+                    // User query rank
+                    stats.userRank = cheerio(replay).find(
+                        '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
+                    )[0].attribs.title;
+
+                    stats.userRank_img =
+                        'https://ballchasing.com' +
+                        cheerio(replay).find(
+                            '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
+                        )[0].attribs.src;
+
+                    stats.userName = /([\w\d]+)/g.exec(
+                        cheerio(replay)
+                            .find('.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"]')
+                            .text()
+                    )[1];
+                }
+            });
+
+            let discordEmbed = new Discord.MessageEmbed();
+            discordEmbed
+                .setTitle('Rocket league stats for ' + todayISO)
+                .setAuthor(stats.rank, stats.rank_img)
+                .addField('Wins', stats.wins, true)
+                .addField('Losses', stats.losses, true)
+                .addField('MMR Change Today', mmrDifference > 0 ? '+' + mmrDifference : mmrDifference, true)
+                .addField('Goals For', stats.goalsFor, true)
+                .addField('Goals Against', stats.goalsAgainst, true)
+                .addField(
+                    'Total Time Played',
+                    Math.floor(stats.secondsPlayed / 60).toString() +
+                        ':' +
+                        (stats.secondsPlayed - 60 * Math.floor(stats.secondsPlayed / 60)).toString(),
+                    true
+                )
+                .setFooter(stats.userName + ' is at ' + currentMMR + ' MMR: ' + stats.userRank, stats.userRank_img);
+
+            if (stats.overtimePlayed != 0) {
+                discordEmbed.addField(
+                    'Time in OT',
+                    Math.floor(stats.overtimePlayed / 60).toString() +
+                        ':' +
+                        (stats.overtimePlayed - 60 * Math.floor(stats.overtimePlayed / 60)).toString(),
+                    true
+                );
+            }
+
+            messageReceived.channel.send(discordEmbed);
+        } else {
+            messageReceived.channel.send('You have not played any RL games today to show stats for!');
+        }
+    }
+
+    messageReceived.delete();
 };

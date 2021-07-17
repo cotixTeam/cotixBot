@@ -127,16 +127,16 @@ bot.on('message', async (messageReceived) => {
                     general.toxicId(messageReceived, args);
                     break;
 
-                case 'quoteMessage':
-                    general.quoteMessage(messageReceived, argumentString);
+                case 'quote':
+                    general.quote(messageReceived, argumentString);
                     break;
 
                 case 'quoteId':
                     general.quoteId(messageReceived, args);
                     break;
 
-                case 'quote':
-                    general.quote(messageReceived, args);
+                case 'quoteText':
+                    general.quoteText(messageReceived, args);
                     break;
 
                 case 'camel':
@@ -153,6 +153,14 @@ bot.on('message', async (messageReceived) => {
 
                 case 'bulkDelete':
                     general.bulkDelete(messageReceived, args);
+                    break;
+
+                case 'react':
+                    general.react(messageReceived, argumentString);
+                    break;
+
+                case 'RLStats':
+                    general.RLStats(messageReceived, args);
                     break;
 
                 default:
@@ -297,7 +305,7 @@ bot.on('message', async (messageReceived) => {
                 general.insultResponse(messageReceived);
             }
 
-            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\btrooper\b/];
+            let starWarsRegex = [/\bfourth\b/, /\bforce\b/, /\bstar\b/, /\bwars\b/, /\bstorm\b/, /\btrooper\b/];
 
             if (starWarsRegex.some((regex) => regex.test(messageReceived.content))) {
                 // checks if any starWarsString is in messageReceived.content

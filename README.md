@@ -18,7 +18,7 @@ This is a discord bot that uses "[`discord.js`](https://discord.js.org/#/)" for 
 
 The repository is setup to work with an [AWS EB](https://aws.amazon.com/elasticbeanstalk/) server, but the easiest way to run is through a local server (running on your local laptop).
 
-To use the code, you will need to find your bot authentication token from the [discord developper dashboard](https://discordapp.com/developers/applications/). Find your bot and take the authentication token and place it in a file `./local/auth.json` formatted as follows:
+To use the code, you will need to find your bot authentication token from the [discord developper dashboard](https://discord.com/developers/applications/). Find your bot and take the authentication token and place it in a file `./local/auth.json` formatted as follows:
 
 ```json
 {

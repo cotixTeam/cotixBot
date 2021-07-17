@@ -5,7 +5,9 @@ const should = chai.should();
 
 const general = require('../bot/general.js');
 const metaData = require('../bot.js');
-const { messageReceived } = require('./helperMessage.js');
+const { messageReceivedGenerator } = require('./helperMessage.js');
+
+var messageReceived = new messageReceivedGenerator();
 
 var infoo = console.info;
 
@@ -641,7 +643,8 @@ describe('general.js suite', function () {
         });
     });
 
-    describe('#quoteMessage(messageReceived, argumentString)', () => {
+    // Deprecated function test
+    /* describe('#quoteMessage(messageReceived, argumentString)', () => {
         it('Check .fetch invoked', () => {
             messageReceived.channel.messages.array = [];
 
@@ -653,7 +656,7 @@ describe('general.js suite', function () {
 
             messageReceived.channel.messages.array = [];
         });
-    });
+    }); */
 
     describe('#toxicId(messageReceived, args)', () => {
         it('Check for .delete invoked', async () => {

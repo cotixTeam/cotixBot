@@ -43,7 +43,7 @@ module.exports = {
         },
         {
             channel: 'All',
-            name: '!quoteMessage',
+            name: '!quote',
             arguments: '[Unique string the the message]',
             description:
                 'Formats the message to the quotes page with the time and date appended (if within the last 20 messages).',
@@ -56,7 +56,7 @@ module.exports = {
         },
         {
             channel: 'All',
-            name: '!quote',
+            name: '!quoteText',
             arguments: '[@User] [The quote to format]',
             description: 'Quotes the message of the tagged user with the current date and time.',
         },
@@ -65,6 +65,12 @@ module.exports = {
             name: '!camel',
             arguments: '[String to be formatted]',
             description: 'Replaces the message with a cAmEl FoRmAtTeD one from the bot.',
+        },
+        {
+            channel: 'All',
+            name: '!react',
+            arguments: '[String to search for], [String with unique letters to react with]',
+            description: 'Reacts to the message you have searched for with the string (if it has unique letters).',
         },
         {
             channel: 'All',

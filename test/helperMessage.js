@@ -1,12 +1,12 @@
-exports.messageReceived = {
-    content: 'default content',
-    guild: '705758469780799498',
-    pinned: false,
-    deleted: false,
-    reacted: false,
-    createdAt: new Date(),
-    id: '001',
-    channel: {
+exports.messageReceivedGenerator = function () {
+    this.content = 'default content';
+    this.guild = '705758469780799498';
+    this.pinned = false;
+    this.deleted = false;
+    this.reacted = false;
+    this.createdAt = new Date();
+    this.id = '001';
+    this.channel = {
         id: '705758469780799501',
         messages: {
             array: [],
@@ -48,17 +48,22 @@ exports.messageReceived = {
         },
         send: function (string) {
             this.receivedMessage = string;
+            this.pinned = false;
+            this.pin = function () {
+                this.pinned = true;
+            };
+            console.log(this);
             return new Promise(function (resolve, reject) {
                 resolve(this);
             });
         },
-    },
-    member: {
+    };
+    this.member = {
         roles: {
             cache: new Map(),
         },
-    },
-    author: {
+    };
+    this.author = {
         username: 'MMRREE',
         id: '161848310578151424',
         send: function (string) {
@@ -67,17 +72,20 @@ exports.messageReceived = {
                 resolve(this);
             });
         },
-    },
-    delete: function () {
+    };
+    this.delete = function () {
         this.deleted = true;
         return new Promise(function (resolve, reject) {
             resolve(this);
         });
-    },
-    reply: function (string) {
+    };
+    this.reply = function (string) {
         this.receivedMessage = '<@!' + this.author.id + '>, ' + string;
         return new Promise(function (resolve, reject) {
             resolve(this);
         });
-    },
+    };
+    this.pin = function () {
+        this.pinned = true;
+    };
 };
