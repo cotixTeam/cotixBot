@@ -203,7 +203,6 @@ exports.init = function () {
     webhook.use(bodyParser.json());
 
     webhook.get('/', (req, res) => {
-        console.info('Landing page (/) accessed! [Likely by Health]');
         res.send("Thanks for checking I'm alive!");
     });
 
