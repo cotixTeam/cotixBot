@@ -572,7 +572,7 @@ function statFieldsGenerator(userId) {
                         var milliseconds = parseInt((duration % 1000) / 100),
                             seconds = Math.floor((duration / 1000) % 60),
                             minutes = Math.floor((duration / (1000 * 60)) % 60),
-                            hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+                            hours = Math.floor(duration / (1000 * 60 * 60));
 
                         seconds = seconds < 10 && (minutes > 0 || hours > 0) ? '0' + seconds : seconds;
                         minutes = minutes < 10 && hours > 0 ? '0' + minutes : minutes;
