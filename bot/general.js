@@ -398,6 +398,8 @@ async function ajax(body, lastMessageNumber, posts) {
  */
 
 exports.updateVoiceStats = async function updateVoiceStats(oldState, newState) {
+    console.log(newState);
+    console.log(oldState);
     if (newState.channelID != oldState.channelID) {
         if (!metaData.userStatsMap.has(newState.id)) metaData.userStatsMap.set(newState.id, new Map());
 
@@ -475,10 +477,28 @@ exports.toggleModerator = function toggleModerator(messageReceived) {
 
 /** Resets the statistics of the invoking user.
  * @param {Discord.Message} messageReceived The message this command was sent on, used to identify the sender.
+ * @param {String[]} args The name or id of the channel to delete the stats from for the user.
  */
 
-exports.resetStats = function resetStats(messageReceived) {
-    metaData.userStatsMap.delete(messageReceived.author.id);
+exports.resetStats = function resetStats(messageReceived, args) {
+    let channelQuery = args[0];
+    if (channelQuery == null) metaData.userStatsMap.delete(messageReceived.author.id);
+    else {
+        metaData.bot.channels.cache.forEach((serverChannel) => {
+            let channelQueryRegex = RegExp('<#([0-9]+)>', 'g');
+            let channelQueryId = channelQueryRegex.exec(channelQuery)[1];
+
+            if (channelQuery == serverChannel.name || channelQueryId == serverChannel.id) {
+                console.log(serverChannel.id);
+                console.log('old');
+                console.log(metaData.userStatsMap.get(messageReceived.author.id));
+                metaData.userStatsMap.get(messageReceived.author.id).delete(serverChannel.id);
+                console.log('after deletion');
+                console.log(metaData.userStatsMap.get(messageReceived.author.id));
+            }
+        });
+    }
+
     messageReceived.delete();
 };
 

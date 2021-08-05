@@ -20,7 +20,9 @@ module.exports = {
         {
             channel: 'All',
             name: '!resetStats',
-            description: 'Removes all the statistics for your account (Server time, messages sent, toxic count, etc).',
+            arguments: '[null] | [Channel Id] | [Channel Name]',
+            description:
+                'Removes all the statistics for your account (or relating to the channel) (Server time, messages sent, toxic count, etc).',
         },
         {
             channel: 'All',

@@ -26,6 +26,9 @@
         "yt-search": "^2.1.1",
         "ytdl-core": "^2.1.7"
     },
+    "engines": {
+        "node": ">=10 <11"
+    },
     "scripts": {
         "start": "node bot.js",
         "test": "mocha --recursive --exit || true"

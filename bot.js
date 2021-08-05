@@ -112,7 +112,7 @@ bot.on('message', async (messageReceived) => {
                     break;
 
                 case 'resetStats':
-                    general.resetStats(messageReceived);
+                    general.resetStats(messageReceived, args);
                     break;
 
                 case 'stats':
