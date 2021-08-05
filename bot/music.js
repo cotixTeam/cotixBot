@@ -423,8 +423,12 @@ exports.addByURL = function addByURL(messageReceived, args) {
                     image: 'https://i.ytimg.com/vi/' + data.video_id + '/default.jpg',
                 });
                 updateList();
+            } else {
+                console.info(err);
             }
         });
+    } else {
+        console.info('Not a valid url');
     }
     messageReceived.delete();
 };
