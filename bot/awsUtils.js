@@ -1,12 +1,12 @@
+const AWS = require('aws-sdk');
+const FileSystem = require('fs');
+
 /** Saves a string into an s3 bucket.
  * @param {String} bucket The domain of the bucket to save the body into.
  * @param {String} key The key of the object (folder/file) to save the body into.
  * @param {String} body The data to write into the bucket.
  */
 exports.save = function save(bucket, key, body) {
-    const AWS = require('aws-sdk');
-    const FileSystem = require('fs');
-
     let s3 = new AWS.S3({
         apiVersion: '2006-03-01',
         region: 'eu-west-2',
@@ -40,9 +40,6 @@ exports.save = function save(bucket, key, body) {
  * @returns {String} The contents of the file.
  */
 exports.load = async function load(bucket, key) {
-    const AWS = require('aws-sdk');
-    const FileSystem = require('fs');
-
     let s3 = new AWS.S3({
         apiVersion: '2006-03-01',
         region: 'eu-west-2',
