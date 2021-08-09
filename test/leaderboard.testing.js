@@ -29,19 +29,21 @@ describe('leaderboard.js suite', function () {
             var checkMessage = new messageReceivedGenerator();
             console.log(checkMessage);
             checkMessage.content = 'test';
-            checkMessage.embed.title = 'test';
-            checkMessage.embed.description = 'This is a test!';
-            checkMessage.embed.fields = [];
+            checkMessage.embeds[0].title = 'test';
+            checkMessage.embeds[0].description = 'This is a test!';
+            checkMessage.embeds[0].fields = [];
             console.log(checkMessage);
             console.log(messageReceived.channel.receivedMessage);
 
             expect(messageReceived.channel.receivedMessage).to.equal({
                 content: 'test',
-                embed: {
-                    title: 'test',
-                    description: 'This is a test!',
-                    fields: [],
-                },
+                embeds: [
+                    {
+                        title: 'test',
+                        description: 'This is a test!',
+                        fields: [],
+                    },
+                ],
             });
 
             messageReceived.channel.receivedMessage = '';
