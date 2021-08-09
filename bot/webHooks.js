@@ -8,6 +8,10 @@ const openid = require('openid');
 const metaData = require('../bot.js');
 const awsUtils = require('../bot/awsUtils.js');
 
+/**
+ * @TODO Replace the rp with fetch requests
+ */
+
 /** Callback used for connecting a discord account and a spotify account.
  * @param {Object} req The request values used in accessing the page.
  * @param {Object} res The response values to be set before responding.
