@@ -1,6 +1,7 @@
 // Node / Default package requirements
 const Discord = require('discord.js');
 const FileSystem = require('fs');
+const AbortController = require('abort-controller');
 
 // Custom classes
 const awsUtils = require('./bot/awsUtils');
