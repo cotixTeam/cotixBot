@@ -137,7 +137,7 @@ async function updateCountStat(leaderboardChannel, stat, message) {
         } else return 0;
     });
 
-    message.embed.fields = statsSorted.map((user, index) => {
+    message.embeds[0].fields = statsSorted.map((user, index) => {
         let medal;
         if (index == 0) {
             medal = '🥇';
