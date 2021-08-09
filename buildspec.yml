@@ -12,6 +12,7 @@ artifacts:
     files:
         - "bot/**/*"
         - "bot.js"
+        - "commands/**/*"
         - "package.json"
         - "package-lock.json"
         - ".npmrc"
