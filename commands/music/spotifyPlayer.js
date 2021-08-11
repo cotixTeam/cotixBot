@@ -2,9 +2,12 @@ const {
     AudioPlayerStatus,
     AudioPlayer,
     createAudioPlayer,
+    joinVoiceChannel,
     entersState,
     VoiceConnectionDisconnectReason,
     VoiceConnectionStatus,
+    StreamType,
+    createAudioResource,
 } = require('@discordjs/voice');
 const { promisify } = require('util');
 const Track = require('./Track.js');
@@ -18,14 +21,16 @@ const wait = promisify(setTimeout);
 
 module.exports = class SpotifyPlayer {
     // By nature only runs once on init
-    constructor(metaData) {
-        this.build(metaData);
+    constructor(metaData, interaction) {
+        this.build(metaData, interaction);
     }
 
     /** Hacky way to handle not being have an async constructor.
      * @param {object} metaData The metadata of the bot
      */
-    async build(metaData) {
+    async build(metaData, interaction) {
+        this.metaData = metaData;
+
         this.voiceConnection;
         this.audioPlayer = createAudioPlayer();
         this.queue = [];
@@ -36,32 +41,48 @@ module.exports = class SpotifyPlayer {
         this.initialised = true;
         this.musicChannel;
         this.qMessage;
-        this.metaData = metaData;
 
-        let musicChannelLocal = metaData.channels.find((channel) => {
+        this.default_message = {
+            content: 'Player',
+            embeds: [
+                {
+                    title: 'Music Player',
+                    description: 'Showing the Queue...',
+                    footer: {
+                        text: 'The queue is 0 songs long!',
+                    },
+                    fields: [
+                        {
+                            name: 'There are no songs in the queue!',
+                            value: 'Add one by using /music',
+                        },
+                    ],
+                },
+            ],
+        };
+
+        let musicChannelLocal = this.metaData.channels.find((channel) => {
             if (channel.name == 'Music') return channel;
         });
 
-        this.musicChannel = await new Discord.Channel(metaData.bot, {
+        this.musicChannel = await new Discord.Channel(this.metaData.bot, {
             id: musicChannelLocal.id,
         }).fetch();
 
-        let mChan = this.musicChannel;
-
-        this.qMessage = await new Discord.Message(metaData.bot, {
+        this.qMessage = await new Discord.Message(this.metaData.bot, {
             id: musicChannelLocal.embedMessage,
-            channel_id: mChan.id,
+            channel_id: this.musicChannel.id,
         }).fetch();
 
-        await this.qMessage.edit(default_message);
+        await this.qMessage.edit(this.default_message);
 
         await this.qMessage.reactions.removeAll();
         await this.qMessage.react('◀️');
         await this.qMessage.react('⏯️');
         await this.qMessage.react('🇽');
         await this.qMessage.react('▶️');
-        await this.qMessage.react('🔉');
-        this.qMessage.react('🔊');
+        //await this.qMessage.react('🔉');
+        //this.qMessage.react('🔊');
 
         let backListener = this.qMessage.createReactionCollector({
             time: 0,
@@ -75,45 +96,136 @@ module.exports = class SpotifyPlayer {
         let skipListener = this.qMessage.createReactionCollector({
             time: 0,
         });
-        let decrVolListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
-
-        let incrVolListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
 
         backListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '◀️' && reaction.count == 2 && user.id != metaData.bot.id) backPressed();
+            if (reaction.emoji.name == '◀️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                this.backPressed();
         });
         playPauseListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '⏯️' && reaction.count == 2 && user.id != metaData.bot.id)
-                pausePlayPressed(user);
+            if (reaction.emoji.name == '⏯️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                this.pausePlayPressed(user);
         });
         stopListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '🇽' && reaction.count == 2 && user.id != metaData.bot.id) stopPressed();
+            if (reaction.emoji.name == '🇽' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                this.stopPressed();
         });
         skipListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '▶️' && reaction.count == 2 && user.id != metaData.bot.id) skipPressed();
-        });
-        decrVolListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '🔉' && reaction.count == 2 && user.id != metaData.bot.id) decrVolPressed();
-        });
-        incrVolListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '🔊' && reaction.count == 2 && user.id != metaData.bot.id) incrVolPressed();
+            if (reaction.emoji.name == '▶️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                this.skipPressed();
         });
 
         this.audioPlayer.on('stateChange', (oldState, newState) => {
+            console.log(this.audioPlayer);
             if (newState.status == AudioPlayerStatus.Idle && oldState.status != AudioPlayerStatus.Idle) {
-                this.processQueue();
-            } else if (newState.status === AudioPlayerStatus.Playing) {
+                console.log('Audio player going to next song!');
+                // Next song for debug is loop
+                let resource = createAudioResource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
+                    inputType: StreamType.Arbitrary,
+                });
+                console.log(resource);
+                this.audioPlayer.play(resource);
+                //this.processQueue();
+            } else if (newState.status == AudioPlayerStatus.Playing) {
+                console.log('Audio player playing!');
                 this.playing = true;
             } else {
+                console.log('Audio player paused!');
+                console.log(newState.status);
+                console.log(this.audioPlayer.state.resource);
+
                 this.playing = false;
+                if (newState.status == AudioPlayerStatus.Idle || newState.status == AudioPlayerStatus.Paused) {
+                    let resource = createAudioResource(
+                        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                        {
+                            inputType: StreamType.Arbitrary,
+                        }
+                    );
+                    console.log(resource);
+                    this.audioPlayer.play(resource);
+                }
             }
         });
 
         this.audioPlayer.on('error', (error) => console.error(error));
+
+        let resource = createAudioResource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
+            inputType: StreamType.Arbitrary,
+        });
+        console.log(resource);
+        this.audioPlayer.play(resource);
+        this.voiceConnection = joinVoiceChannel({
+            channelId: interaction.member.voice.channel.id,
+            guildId: interaction.member.voice.channel.guild.id,
+            adapterCreator: interaction.member.voice.channel.guild.voiceAdapterCreator,
+            selfDeaf: false,
+        });
+        this.voiceConnection.subscribe(this.audioPlayer);
+        //this.checkConnection(interaction.member);
+        // Used to debug the next commands to check
+
+        /*await this.addBySearch(interaction, 'traitor');
+        this.pausePlayPressed(interaction.member);*/
+    }
+
+    /** Checks to see if the bot is connected to the correct voice channel to play music
+     * @param {SpotifyPlayer} spotifyPlayer The spotifyPlayer to check is working.
+     * @param {Discord.User} user The user to check if the bot is in the same channel as.
+     */
+    checkConnection(user) {
+        // If not connected, try to connect
+        if (!this.voiceChannel) {
+            if (user.voice.channel) {
+                let channel = user.voice.channel;
+                this.join(
+                    joinVoiceChannel({
+                        channelId: channel.id,
+                        guildId: channel.guild.id,
+                        adapterCreator: channel.guild.voiceAdapterCreator,
+                        selfDeaf: false,
+                    })
+                );
+                this.voiceConnection.on('error', console.warn);
+            }
+        }
+        if (this.audioPlayer.subscribers.length == 0) this.voiceConnection.subscribe(this.audioPlayer);
+    }
+
+    /** Event handler for playing or pausing the music (based on the current state).
+     * @param {Discord.User} user The user whose channel to join.
+     * @param {SpotifyPlayer} spotifyPlayer The player object for the guild.
+     */
+    async pausePlayPressed(user) {
+        console.info('Music: Play/Pause!');
+
+        this.checkConnection(user);
+
+        /*if (this.playing) {
+            this.audioPlayer.pause();
+        } else {
+            this.audioPlayer.unpause();
+        }*/
+    }
+
+    /** Event handler for pressing the skip button.
+     */
+    async skipPressed() {
+        console.info('Music: Skip!');
+        if (this.voiceChannel) this.audioPlayer.stop();
+    }
+
+    /** Event handler for pressing the previous song.
+     */
+    backPressed() {
+        console.info('Music: Previous!');
+        let lastSong = spotifyPlayer.oldSongs.pop();
+        if (lastSong) {
+            console.info('-\tGoing back one song in the queue!');
+            spotifyPlayer.songs.push(lastSong);
+            spotifyPlayer.skipped = true;
+        } else {
+            console.info('-\tNo song in the old queue! Cannot go back!');
+        }
     }
 
     /** Adds a youtube url to the queue.
@@ -124,24 +236,23 @@ module.exports = class SpotifyPlayer {
         console.info('-\tAdding the youtube url to queue (if valid) [' + url + ']!');
 
         if (ytdl.validateURL(url)) {
-            ytdl.getInfo(url, (err, data) => {
-                if (!err) {
-                    console.info('-\t*\tAdding ' + data.title + ' to the queue! (From url ' + data.video_url + ')');
-                    spotifyPlayer.songs.unshift({
-                        id: data.video_id,
-                        title: data.title,
-                        image: 'https://i.ytimg.com/vi/' + data.video_id + '/default.jpg',
-                    });
-                    interaction.editReply({
-                        content: 'Added ' + r.videos[0].title + ' to the queue!',
-                        ephemeral: true,
-                    });
-                    this.updateList();
-                } else {
-                    interaction.editReply({ content: 'And error occured: ' + err.toString(), ephemeral: true });
-                    console.info(err);
-                }
-            });
+            let result = await ytdl.getInfo(url);
+            if (result) {
+                console.info('-\t*\tAdding ' + result.title + ' to the queue! (From url ' + result.video_url + ')');
+                spotifyPlayer.songs.unshift({
+                    id: result.video_id,
+                    title: result.title,
+                    img: 'https://i.ytimg.com/vi/' + result.video_id + '/default.jpg',
+                });
+                interaction.editReply({
+                    content: 'Added ' + result.title + ' to the queue!',
+                    ephemeral: true,
+                });
+                this.updateList();
+            } else {
+                interaction.editReply({ content: 'And error occured: ' + err.toString(), ephemeral: true });
+                console.info(err);
+            }
         } else {
             interaction.editReply({
                 content: 'Not a valid url  ' + argumentString + ', so nothing added!',
@@ -155,43 +266,38 @@ module.exports = class SpotifyPlayer {
      * @param {Discord.Interaction} interaction The message the command was sent in.
      * @param {String} argumentString The search term to query youtube for music.
      */
-    addBySearch(interaction, argumentString) {
+    async addBySearch(interaction, argumentString) {
         console.info('-\t*\tSearching for term on youtube (' + argumentString + ')!');
 
-        ytSearch(
-            {
-                query: argumentString,
-                pageStart: 1,
-                pageEnd: 1,
-                category: 'music',
-            },
-            (err, r) => {
-                if (!err && r.videos.length > 0) {
-                    console.info('-\t*\t\tAdding ' + r.videos[0].title + ' to the queue!');
-                    this.queue.push(
-                        new Track({
-                            id: r.videos[0].videoId,
-                            title: r.videos[0].title,
-                            image: 'https://i.ytimg.com/vi/' + r.videos[0].videoId + '/default.jpg',
-                        })
-                    );
-                    console.log(this.queue);
-                    interaction.editReply({
-                        content: 'Added ' + r.videos[0].title + ' to the queue!',
-                        ephemeral: true,
-                    });
-                    this.updateList();
-                } else {
-                    console.info(err);
-                    console.info(r);
-                    interaction.editReply({
-                        content: 'Could not find a song for  ' + argumentString + ', so nothing added!',
-                        ephemeral: true,
-                    });
-                    console.error('Could not find the query song (' + argumentString + ')!');
-                }
-            }
-        );
+        let result = await ytSearch({
+            query: argumentString,
+            pageStart: 1,
+            pageEnd: 1,
+            category: 'music',
+        });
+
+        if (result.videos.length > 0) {
+            console.info('-\t*\t\tAdding ' + result.videos[0].title + ' to the queue!');
+            this.queue.push(
+                new Track({
+                    id: result.videos[0].videoId,
+                    title: result.videos[0].title,
+                    img: 'https://i.ytimg.com/vi/' + result.videos[0].videoId + '/default.jpg',
+                })
+            );
+            console.log(this.queue);
+            interaction.editReply({
+                content: 'Added ' + result.videos[0].title + ' to the queue!',
+                ephemeral: true,
+            });
+            this.updateList();
+        } else {
+            interaction.editReply({
+                content: 'Could not find a song for  ' + argumentString + ', so nothing added!',
+                ephemeral: true,
+            });
+            console.error('Could not find the query song (' + argumentString + ')!');
+        }
     }
 
     /** Adds the spotify playlist whose name matches the argument string the closest. If no spotify account is associated with the discord account, asks the user to validate it.
@@ -260,7 +366,7 @@ module.exports = class SpotifyPlayer {
                                     spotifyPlayer.songs.unshift({
                                         id: r.videos[0].videoId,
                                         title: r.videos[0].title,
-                                        image: track.track.album.images[1].url,
+                                        img: track.track.album.images[1].url,
                                     });
                                 } else {
                                     console.info(err);
@@ -383,9 +489,9 @@ module.exports = class SpotifyPlayer {
     updateList() {
         console.info('-\tUpdating the music list!');
 
-        if (spotifyPlayer.songs.length == 0) {
+        if (this.queue.length == 0) {
             this.qMessage.edit(default_message);
-        } else if (spotifyPlayer.songs.length == 1) {
+        } else if (this.queue.length == 1) {
             this.qMessage.edit({
                 content: 'Player',
                 embeds: [
@@ -393,16 +499,16 @@ module.exports = class SpotifyPlayer {
                         title: 'Music Player',
                         description: 'Showing the Queue...',
                         footer: {
-                            text: 'The queue is ' + spotifyPlayer.songs.length + ' songs long!',
+                            text: 'The queue is ' + this.queue.length + ' songs long!',
                         },
                         fields: [
                             {
                                 name: 'Now Playing:',
-                                value: spotifyPlayer.songs[spotifyPlayer.songs.length - 1].title,
+                                value: this.queue[this.queue.length - 1].title,
                             },
                         ],
                         image: {
-                            url: spotifyPlayer.songs[spotifyPlayer.songs.length - 1].image,
+                            url: this.queue[this.queue.length - 1].img,
                         },
                     },
                 ],
@@ -411,8 +517,8 @@ module.exports = class SpotifyPlayer {
             let songLists = [];
             let workingString = '';
 
-            for (let song of spotifyPlayer.songs) {
-                if (song != spotifyPlayer.songs[spotifyPlayer.songs.length - 1]) {
+            for (let song of this.queue) {
+                if (song != this.queue[this.queue.length - 1]) {
                     if (workingString.length + song.title.length + 5 < 1024) {
                         workingString += '`- ' + song.title + '`\n';
                     } else {
@@ -434,7 +540,7 @@ module.exports = class SpotifyPlayer {
 
             songLists.push({
                 name: 'Now Playing:',
-                value: spotifyPlayer.songs[spotifyPlayer.songs.length - 1].title,
+                value: this.queue[this.queue.length - 1].title,
             });
 
             this.qMessage.edit({
@@ -444,11 +550,11 @@ module.exports = class SpotifyPlayer {
                         title: 'Music Player',
                         description: 'Showing the Queue...',
                         footer: {
-                            text: 'The queue is ' + spotifyPlayer.songs.length + ' songs long!',
+                            text: 'The queue is ' + this.queue.length + ' songs long!',
                         },
                         fields: songLists,
                         image: {
-                            url: spotifyPlayer.songs[spotifyPlayer.songs.length - 1].image,
+                            url: this.queue[this.queue.length - 1].img,
                         },
                     },
                 ],
@@ -493,9 +599,16 @@ module.exports = class SpotifyPlayer {
         });
     }
 
+    stop() {
+        this.queueLock = true;
+        this.queue = [];
+        this.audioPlayer.stop(true);
+    }
+
     join(voiceConnection) {
         this.initVoiceConnection(voiceConnection);
         this.voiceConnection.subscribe(this.audioPlayer);
+        this.processQueue();
     }
 
     addPlayableResourceToQueue(resource) {
@@ -503,7 +616,7 @@ module.exports = class SpotifyPlayer {
         this.processQueue();
     }
 
-    processQueue() {
+    async processQueue() {
         if (this.queueLock || this.audioPlayer.state.status != AudioPlayerStatus.Idle || this.queue.length === 0) {
             return;
         }
@@ -511,7 +624,10 @@ module.exports = class SpotifyPlayer {
 
         const nextTrack = this.queue.shift();
         try {
-            this.audioPlayer.play(nextTrack);
+            let resource = await nextTrack.createAudioResource();
+            console.log(resource);
+            this.audioPlayer.play(resource);
+            if (this.audioPlayer.subscribers.length < 1) this.voiceConnection.subscribe(this.audioPlayer);
             this.queueLock = false;
         } catch (error) {
             console.error(error);

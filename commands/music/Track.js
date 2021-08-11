@@ -1,4 +1,4 @@
-const { ytdl, getInfo } = require('ytdl-core');
+const ytdl = require('ytdl-core');
 const { createAudioResource, demuxProbe } = require('@discordjs/voice');
 
 module.exports = class Track {
@@ -17,38 +17,12 @@ module.exports = class Track {
      */
     createAudioResource() {
         return new Promise((resolve, reject) => {
-            let process = ytdl(
-                this.url,
-                {
-                    o: '-',
-                    test: 'new line',
-                    q: '',
-                    f: 'bestaudio[ext=webm+acodec=opus+asr=4800]/bestaudio',
-                    r: '100k',
-                },
-                {
-                    stdio: ['ignore', 'pipe', 'ignore'],
-                }
-            );
-
-            if (!process.stdout) {
-                reject(new Error('No stdout!'));
-                return;
-            }
-
-            let stream = process.stdout;
-            let onError = (error) => {
-                if (!process.killed) process.kill();
-                stream.resume();
-                reject(error);
-            };
-            process.once('spawn', () => {
-                demuxProbe(stream).then((probe) => {
-                    resolve(createAudioResource(probe.stream, { metadata: this, inputType: probe.type })).catch(
-                        onError
-                    );
-                });
+            let process = ytdl(this.id, {
+                quality: 'highestaudio',
+                filter: 'audioonly',
             });
+
+            resolve(createAudioResource(process, { metadata: this }));
         });
     }
 

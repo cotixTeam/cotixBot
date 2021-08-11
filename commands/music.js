@@ -9,97 +9,18 @@ const awsUtils = require('../bot/awsUtils.js');
  */
 var spotifyPlayerMap = new Map();
 
-/**
- * @var {object} default_message The default message used when restarting the client or clearing the queue.
- */
-var default_message = {
-    content: 'Player',
-    embeds: [
-        {
-            title: 'Music Player',
-            description: 'Showing the Queue...',
-            footer: {
-                text: 'The queue is 0 songs long!',
-            },
-            fields: [
-                {
-                    name: 'There are no songs in the queue!',
-                    value: 'Add one by using /music',
-                },
-            ],
-        },
-    ],
-};
-
-/** Event handler for pressing the previous song.
- */
-function backPressed() {
-    console.info('Music: Previous!');
-    let lastSong = spotifyPlayer.oldSongs.pop();
-    if (lastSong) {
-        console.info('-\tGoing back one song in the queue!');
-        spotifyPlayer.songs.push(lastSong);
-        spotifyPlayer.skipped = true;
-    } else {
-        console.info('-\tNo song in the old queue! Cannot go back!');
-    }
-}
-
 /** Checks the status of the spotifyPlayer, and if doesnt exists creates one
  * @param {SpotifyPlayer} spotifyPlayer The player to check.
  */
 
-function checkPlayer(spotifyPlayer, user) {
+function checkPlayer(spotifyPlayer, interaction) {
     // If no player object, create one and map it
     if (!spotifyPlayer) {
-        spotifyPlayer = new SpotifyPlayer(metaData);
-        spotifyPlayerMap.set(user.guild.id, spotifyPlayer);
+        spotifyPlayer = new SpotifyPlayer(metaData, interaction);
+        spotifyPlayerMap.set(interaction.member.guild.id, spotifyPlayer);
+        return true;
     }
-}
-
-/** Checks to see if the bot is connected to the correct voice channel to play music
- * @param {SpotifyPlayer} spotifyPlayer The spotifyPlayer to check is working.
- * @param {Discord.User} user The user to check if the bot is in the same channel as.
- */
-function checkConnection(spotifyPlayer, user) {
-    // If not connected, try to connect
-    if (!spotifyPlayer.voiceChannel) {
-        if (user.voice.channel) {
-            let channel = user.voice.channel;
-            spotifyPlayer.join(
-                joinVoiceChannel({
-                    channelId: channel.id,
-                    guildId: channel.guild.id,
-                    adapterCreator: channel.guild.voiceAdapterCreator,
-                })
-            );
-            spotifyPlayer.voiceConnection.on('error', console.warn);
-        }
-    }
-}
-
-/** Event handler for playing or pausing the music (based on the current state).
- * @param {Discord.User} user The user whose channel to join.
- * @param {SpotifyPlayer} spotifyPlayer The player object for the guild.
- */
-async function pausePlayPressed(user, spotifyPlayer) {
-    console.info('Music: Play/Pause!');
-
-    checkPlayer(spotifyPlayer, user);
-    checkConnection(spotifyPlayer, user);
-
-    if (spotifyPlayer.playing) {
-        spotifyPlayer.audioPlayer.pause();
-    } else {
-        spotifyPlayer.audioPlayer.unpause();
-    }
-}
-
-/** Event handler for pressing the skip button.
- */
-async function skipPressed(spotifyPlayer) {
-    console.info('Music: Skip!');
-    if (spotifyPlayer.voiceChannel) spotifyPlayer.audioPlayer.stop();
+    return false;
 }
 
 module.exports = {
@@ -113,40 +34,47 @@ module.exports = {
         let url = interaction.options.getString('url_string');
         let search = interaction.options.getString('search_string');
 
+        let playerCreated = checkPlayer(spotifyPlayer, interaction);
+        await interaction.deferReply();
+
         switch (sub_command) {
             case 'url':
-                interaction.deferReply();
-                checkPlayer(spotifyPlayer, interaction.member);
                 spotifyPlayer?.addByURL(interaction, url);
                 break;
             case 'search':
-                interaction.deferReply();
-                checkPlayer(spotifyPlayer, interaction.member);
                 spotifyPlayer?.addBySearch(interaction, search);
                 break;
             case 'spotify':
-                interaction.deferReply();
-                checkPlayer(spotifyPlayer, interaction.member);
                 spotifyPlayer?.addBySpotify(interaction, search);
                 break;
             case 'play_pause':
-                pausePlayPressed(interaction.member, spotifyPlayer);
-                interaction.reply({ content: 'Play/paused!', ephemeral: true });
+                spotifyPlayer?.pausePlayPressed(interaction.member);
+                interaction.editReply({ content: 'Play/paused!', ephemeral: true });
                 break;
             case 'skip':
-                skipPressed(spotifyPlayer);
-                interaction.reply({ content: 'Skipped!', ephemeral: true });
+                spotifyPlayer?.skipPressed();
+                interaction.editReply({ content: 'Skipped!', ephemeral: true });
                 break;
             case 'back':
-                backPressed(spotifyPlayer);
-                interaction.reply({ content: 'Went back a song!', ephemeral: true });
+                spotifyPlayer?.backPressed();
+                interaction.editReply({ content: 'Went back a song!', ephemeral: true });
                 break;
             case 'stop':
-                stopPressed(spotifyPlayer);
-                interaction.reply({ content: 'Stopped the playback!', ephemeral: true });
+                spotifyPlayer?.stopPressed();
+                interaction.editReply({ content: 'Stopped the playback!', ephemeral: true });
+                break;
+            case 'test':
+                interaction.editReply('Testing with constructor!');
                 break;
             default:
-                interaction.reply('Not yet implemented!');
+                interaction.editReply('Not yet implemented!');
+        }
+
+        if (playerCreated) {
+            interaction.editReply({
+                content: 'Music Initialised!',
+                ephemeral: true,
+            });
         }
     },
     options: [
@@ -195,6 +123,11 @@ module.exports = {
                     ],
                 },
             ],
+        },
+        {
+            name: 'test',
+            description: 'tests.',
+            type: 'SUB_COMMAND',
         },
         {
             name: 'play_pause',

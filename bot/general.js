@@ -116,7 +116,7 @@ async function updateLeaderboards() {
 async function updateCountStat(leaderboardChannel, stat, message) {
     let stats = [];
 
-    await metaData.userStatsMap.forEach(async (user, key) => {
+    for (let [key, user] of metaData.userStatsMap) {
         let discordUser = await new Discord.User(metaData.bot, {
             id: key,
         }).fetch();
@@ -127,7 +127,7 @@ async function updateCountStat(leaderboardChannel, stat, message) {
                 count: user.get(stat + 'Count').count,
             });
         }
-    });
+    }
 
     let statsSorted = stats.sort((user1, user2) => {
         if (user1.count < user2.count) {

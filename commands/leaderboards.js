@@ -24,6 +24,8 @@ async function init() {
 
         let leaderboard = await awsUtils.load('store.mmrree.co.uk', 'config/Leaderboards.json');
         this.leaderboards = leaderboard;
+
+        console.log(this.leaderboards);
     }
 }
 
@@ -109,9 +111,8 @@ async function remPlayer(interaction, title, player) {
 /** Macro to update the leaderboard with the correct values for winners.
  * @param {Leaderboard} leaderboard The leaderboard object to update.
  * @param {Discord.Channel} channel The channel the leaderboards are held in.
- * @param {Object} self The exports object to hold the bot object.
  */
-async function updateLeaderboard(leaderboard, channel, self) {
+async function updateLeaderboard(leaderboard, channel) {
     let message = {
         content: leaderboard.name,
         embeds: [
@@ -162,6 +163,7 @@ async function updateLeaderboard(leaderboard, channel, self) {
     })
         .fetch()
         .then((leaderboardMessage) => {
+            console.log(leadboardMessage);
             leaderboardMessage.edit(message);
         });
 }
@@ -257,6 +259,10 @@ async function remLeaderboard(interaction, title) {
 
         awsUtils.save('store.mmrree.co.uk', 'config/Leaderboards.json', JSON.stringify(this.leaderboards));
         console.info(this.leaderboards);
+        interaction.reply({
+            content: 'Removed the ' + title + ' leaderboard!',
+            ephemeral: true,
+        });
     } else {
         console.info('Does not exists!');
         interaction.reply({
@@ -264,10 +270,6 @@ async function remLeaderboard(interaction, title) {
             ephemeral: true,
         });
     }
-    interaction.reply({
-        content: 'Removed the ' + title + ' leaderboard!',
-        ephemeral: true,
-    });
 }
 
 /** Clears the score of all the users on a leaderboard.
@@ -376,7 +378,6 @@ module.exports = {
     name: 'leaderboards',
     description: 'A commands suite for the leaderboards page.',
     async execute(interaction) {
-        console.log(interaction);
         let sub_command = interaction.options.getSubcommand();
         let sub_command_group = interaction.options.getSubcommandGroup();
 
