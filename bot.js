@@ -119,6 +119,7 @@ bot.on('message', async (messageReceived) => {
     }
 });
 
+// Comment to update backend structure
 /**When voice channel updates, use to update the stats.
  */
 bot.on('voiceStateUpdate', (oldState, newState) => {
