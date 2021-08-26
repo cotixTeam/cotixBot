@@ -9,7 +9,6 @@ const fileConversion = require('./fileConversion.js');
 /** Initialises the running of timed events (and runs them once).
  */
 exports.init = function init() {
-    updateLeaderboards();
     hourlyUpdate();
     dailyTimeouts();
 

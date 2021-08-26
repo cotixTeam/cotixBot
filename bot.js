@@ -6,6 +6,7 @@ const awsUtils = require('./bot/awsUtils');
 const fileConversion = require('./bot/fileConversion.js');
 const general = require('./bot/general.js');
 const webHooks = require('./bot/webHooks.js');
+const tiktok = require('./bot/tiktok_url.js');
 
 let channels;
 let auth;
@@ -116,6 +117,17 @@ bot.on('message', async (messageReceived) => {
             // checks if any starWarsString is in messageReceived.content
             general.starWarsResponse(messageReceived);
         }
+
+        // This is WIP, but since TIKTOK changed its signature stuff, no one has update to work
+
+        /*let tiktokRegex =
+            /((?:https:\/\/)(?:(?:www)|(?:vm))(?:\.tiktok\.com\/)(?:(?:@\w+)|(\w+))(?:(?:\/video\/\d+)|\/))/gi;
+        if (tiktokRegex.test(messageReceived.content)) {
+            console.log('tiktok url!');
+            tiktokRegex.test(messageReceived.content);
+            let result = tiktokRegex.exec(messageReceived.content);
+            tiktok(result);
+        }*/
     }
 });
 

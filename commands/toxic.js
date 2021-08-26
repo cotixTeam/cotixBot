@@ -48,12 +48,12 @@ exports.toxicId = function toxicId(messageReceived, id) {
             toxicMacro(toxicMessage);
             interaction.reply({
                 content: 'Marked the message "' + message.content + '" by ' + message.author.username + ' as toxic!',
-                ephemeral: true,
             });
             return;
         });
+    } else {
+        interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
     }
-    interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
 };
 
 /** Marks any message from the last 20 that match a query string as toxic.
@@ -63,6 +63,7 @@ exports.toxicId = function toxicId(messageReceived, id) {
 async function toxic(interaction, searchString) {
     console.info('-\tSearching for the message to mark as toxic (' + searchString + ')!');
     let toxicTest = new RegExp(searchString, 'gi');
+    let toxicFound = false;
     await interaction.channel.messages
         .fetch({
             limit: 20,
@@ -75,13 +76,13 @@ async function toxic(interaction, searchString) {
                     interaction.reply({
                         content:
                             'Marked the message "' + message.content + '" by ' + message.author.username + ' as toxic!',
-                        ephemeral: true,
                     });
+                    toxicFound = true;
                     return;
                 }
             });
         });
-    interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
+    if (!toxicFound) interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
 }
 
 module.exports = {
