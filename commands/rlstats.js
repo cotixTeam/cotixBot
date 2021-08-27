@@ -1,3 +1,4 @@
+const Discord = require('discord.js');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const metaData = require('../bot.js');
@@ -115,10 +116,10 @@ async function RLStats(interaction, user, playlist_name) {
         let userStatsResponseJSON = await userStatsResponse.json();
         console.log(userStatsResponseJSON);
         let playlistArray = userStatsResponseJSON.data[playlist];
-        let currentMMR = playlistArray[playlistArray.length - 1].rating;
-        let mmrDifference =
-            parseInt(playlistArray[playlistArray.length - 1].rating) -
-            parseInt(playlistArray[playlistArray.length - 2].rating);
+        let todaysStats = playlistArray[playlistArray.length - 1];
+        let currentMMR = todaysStats.rating;
+        let previousMMR = playlistArray[playlistArray.length - 2].rating;
+        let mmrDifference = parseInt(currentMMR) - parseInt(previousMMR);
 
         let ballchasingResponse = await ballchasingResponseRaw.text();
         let $ = cheerio.load(ballchasingResponse);
@@ -134,6 +135,7 @@ async function RLStats(interaction, user, playlist_name) {
 
         if ($('.creplays > li').length > 0) {
             $('.creplays > li').each((index, replay) => {
+                console.log(replay);
                 // Scores read
                 let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
                 let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
@@ -223,10 +225,21 @@ async function RLStats(interaction, user, playlist_name) {
                 );
             }
 
-            interaction.reply({ content: { embeds: [discordEmbed] } });
+            interaction.reply({ content: 'Your stats for today:', embeds: [discordEmbed] });
         } else {
+            let discordEmbed = new Discord.MessageEmbed();
+
+            let rankString = user.username + ' is at ' + currentMMR + ' MMR: ' + todaysStats.tier;
+            console.log(rankString);
+
+            discordEmbed
+                .setTitle('Rocket league stats for ' + todayISO)
+                .addField('Rank', rankString)
+                .addField('MMR Change Today', mmrDifference > 0 ? '+' + mmrDifference : mmrDifference, true);
+
             interaction.reply({
                 content: 'You have not played any RL games today to show stats for!',
+                embeds: [discordEmbed],
                 ephemeral: true,
             });
         }
