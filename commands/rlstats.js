@@ -8,9 +8,9 @@ const metaData = require('../bot.js');
  * @param {Discord.User} user The user to check.
  */
 async function RLStats(interaction, user, playlist_name) {
-    console.log(interaction);
-    console.log(user);
-    console.log(playlist_name);
+    //console.log(interaction);
+    //console.log(user);
+    //console.log(playlist_name);
 
     let today = new Date();
 
@@ -68,7 +68,7 @@ async function RLStats(interaction, user, playlist_name) {
             }
         );
 
-        console.log(steamId);
+        //console.log(steamId);
 
         // Need to figure out how to get the user id used in the tracker
         let rlTrackerUserInfo = await await fetch(
@@ -90,7 +90,7 @@ async function RLStats(interaction, user, playlist_name) {
             }
         );
         let rlTrackerUserInfoJSON = await rlTrackerUserInfo.json();
-        console.log(rlTrackerUserInfoJSON);
+        //console.log(rlTrackerUserInfoJSON);
         let RLTrackerUserId = rlTrackerUserInfoJSON.data.metadata.playerId;
 
         //https://steamcommunity.com/profiles/76561198991615060/home
@@ -114,7 +114,7 @@ async function RLStats(interaction, user, playlist_name) {
             }
         );
         let userStatsResponseJSON = await userStatsResponse.json();
-        console.log(userStatsResponseJSON);
+        //console.log(userStatsResponseJSON);
         let playlistArray = userStatsResponseJSON.data[playlist];
         let todaysStats = playlistArray[playlistArray.length - 1];
         let currentMMR = todaysStats.rating;
@@ -135,7 +135,7 @@ async function RLStats(interaction, user, playlist_name) {
 
         if ($('.creplays > li').length > 0) {
             $('.creplays > li').each((index, replay) => {
-                console.log(replay);
+                //console.log(replay);
                 // Scores read
                 let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
                 let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
@@ -230,7 +230,7 @@ async function RLStats(interaction, user, playlist_name) {
             let discordEmbed = new Discord.MessageEmbed();
 
             let rankString = user.username + ' is at ' + currentMMR + ' MMR: ' + todaysStats.tier;
-            console.log(rankString);
+            //console.log(rankString);
 
             discordEmbed
                 .setTitle('Rocket league stats for ' + todayISO)
