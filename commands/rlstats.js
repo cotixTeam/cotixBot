@@ -230,12 +230,16 @@ async function RLStats(interaction, user, playlist_name) {
             let discordEmbed = new Discord.MessageEmbed();
 
             let rankString = user.username + ' is at ' + currentMMR + ' MMR: ' + todaysStats.tier;
-            //console.log(rankString);
 
-            discordEmbed
-                .setTitle('Rocket league stats for ' + todayISO)
-                .addField('Rank', rankString)
-                .addField('MMR Change Today', mmrDifference > 0 ? '+' + mmrDifference : mmrDifference, true);
+            discordEmbed.setTitle('Rocket league stats for ' + todayISO).addField('Rank', rankString);
+
+            if (mmrDifference != 0) {
+                discordEmbed.addField(
+                    'MMR Change Today',
+                    mmrDifference > 0 ? '+' + mmrDifference : mmrDifference,
+                    true
+                );
+            }
 
             interaction.reply({
                 content: 'You have not played any RL games today to show stats for!',
