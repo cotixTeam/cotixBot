@@ -6,7 +6,7 @@ const awsUtils = require('./bot/awsUtils');
 const fileConversion = require('./bot/fileConversion.js');
 const general = require('./bot/general.js');
 const webHooks = require('./bot/webHooks.js');
-const tiktok = require('./bot/tiktok_url.js');
+//const tiktok = require('./bot/tiktok_url.js');
 
 let channels;
 let auth;
