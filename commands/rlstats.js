@@ -201,11 +201,19 @@ async function RLStats(interaction, user, playlist_name) {
             discordEmbed
                 .setTitle('Rocket league stats for ' + todayISO)
                 .setAuthor(stats.rank, stats.rank_img)
-                .addField('Wins', stats.wins, true)
-                .addField('Losses', stats.losses, true)
-                .addField('MMR Change Today', mmrDifference > 0 ? '+' + mmrDifference : mmrDifference, true)
-                .addField('Goals For', stats.goalsFor, true)
-                .addField('Goals Against', stats.goalsAgainst, true)
+                .addField('Wins', stats.wins.toString(), true)
+                .addField('Losses', stats.losses.toString(), true);
+            if (mmrDifference != 0) {
+                discordEmbed.addField(
+                    'MMR Change Today',
+                    mmrDifference > 0 ? '+' + mmrDifference.toString() : mmrDifference.toString(),
+                    true
+                );
+            }
+
+            discordEmbed
+                .addField('Goals For', stats.goalsFor.toString(), true)
+                .addField('Goals Against', stats.goalsAgainst.toString(), true)
                 .addField(
                     'Total Time Played',
                     Math.floor(stats.secondsPlayed / 60).toString() +
@@ -236,7 +244,7 @@ async function RLStats(interaction, user, playlist_name) {
             if (mmrDifference != 0) {
                 discordEmbed.addField(
                     'MMR Change Today',
-                    mmrDifference > 0 ? '+' + mmrDifference : mmrDifference,
+                    mmrDifference > 0 ? '+' + mmrDifference.toString() : mmrDifference.toString(),
                     true
                 );
             }
