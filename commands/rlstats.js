@@ -158,7 +158,7 @@ async function RLStats(interaction, user, playlist_name) {
                 }
 
                 // Win or loss recording and scores based on win or loss
-                if (/Win -/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
+                if (/Win/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
                     stats.wins++;
                     stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
                     stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
