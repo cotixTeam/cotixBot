@@ -37,11 +37,14 @@ async function RLStats(interaction, user, playlist_name) {
     }
 
     if (steamId == null) {
-        interaction.reply({
+        user.send({
             content:
                 'The user you have given does not have a steam linked, head to ' +
                 metaData.auth.root +
                 '/steamAuthenticate to fix that!',
+        });
+        interaction.reply({
+            content: 'The user queried has to link their steam account to do this!',
             ephemeral: true,
         });
     } else {
