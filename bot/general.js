@@ -1,6 +1,5 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
-const cheerio = require('cheerio');
 
 const metaData = require('../bot.js');
 const awsUtils = require('../bot/awsUtils.js');

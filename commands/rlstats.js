@@ -18,21 +18,26 @@ async function RLStats(interaction, user, playlist_name) {
 
     let steamId = metaData.accesses.get(user.id).steamId;
 
-    let playlist;
+    let playlistId;
+    let playlistName;
 
     switch (playlist_name) {
         case 'ones':
-            playlist = 10;
+            playlistId = 10;
+            playlistName = 'ranked-duels';
             break;
         case 'twos':
-            playlist = 11;
+            playlistId = 11;
+            playlistName = 'ranked-doubles';
             break;
         case 'threes':
-            playlist = 13;
+            playlistId = 13;
+            playlistName = 'ranked-standard';
             break;
         default:
             console.log('running default');
-            playlist = 13;
+            playlistId = 13;
+            playlistName = 'ranked-standard';
             break;
     }
 
@@ -64,17 +69,15 @@ async function RLStats(interaction, user, playlist_name) {
                 '&upload-after=' +
                 '&upload-before=' +
                 '&playlist=' +
-                playlist,
+                playlistId,
             {
                 method: 'GET',
                 mode: 'cors',
             }
         );
 
-        //console.log(steamId);
-
         // Need to figure out how to get the user id used in the tracker
-        let rlTrackerUserInfo = await await fetch(
+        let rlTrackerUserInfo = await fetch(
             'https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/' + steamId + '?',
             {
                 credentials: 'include',
@@ -93,10 +96,8 @@ async function RLStats(interaction, user, playlist_name) {
             }
         );
         let rlTrackerUserInfoJSON = await rlTrackerUserInfo.json();
-        //console.log(rlTrackerUserInfoJSON);
         let RLTrackerUserId = rlTrackerUserInfoJSON.data.metadata.playerId;
 
-        //https://steamcommunity.com/profiles/76561198991615060/home
         // then user the user id for the stats and to find the mmr gained or lost
         let userStatsResponse = await fetch(
             'https://api.tracker.gg/api/v1/rocket-league/player-history/mmr/' + RLTrackerUserId,
@@ -117,8 +118,8 @@ async function RLStats(interaction, user, playlist_name) {
             }
         );
         let userStatsResponseJSON = await userStatsResponse.json();
-        //console.log(userStatsResponseJSON);
-        let playlistArray = userStatsResponseJSON.data[playlist];
+
+        let playlistArray = userStatsResponseJSON.data[playlistId];
         let todaysStats = playlistArray[playlistArray.length - 1];
         let currentMMR = todaysStats.rating;
         let previousMMR = playlistArray[playlistArray.length - 2].rating;
@@ -138,7 +139,6 @@ async function RLStats(interaction, user, playlist_name) {
 
         if ($('.creplays > li').length > 0) {
             $('.creplays > li').each((index, replay) => {
-                //console.log(replay);
                 // Scores read
                 let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
                 let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
@@ -175,22 +175,22 @@ async function RLStats(interaction, user, playlist_name) {
                 if (!stats.rank) {
                     let [rank, ...throwaways] = cheerio(replay)
                         .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
-                        .attribs.title.split('(');
-                    let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0].attribs
-                        .src;
+                        ?.attribs.title.split('(');
+                    let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
+                        ?.attribs.src;
                     stats.rank = rank + ' (Average rank)';
                     stats.rank_img = 'https://ballchasing.com' + rankImg;
 
                     // User query rank
                     stats.userRank = cheerio(replay).find(
                         '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
-                    )[0].attribs.title;
+                    )[0]?.attribs.title;
 
                     stats.userRank_img =
                         'https://ballchasing.com' +
                         cheerio(replay).find(
                             '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
-                        )[0].attribs.src;
+                        )[0]?.attribs.src;
 
                     stats.userName = /([\w\d]+)/g.exec(
                         cheerio(replay)
