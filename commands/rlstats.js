@@ -2,19 +2,26 @@ const Discord = require('discord.js');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const metaData = require('../bot.js');
+const e = require('express');
 
 /** Checks how well the user has done, and then shows that in the channel.
  * @param {Discord.Interaction} interaction The discord interaction the command was sent with.
  * @param {Discord.User} user The user to check.
  */
-async function RLStats(interaction, user, playlist_name) {
-    //console.log(interaction);
-    //console.log(user);
-    //console.log(playlist_name);
-
+async function RLStats(interaction, user, playlist_name, username) {
     let today = new Date();
+    today.setUTCHours(23, 59, 59, 999);
 
-    let todayISO = today.toISOString().substring(0, 10);
+    let yesterday = new Date();
+    yesterday.setUTCHours(0, 0, 0, 0);
+    yesterday.setUTCDate(1); // FOR DEBUG <------------------- MAKE SURE YOU DELETE THIS PLEASE
+    let yesterdayISO = yesterday.toISOString();
+    console.log(yesterdayISO);
+    let yesterdayISOWeb = yesterdayISO.substring(0, 10);
+
+    let todayISO = today.toISOString();
+    console.log(todayISO);
+    let todayISOWeb = todayISO.substring(0, 10);
 
     let steamId = metaData.accesses.get(user.id).steamId;
 
@@ -22,7 +29,7 @@ async function RLStats(interaction, user, playlist_name) {
     let playlistName;
 
     switch (playlist_name) {
-        case 'ones':
+        case 'solos':
             playlistId = 10;
             playlistName = 'ranked-duels';
             break;
@@ -53,30 +60,11 @@ async function RLStats(interaction, user, playlist_name) {
             ephemeral: true,
         });
     } else {
-        let ballchasingResponseRaw = await fetch(
-            'https://ballchasing.com/?' +
-                'title=' +
-                '&player-name=Steam%3A' +
-                steamId +
-                '&season=' +
-                '&min-rank=' +
-                '&max-rank=' +
-                '&map=' +
-                '&replay-after=' +
-                todayISO +
-                '&replay-before=' +
-                todayISO +
-                '&upload-after=' +
-                '&upload-before=' +
-                '&playlist=' +
-                playlistId,
-            {
-                method: 'GET',
-                mode: 'cors',
-            }
-        );
+        interaction.deferReply();
 
-        // Need to figure out how to get the user id used in the tracker
+        /**
+         * Start of MMR Difference
+         */
         let rlTrackerUserInfo = await fetch(
             'https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/' + steamId + '?',
             {
@@ -125,124 +113,59 @@ async function RLStats(interaction, user, playlist_name) {
         let previousMMR = playlistArray[playlistArray.length - 2].rating;
         let mmrDifference = parseInt(currentMMR) - parseInt(previousMMR);
 
-        let ballchasingResponse = await ballchasingResponseRaw.text();
-        let $ = cheerio.load(ballchasingResponse);
+        /**
+         * End of MMR Difference
+         */
+
+        /**
+         * Start of Replay Analysis
+         */
+
+        let uri =
+            '&replay-date-after=' + yesterdayISO + '&replay-date-before=' + todayISO + '&playlist=' + playlistName;
+
+        if (username) uri += '&player-name="' + username + '"';
+        else uri += '&player-id=Steam%3A' + steamId;
+
+        let ballchasingAPIResponseRaw = await fetch('https://ballchasing.com/api/replays/?' + uri, {
+            headers: {
+                Authorization: 'ZZrm3Av50XYFihxOW8t24pMeDRgHopHfwJJovVRF',
+            },
+        });
+        let ballchasingAPIResponse = await ballchasingAPIResponseRaw.json();
 
         let stats = {
+            userName: null,
             wins: 0,
             losses: 0,
+            assists: 0,
+            saves: 0,
+            points: 0,
+            mvps: 0,
+            shots: 0,
+            averageFullBoost: 0,
+            averageZeroBoost: 0,
+            shootingPercent: 0,
             goalsFor: 0,
             goalsAgainst: 0,
+            goalsForTeam: 0,
+            goalsAgainstTeam: 0,
             secondsPlayed: 0,
             overtimePlayed: 0,
+            rank: null,
+            rank_img: null,
+            userRank: null,
+            userRank_img: null,
         };
 
-        if ($('.creplays > li').length > 0) {
-            $('.creplays > li').each((index, replay) => {
-                // Scores read
-                let blueScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .blue').text())[1]);
-                let orangeScore = parseInt(/([\d]+)/g.exec(cheerio(replay).find('.score > .orange').text())[1]);
+        console.log(ballchasingAPIResponse);
 
-                // Minutes played read
-                let [minutes, seconds] = cheerio(replay)
-                    .find('.main > .extra-info > [title="Duration"]')
-                    .text()
-                    .split(':');
-                stats.secondsPlayed += parseInt(minutes) * 60 + parseInt(seconds);
-
-                // Overtime read (if exists)
-                if (cheerio(replay).find('.main > .extra-info > [title="Overtime"]').length != 0) {
-                    let [totalOvertime, ...ignore] = cheerio(replay)
-                        .find('.main > .extra-info > [title="Overtime"]')
-                        .text()
-                        .split(' ');
-                    let [overtimeMintes, overtimeSeconds] = totalOvertime.split(':');
-                    stats.overtimePlayed += parseInt(overtimeMintes) * 60 + parseInt(overtimeSeconds);
-                }
-
-                // Win or loss recording and scores based on win or loss
-                if (/Win/g.test(cheerio(replay).find('.main > .row1 > .replay-title').text())) {
-                    stats.wins++;
-                    stats.goalsFor += blueScore > orangeScore ? blueScore : orangeScore;
-                    stats.goalsAgainst += blueScore > orangeScore ? orangeScore : blueScore;
-                } else {
-                    stats.losses++;
-                    stats.goalsFor += blueScore > orangeScore ? orangeScore : blueScore;
-                    stats.goalsAgainst += blueScore > orangeScore ? blueScore : orangeScore;
-                }
-
-                // Average game rank (find for the latest game)
-                if (!stats.rank) {
-                    let [rank, ...throwaways] = cheerio(replay)
-                        .find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
-                        ?.attribs.title.split('(');
-                    let rankImg = cheerio(replay).find('.main > .row1 > .replay-meta > .rank > .player-rank')[0]
-                        ?.attribs.src;
-                    stats.rank = rank + ' (Average rank)';
-                    stats.rank_img = 'https://ballchasing.com' + rankImg;
-
-                    // User query rank
-                    stats.userRank = cheerio(replay).find(
-                        '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
-                    )[0]?.attribs.title;
-
-                    stats.userRank_img =
-                        'https://ballchasing.com' +
-                        cheerio(replay).find(
-                            '.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"] > img'
-                        )[0]?.attribs.src;
-
-                    stats.userName = /([\w\d]+)/g.exec(
-                        cheerio(replay)
-                            .find('.main > .replay-players > div > div > [href="/player/steam/' + steamId + '"]')
-                            .text()
-                    )[1];
-                }
-            });
-
-            let discordEmbed = new Discord.MessageEmbed();
-            discordEmbed
-                .setTitle('Rocket league stats for ' + todayISO)
-                .setAuthor(stats.rank, stats.rank_img)
-                .addField('Wins', stats.wins.toString(), true)
-                .addField('Losses', stats.losses.toString(), true);
-            if (mmrDifference != 0) {
-                discordEmbed.addField(
-                    'MMR Change Today',
-                    mmrDifference > 0 ? '+' + mmrDifference.toString() : mmrDifference.toString(),
-                    true
-                );
-            }
-
-            discordEmbed
-                .addField('Goals For', stats.goalsFor.toString(), true)
-                .addField('Goals Against', stats.goalsAgainst.toString(), true)
-                .addField(
-                    'Total Time Played',
-                    Math.floor(stats.secondsPlayed / 60).toString() +
-                        ':' +
-                        (stats.secondsPlayed - 60 * Math.floor(stats.secondsPlayed / 60)).toString(),
-                    true
-                )
-                .setFooter(stats.userName + ' is at ' + currentMMR + ' MMR: ' + stats.userRank, stats.userRank_img);
-
-            if (stats.overtimePlayed != 0) {
-                discordEmbed.addField(
-                    'Time in OT',
-                    Math.floor(stats.overtimePlayed / 60).toString() +
-                        ':' +
-                        (stats.overtimePlayed - 60 * Math.floor(stats.overtimePlayed / 60)).toString(),
-                    true
-                );
-            }
-
-            interaction.reply({ content: 'Your stats for today:', embeds: [discordEmbed] });
-        } else {
+        if (ballchasingAPIResponse.list.length <= 0) {
             let discordEmbed = new Discord.MessageEmbed();
 
             let rankString = user.username + ' is at ' + currentMMR + ' MMR: ' + todaysStats.tier;
 
-            discordEmbed.setTitle('Rocket league stats for ' + todayISO).addField('Rank', rankString);
+            discordEmbed.setTitle('Rocket league stats for ' + todayISOWeb).addField('Rank', rankString);
 
             if (mmrDifference != 0) {
                 discordEmbed.addField(
@@ -252,11 +175,137 @@ async function RLStats(interaction, user, playlist_name) {
                 );
             }
 
-            interaction.reply({
+            interaction.editReply({
                 content: 'You have not played any RL games today to show stats for!',
                 embeds: [discordEmbed],
                 ephemeral: true,
             });
+        } else {
+            let hasSeenHash = new Map();
+            for (let replayOverview of ballchasingAPIResponse.list) {
+                await new Promise((resolve) => setTimeout(resolve, 500)); // Sleep for 500 ms before each so as to not overload calls
+                let replayFetch = await fetch(replayOverview.link, {
+                    headers: {
+                        Authorization: 'ZZrm3Av50XYFihxOW8t24pMeDRgHopHfwJJovVRF',
+                    },
+                });
+                let replayFetchJson = await replayFetch.json();
+                if (hasSeenHash.has(replayFetchJson.match_guid)) continue;
+                else hasSeenHash.set(replayFetchJson.match_guid, true);
+                console.log(replayFetchJson);
+
+                // Do the stats addition in here
+                stats.secondsPlayed += replayFetchJson.duration;
+                if (replayFetchJson.overtime_seconds) stats.overtimePlayed += replayFetchJson.overtime_seconds;
+
+                // Check what team the user was on
+                let player;
+                if (replayFetchJson.blue.players.some((player) => player.id.id == steamId)) {
+                    player = replayFetchJson.blue.players.find((player) => player.id.id == steamId);
+
+                    // Player was on the blue team
+                    stats.goalsForTeam += replayFetchJson.blue.stats.core.goals;
+                    stats.goalsAgainstTeam += replayFetchJson.orange.stats.core.goals;
+                    if (replayFetchJson.blue.stats.core.goals > replayFetchJson.orange.stats.core.goals) {
+                        // Blue won
+                        stats.wins++;
+                    } else {
+                        // Orange won
+                        stats.losses++;
+                    }
+
+                    if (!stats.userName) {
+                        stats.userName = player.name;
+                        stats.userRank = player.rank.name;
+                        stats.userRank_img = 'https://ballchasing.com/static/f2p-ranks-32/' + player.rank.tier + '.png';
+                    }
+                } else if (replayFetchJson.orange.players.some((player) => player.id.id == steamId)) {
+                    player = replayFetchJson.orange.players.find((player) => player.id.id == steamId);
+
+                    // Player was on the orange team
+                    stats.goalsForTeam += replayFetchJson.orange.stats.core.goals;
+                    stats.goalsAgainstTeam += replayFetchJson.blue.stats.core.goals;
+                    if (replayFetchJson.blue.stats.core.goals > replayFetchJson.orange.stats.core.goals) {
+                        // Blue won
+                        stats.losses++;
+                    } else {
+                        // Orange won
+                        stats.wins++;
+                    }
+                    if (!stats.userName) {
+                        stats.userName = player.name;
+                        stats.userRank = player.rank.name;
+                        stats.userRank_img = 'https://ballchasing.com/static/f2p-ranks-32/' + player.rank.tier + '.png';
+                    }
+                }
+
+                stats.goalsFor += player.stats.core.goals;
+                stats.assists += player.stats.core.assists;
+                stats.points += player.stats.core.score;
+                stats.mvps += player.stats.core.mvp ? 1 : 0;
+                stats.shots += player.stats.core.shots;
+                stats.saves += player.stats.core.saves;
+                stats.averageZeroBoost += player.stats.boost.percent_zero_boost;
+                stats.averageFullBoost += player.stats.boost.percent_full_boost;
+
+                if (!stats.rank) {
+                    stats.rank = replayFetchJson.max_rank.name;
+                    stats.rank_img =
+                        'https://ballchasing.com/static/f2p-ranks-32/' + replayFetchJson.max_rank.tier + '.png';
+                }
+            }
+
+            stats.averageFullBoost = stats.averageFullBoost / hasSeenHash.size;
+            stats.averageZeroBoost = stats.averageFullBoost / hasSeenHash.size;
+            stats.shootingPercent = (stats.goalsFor / stats.shots) * 100;
+
+            let discordEmbed = new Discord.MessageEmbed();
+
+            console.log(stats);
+            discordEmbed
+                .setTitle('Rocket league stats for ' + todayISOWeb)
+                .setAuthor(stats.rank, stats.rank_img)
+                .addField('Wins : Losses', stats.wins + ' : ' + stats.losses, true);
+            if (mmrDifference != 0) {
+                discordEmbed.addField(
+                    'MMR Change Today',
+                    mmrDifference > 0 ? '+' + mmrDifference.toString() : mmrDifference.toString(),
+                    true
+                );
+            }
+
+            let timePlayedTitle = 'Time Played (mm:ss) ';
+            let timePlayedContent =
+                Math.floor(stats.secondsPlayed / 60).toString() +
+                ':' +
+                (stats.secondsPlayed - 60 * Math.floor(stats.secondsPlayed / 60)).toString();
+            if (stats.overtimePlayed != 0) {
+                timePlayedTitle += '[OT]';
+                timePlayedContent +=
+                    ' [' +
+                    Math.floor(stats.overtimePlayed / 60).toString() +
+                    ':' +
+                    (stats.overtimePlayed - 60 * Math.floor(stats.overtimePlayed / 60)).toString() +
+                    ']';
+            }
+
+            discordEmbed
+                .addField('Goals For : Against (Team)', stats.goalsForTeam + ' : ' + stats.goalsAgainstTeam, true)
+                .addField(
+                    'Goals : Shots [%])',
+                    stats.goalsFor + ' : ' + stats.shots + ' [' + stats.shootingPercent.toFixed(1) + '%]',
+                    true
+                )
+                .addField(timePlayedTitle, timePlayedContent, true)
+                .setFooter(stats.userName + ' is at ' + currentMMR + ' MMR: ' + stats.userRank, stats.userRank_img);
+
+            discordEmbed.addField(
+                'Average % at Zero : Full Boost',
+                stats.averageZeroBoost.toFixed(1) + ' : ' + stats.averageFullBoost.toFixed(1),
+                true
+            );
+
+            interaction.editReply({ content: 'Your stats for today:', embeds: [discordEmbed] });
         }
     }
 }
@@ -267,8 +316,9 @@ module.exports = {
     async execute(interaction) {
         let user = interaction.options.getUser('user');
         let playlist_name = interaction.options.getString('playlist');
+        let username = interaction.options.getString('username');
 
-        RLStats(interaction, user, playlist_name);
+        RLStats(interaction, user, playlist_name, username);
     },
     options: [
         {
@@ -296,6 +346,11 @@ module.exports = {
                     value: 'threes',
                 },
             ],
+        },
+        {
+            name: 'username',
+            description: 'An exact username to search for (overides user).',
+            type: 'STRING',
         },
     ],
 };

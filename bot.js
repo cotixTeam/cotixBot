@@ -67,11 +67,12 @@ bot.on('interactionCreate', async (interaction) => {
     if (!bot.commands.has(interaction.commandName)) return;
 
     try {
+        let interaction_author = interaction.member.user.username;
         let command_name = interaction.commandName;
         let group_name = interaction.options._subcommand;
         let sub_command_name = interaction.options._group;
 
-        let console_string = command_name + ': ';
+        let console_string = interaction_author + ': ' + command_name + ': ';
 
         if (group_name) console_string = console_string + group_name + ': ';
         if (sub_command_name) console_string = console_string + sub_command_name + ': ';
@@ -84,7 +85,7 @@ bot.on('interactionCreate', async (interaction) => {
             console_string =
                 console_string +
                 interaction.options.data[0].options[0].options
-                    .map((option) => option.name + ': ' + option.value)
+                    .map((option) => option.name + ':  ' + option.value)
                     .join(', ');
 
         console.log(console_string);
