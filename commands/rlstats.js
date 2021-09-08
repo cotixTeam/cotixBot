@@ -14,7 +14,6 @@ async function RLStats(interaction, user, playlist_name, username) {
 
     let yesterday = new Date();
     yesterday.setUTCHours(0, 0, 0, 0);
-    yesterday.setUTCDate(1); // FOR DEBUG <------------------- MAKE SURE YOU DELETE THIS PLEASE
     let yesterdayISO = yesterday.toISOString();
     console.log(yesterdayISO);
     let yesterdayISOWeb = yesterdayISO.substring(0, 10);
