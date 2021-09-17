@@ -115,9 +115,15 @@ async function updateCountStat(leaderboardChannel, stat, message) {
     let stats = [];
 
     for (let [key, user] of metaData.userStatsMap) {
-        let discordUser = await new Discord.User(metaData.bot, {
-            id: key,
-        }).fetch();
+        let discordUser;
+        try {
+            discordUser = await new Discord.User(metaData.bot, {
+                id: key,
+            }).fetch();
+        } catch (e) {
+            console.warn(e);
+            continue;
+        }
 
         if (user.has(stat + 'Count')) {
             stats.push({

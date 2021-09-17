@@ -14,6 +14,7 @@ async function RLStats(interaction, user, playlist_name, username) {
 
     let yesterday = new Date();
     yesterday.setUTCHours(0, 0, 0, 0);
+    yesterday.setUTCDate(0); // Debug for games
     let yesterdayISO = yesterday.toISOString();
     console.log(yesterdayISO);
     let yesterdayISOWeb = yesterdayISO.substring(0, 10);
@@ -64,6 +65,32 @@ async function RLStats(interaction, user, playlist_name, username) {
         /**
          * Start of MMR Difference
          */
+
+        if (username) {
+            console.log('//' + username + '//');
+            let searchResult = await fetch(
+                'https://api.tracker.gg/api/v2/rocket-league/standard/search?platform=steam&autocomplete=true&query=' +
+                    username,
+                {
+                    credentials: 'include',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0',
+                        Accept: 'application/json, text/plain, */*',
+                        'Accept-Language': 'en',
+                        'Sec-Fetch-Dest': 'empty',
+                        'Sec-Fetch-Mode': 'cors',
+                        'Sec-Fetch-Site': 'cross-site',
+                    },
+                    referrer: 'https://rocketleague.tracker.network/',
+                    method: 'GET',
+                    mode: 'cors',
+                }
+            );
+            let searchResultJson = await searchResult.json();
+            console.log(searchResultJson);
+            steamId = searchResultJson.data[0].platformUserIdentifier;
+        }
+
         let rlTrackerUserInfo = await fetch(
             'https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/' + steamId + '?',
             {
@@ -121,10 +148,16 @@ async function RLStats(interaction, user, playlist_name, username) {
          */
 
         let uri =
-            '&replay-date-after=' + yesterdayISO + '&replay-date-before=' + todayISO + '&playlist=' + playlistName;
+            'replay-date-after=' +
+            yesterdayISO +
+            '&replay-date-before=' +
+            todayISO +
+            '&playlist=' +
+            playlistName +
+            '&player-id=Steam%3A' +
+            steamId;
 
-        if (username) uri += '&player-name="' + username + '"';
-        else uri += '&player-id=Steam%3A' + steamId;
+        console.log(uri);
 
         let ballchasingAPIResponseRaw = await fetch('https://ballchasing.com/api/replays/?' + uri, {
             headers: {
@@ -201,6 +234,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                 let player;
                 if (replayFetchJson.blue.players.some((player) => player.id.id == steamId)) {
                     player = replayFetchJson.blue.players.find((player) => player.id.id == steamId);
+                    console.log(player);
 
                     // Player was on the blue team
                     stats.goalsForTeam += replayFetchJson.blue.stats.core.goals;
@@ -220,6 +254,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                     }
                 } else if (replayFetchJson.orange.players.some((player) => player.id.id == steamId)) {
                     player = replayFetchJson.orange.players.find((player) => player.id.id == steamId);
+                    console.log(player);
 
                     // Player was on the orange team
                     stats.goalsForTeam += replayFetchJson.orange.stats.core.goals;
