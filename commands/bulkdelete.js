@@ -24,7 +24,8 @@ async function bulkDelete(interaction, messageCount) {
                 messageArray.forEach((message) => {
                     if (!message.pinned) message.delete();
                 });
-            });
+            })
+            .catch((e) => console.warn(e));
         interaction.reply({
             content: `Deleted ${messageCount} message${messageCount > 1 ? 's' : ''}!`,
             ephemeral: true,

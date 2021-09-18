@@ -13,6 +13,8 @@ exports.init = function init() {
 
     initHourlyUpdater();
     initDailyTimeouts();
+    setTimeout(hourlyUpdate, 10 * 1000);
+    setTimeout(dailyTimeouts, 10 * 1000);
 };
 
 /** Setting up a daily repeated command
@@ -58,7 +60,9 @@ function hourlyUpdate() {
             JSON.stringify(fileConversion.convertNestMapsToJSON(metaData.userStatsMap))
         );
         setTimeout(hourlyUpdate, 60 * 60 * 1000);
-    } else initialHourly = false;
+    } else {
+        initialHourly = false;
+    }
 
     updateLeaderboards();
 }
@@ -67,42 +71,46 @@ function hourlyUpdate() {
  * @async
  */
 async function updateLeaderboards() {
-    let leaderboardChannel = await new Discord.Channel(metaData.bot, {
-        id: metaData.channels.find((channel) => channel.name == 'Leaderboards').id,
-    }).fetch();
+    try {
+        let leaderboardChannel = await new Discord.Channel(metaData.bot, {
+            id: metaData.channels.find((channel) => channel.name == 'Leaderboards').id,
+        }).fetch();
 
-    updateCountStat(leaderboardChannel, 'lmao', {
-        content: 'Lmao Count',
-        embeds: [
-            {
-                title: 'LMAO 😂',
-                description: "Where's your ass now?",
-                fields: [],
-            },
-        ],
-    });
+        updateCountStat(leaderboardChannel, 'lmao', {
+            content: 'Lmao Count',
+            embeds: [
+                {
+                    title: 'LMAO 😂',
+                    description: "Where's your ass now?",
+                    fields: [],
+                },
+            ],
+        });
 
-    updateCountStat(leaderboardChannel, 'nice', {
-        content: 'Nice Count',
-        embeds: [
-            {
-                title: 'Nice 👌',
-                description: 'Nice job getting on this leaderboard!',
-                fields: [],
-            },
-        ],
-    });
+        updateCountStat(leaderboardChannel, 'nice', {
+            content: 'Nice Count',
+            embeds: [
+                {
+                    title: 'Nice 👌',
+                    description: 'Nice job getting on this leaderboard!',
+                    fields: [],
+                },
+            ],
+        });
 
-    updateCountStat(leaderboardChannel, 'toxic', {
-        content: 'Toxic Count',
-        embeds: [
-            {
-                title: 'Toxic ☢️',
-                description: 'Stay away from these guys',
-                fields: [],
-            },
-        ],
-    });
+        updateCountStat(leaderboardChannel, 'toxic', {
+            content: 'Toxic Count',
+            embeds: [
+                {
+                    title: 'Toxic ☢️',
+                    description: 'Stay away from these guys',
+                    fields: [],
+                },
+            ],
+        });
+    } catch (e) {
+        console.warn(e);
+    }
 }
 
 /** Macro to help with updating the leaderboards. Sorts the users and updates the message for the specific leaderboard.
@@ -159,12 +167,16 @@ async function updateCountStat(leaderboardChannel, stat, message) {
         };
     });
 
-    new Discord.Message(metaData.bot, {
-        id: metaData.channels.find((channel) => channel.name == 'Leaderboards')[stat + 'Board'],
-        channel_id: leaderboardChannel,
-    })
-        ?.fetch()
-        .then((board) => board.edit(message));
+    try {
+        new Discord.Message(metaData.bot, {
+            id: metaData.channels.find((channel) => channel.name == 'Leaderboards')[stat + 'Board'],
+            channel_id: leaderboardChannel,
+        })
+            ?.fetch()
+            .then((board) => board.edit(message));
+    } catch (e) {
+        console.warn(e);
+    }
 }
 
 /** Updates the statistics of the user who has just joined or left a channel.
@@ -305,8 +317,11 @@ let initialDaily = true;
  */
 function dailyTimeouts() {
     clean();
-    if (!initialDaily) setTimeout(dailyTimeouts, 24 * 60 * 60 * 1000);
-    else initialDaily = false;
+    if (!initialDaily) {
+        setTimeout(dailyTimeouts, 24 * 60 * 60 * 1000);
+    } else {
+        initialDaily = false;
+    }
 }
 
 /** Queries channel array for channels to be kept clean, then clean them (not pinned messages).
@@ -334,7 +349,8 @@ async function clean() {
                         messageArray.forEach((message) => {
                             if (!message.pinned) message.delete();
                         });
-                    });
+                    })
+                    .catch((e) => console.warn(e));
             }
         }
     }

@@ -14,17 +14,20 @@ const awsUtils = require('../bot/awsUtils.js');
 function reminderTimeouts(reminderEvent, bot) {
     setTimeout(reminderTimeouts, 7 * 24 * 60 * 60 * 1000, reminderEvent, bot);
     for (let userId of reminderEvent.users) {
-        bot.users.fetch(userId).then((userSend) => {
-            console.info('\tSending message to ' + userSend.username + ' for reminder ' + reminderEvent.name);
-            userSend.send(
-                'Hi ' +
-                    userSend.username +
-                    ",\nThis is your reminder for: '" +
-                    reminderEvent.name +
-                    "'\n" +
-                    reminderEvent.text
-            );
-        });
+        bot.users
+            .fetch(userId)
+            .then((userSend) => {
+                console.info('\tSending message to ' + userSend.username + ' for reminder ' + reminderEvent.name);
+                userSend.send(
+                    'Hi ' +
+                        userSend.username +
+                        ",\nThis is your reminder for: '" +
+                        reminderEvent.name +
+                        "'\n" +
+                        reminderEvent.text
+                );
+            })
+            .catch((e) => console.warn(e));
     }
 }
 

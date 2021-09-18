@@ -30,13 +30,16 @@ function quoteId(interaction, id) {
     console.info("-\tQuoting the id'd message (" + quoteMatch + ')!');
 
     if (quoteMatch) {
-        interaction.channel.messages.fetch(quoteMatch[quoteMatch.length - 1]).then((quoteMessage) => {
-            interaction.reply({
-                content: 'The message: "' + quoteMessage.content + '" has been quoted!',
-                ephemeral: true,
-            });
-            quoteMacro(quoteMessage.content, quoteMessage.author.id, quoteMessage.createdAt);
-        });
+        interaction.channel.messages
+            .fetch(quoteMatch[quoteMatch.length - 1])
+            .then((quoteMessage) => {
+                interaction.reply({
+                    content: 'The message: "' + quoteMessage.content + '" has been quoted!',
+                    ephemeral: true,
+                });
+                quoteMacro(quoteMessage.content, quoteMessage.author.id, quoteMessage.createdAt);
+            })
+            .catch((e) => console.warn(e));
     }
 }
 
@@ -60,7 +63,8 @@ function quote(interaction, searchString) {
                     quoteMacro(message.content, message.author.id, message.createdAt);
                 }
             });
-        });
+        })
+        .catch((e) => console.warn(e));
 }
 
 /** A macro to be used for formatting the quotes.
@@ -71,25 +75,29 @@ function quote(interaction, searchString) {
 function quoteMacro(quoteMessageContent, userId, time) {
     for (let channel of metaData.channels) {
         if (channel.name == 'Quotes') {
-            new Discord.Channel(metaData.bot, {
-                id: channel.id,
-            })
-                .fetch()
-                .then((quotesChannel) => {
-                    let today = time ? time : new Date();
-                    let dateString =
-                        today.getHours() +
-                        ':' +
-                        today.getMinutes() +
-                        ' on ' +
-                        today.getDate() +
-                        '/' +
-                        (today.getMonth() + 1) +
-                        '/' +
-                        today.getFullYear();
-                    quoteMessageContent = quoteMessageContent.replace(/\n/g, '\n> ');
-                    quotesChannel.send('> ' + quoteMessageContent + '\nBy <@!' + userId + '> at ' + dateString);
-                });
+            try {
+                new Discord.Channel(metaData.bot, {
+                    id: channel.id,
+                })
+                    .fetch()
+                    .then((quotesChannel) => {
+                        let today = time ? time : new Date();
+                        let dateString =
+                            today.getHours() +
+                            ':' +
+                            today.getMinutes() +
+                            ' on ' +
+                            today.getDate() +
+                            '/' +
+                            (today.getMonth() + 1) +
+                            '/' +
+                            today.getFullYear();
+                        quoteMessageContent = quoteMessageContent.replace(/\n/g, '\n> ');
+                        quotesChannel.send('> ' + quoteMessageContent + '\nBy <@!' + userId + '> at ' + dateString);
+                    });
+            } catch (e) {
+                console.warn(e);
+            }
         }
     }
 }

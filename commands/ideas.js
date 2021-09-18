@@ -31,15 +31,140 @@ async function add(interaction, ideaArg) {
 
     addListener.on('collect', (reaction) => {
         console.info(ideaArg + ' has received enough votes to be added!');
+        try {
+            new Discord.Message(metaData.bot, {
+                id: this.ideasChannel.todo,
+                channel_id: interaction.channel,
+            })
+                .fetch()
+                .then((editMessage) => {
+                    let fields = [];
+                    let messageAddition = '`- [ ] ' + ideaAndAuthorString + '`';
+
+                    if (editMessage.embeds.length != 0) {
+                        editMessage.embeds[0].fields.forEach((field, index, array) => {
+                            if (index != array.length - 1) {
+                                fields.push(field);
+                            } else {
+                                if (field.value.length + messageAddition.length > 1024 - 1) {
+                                    fields.push(field);
+                                    fields.push({
+                                        name: 'Ideas:',
+                                        value: messageAddition,
+                                    });
+                                } else {
+                                    fields.push({
+                                        name: 'Ideas:',
+                                        value: field.value + '\n' + messageAddition,
+                                    });
+                                }
+                            }
+                        });
+                    }
+
+                    if (fields.length == 0) {
+                        fields.push({
+                            name: 'Ideas:',
+                            value: messageAddition,
+                        });
+                    }
+
+                    editMessage.edit({
+                        content: 'Ideas:',
+                        embeds: [
+                            {
+                                title: 'Ideas:',
+                                fields: fields,
+                            },
+                        ],
+                    });
+                    interaction.delete();
+                });
+        } catch (e) {
+            console.warn(e);
+        }
+    });
+
+    rejectListener.on('collect', (reaction) => {
+        console.info(ideaArg + ' has received enough rejections to be removed!');
+        try {
+            new Discord.Message(metaData.bot, {
+                id: this.ideasChannel.bad,
+                channel_id: interaction.channel,
+            })
+                .fetch()
+                .then((editMessage) => {
+                    let fields = [];
+                    let messageAddition = '`- ' + ideaAndAuthorString + '`';
+
+                    if (editMessage.embeds.length != 0) {
+                        editMessage.embeds[0].fields.forEach((field, index, array) => {
+                            if (index != array.length - 1) {
+                                fields.push(field);
+                            } else {
+                                if (field.value.length + messageAddition.length > 1024 - 5) {
+                                    fields.push(field);
+                                    fields.push({
+                                        name: 'Bad Ideas:',
+                                        value: '||' + messageAddition + '||',
+                                    });
+                                } else {
+                                    fields.push({
+                                        name: 'Bad Ideas:',
+                                        value:
+                                            field.value.substring(0, field.value.length - 2) +
+                                            '\n' +
+                                            messageAddition +
+                                            '||',
+                                    });
+                                }
+                            }
+                        });
+                    }
+
+                    if (fields.length == 0) {
+                        fields.push({
+                            name: 'Bad Ideas:',
+                            value: '||' + messageAddition + '||',
+                        });
+                    }
+
+                    editMessage.edit({
+                        content: 'Bad Ideas:',
+                        embeds: [
+                            {
+                                title: 'Bad Ideas:',
+                                fields: fields,
+                            },
+                        ],
+                    });
+                    interaction.delete();
+                });
+        } catch (e) {
+            console.warn(e);
+        }
+    });
+}
+
+/** Adds an idea directly to the "Todo" message, without registering for votes.
+ * @param {Discord.Interaction} interaction Used to react to the message, add the listener and find the author.
+ * @param {String} idea Used to format the string of the idea to add.
+ */
+async function addVeto(interaction, idea) {
+    await init();
+
+    console.info("-\tBypassing votes and adding the idea: '" + idea + "' to the list!");
+    try {
         new Discord.Message(metaData.bot, {
             id: this.ideasChannel.todo,
             channel_id: interaction.channel,
         })
             .fetch()
             .then((editMessage) => {
+                let messageAddition = '`- [ ] ' + idea + ' (by ' + interaction.user.username + ')`';
                 let fields = [];
-                let messageAddition = '`- [ ] ' + ideaAndAuthorString + '`';
 
+                // Addition of new field if required
                 if (editMessage.embeds.length != 0) {
                     editMessage.embeds[0].fields.forEach((field, index, array) => {
                         if (index != array.length - 1) {
@@ -77,123 +202,10 @@ async function add(interaction, ideaArg) {
                         },
                     ],
                 });
-                interaction.delete();
             });
-    });
-
-    rejectListener.on('collect', (reaction) => {
-        console.info(ideaArg + ' has received enough rejections to be removed!');
-        new Discord.Message(metaData.bot, {
-            id: this.ideasChannel.bad,
-            channel_id: interaction.channel,
-        })
-            .fetch()
-            .then((editMessage) => {
-                let fields = [];
-                let messageAddition = '`- ' + ideaAndAuthorString + '`';
-
-                if (editMessage.embeds.length != 0) {
-                    editMessage.embeds[0].fields.forEach((field, index, array) => {
-                        if (index != array.length - 1) {
-                            fields.push(field);
-                        } else {
-                            if (field.value.length + messageAddition.length > 1024 - 5) {
-                                fields.push(field);
-                                fields.push({
-                                    name: 'Bad Ideas:',
-                                    value: '||' + messageAddition + '||',
-                                });
-                            } else {
-                                fields.push({
-                                    name: 'Bad Ideas:',
-                                    value:
-                                        field.value.substring(0, field.value.length - 2) +
-                                        '\n' +
-                                        messageAddition +
-                                        '||',
-                                });
-                            }
-                        }
-                    });
-                }
-
-                if (fields.length == 0) {
-                    fields.push({
-                        name: 'Bad Ideas:',
-                        value: '||' + messageAddition + '||',
-                    });
-                }
-
-                editMessage.edit({
-                    content: 'Bad Ideas:',
-                    embeds: [
-                        {
-                            title: 'Bad Ideas:',
-                            fields: fields,
-                        },
-                    ],
-                });
-                interaction.delete();
-            });
-    });
-}
-
-/** Adds an idea directly to the "Todo" message, without registering for votes.
- * @param {Discord.Interaction} interaction Used to react to the message, add the listener and find the author.
- * @param {String} idea Used to format the string of the idea to add.
- */
-async function addVeto(interaction, idea) {
-    await init();
-
-    console.info("-\tBypassing votes and adding the idea: '" + idea + "' to the list!");
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.todo,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((editMessage) => {
-            let messageAddition = '`- [ ] ' + idea + ' (by ' + interaction.user.username + ')`';
-            let fields = [];
-
-            // Addition of new field if required
-            if (editMessage.embeds.length != 0) {
-                editMessage.embeds[0].fields.forEach((field, index, array) => {
-                    if (index != array.length - 1) {
-                        fields.push(field);
-                    } else {
-                        if (field.value.length + messageAddition.length > 1024 - 1) {
-                            fields.push(field);
-                            fields.push({
-                                name: 'Ideas:',
-                                value: messageAddition,
-                            });
-                        } else {
-                            fields.push({
-                                name: 'Ideas:',
-                                value: field.value + '\n' + messageAddition,
-                            });
-                        }
-                    }
-                });
-            }
-
-            if (fields.length == 0) {
-                fields.push({
-                    name: 'Ideas:',
-                    value: messageAddition,
-                });
-            }
-
-            editMessage.edit({
-                content: 'Ideas:',
-                embeds: [
-                    {
-                        title: 'Ideas:',
-                        fields: fields,
-                    },
-                ],
-            });
-        });
+    } catch (e) {
+        console.warn(e);
+    }
     interaction.reply({
         content: 'Add the idea to the list',
         ephemeral: true,
@@ -208,121 +220,135 @@ async function completed(interaction, queryIdea) {
     await init();
 
     console.info("-\tMarking anything with the string '" + queryIdea + "' as a completed idea!");
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.todo,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((todoMessage) => {
-            let todoFields = [];
-            let completedFields = [];
-            let todoStringsArray = [];
-            let completedStringsArray = [];
-            let ideasMatch;
-            let regex = this.ideaRegex;
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.todo,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((todoMessage) => {
+                let todoFields = [];
+                let completedFields = [];
+                let todoStringsArray = [];
+                let completedStringsArray = [];
+                let ideasMatch;
+                let regex = this.ideaRegex;
 
-            // Convert the old format
-            while ((ideasMatch = regex.exec(todoMessage.content))) {
-                if (ideasMatch[1].includes(queryIdea)) {
-                    completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
-                } else {
-                    todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
+                // Convert the old format
+                while ((ideasMatch = regex.exec(todoMessage.content))) {
+                    if (ideasMatch[1].includes(queryIdea)) {
+                        completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
+                    } else {
+                        todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
+                    }
                 }
-            }
 
-            // New embed format
-            if (todoMessage.embeds.length != 0) {
-                todoMessage.embeds[0].fields.forEach((field, index, array) => {
-                    while ((ideasMatch = regex.exec(field.value))) {
-                        if (ideasMatch[1].includes(queryIdea)) {
-                            completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
-                        } else {
-                            if (todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length > 1024) {
-                                todoFields.push({
-                                    name: 'Ideas:',
-                                    value: todoStringsArray.join('\n'),
-                                });
-                                todoStringsArray = [];
+                // New embed format
+                if (todoMessage.embeds.length != 0) {
+                    todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                        while ((ideasMatch = regex.exec(field.value))) {
+                            if (ideasMatch[1].includes(queryIdea)) {
+                                completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
+                            } else {
+                                if (
+                                    todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length >
+                                    1024
+                                ) {
+                                    todoFields.push({
+                                        name: 'Ideas:',
+                                        value: todoStringsArray.join('\n'),
+                                    });
+                                    todoStringsArray = [];
+                                }
+                                todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
                             }
-                            todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
                         }
-                    }
 
-                    if (index == array.length - 1 && todoStringsArray.join('\n') != '') {
-                        todoFields.push({
-                            name: 'Ideas:',
-                            value: todoStringsArray.join('\n'),
-                        });
-                    }
-                });
-            } else {
-                todoFields.push({
-                    name: 'Ideas:',
-                    value: todoStringsArray.join('\n'),
-                });
-            }
-
-            todoMessage
-                .edit({
-                    content: 'Ideas:',
-                    embeds: [
-                        {
-                            title: 'Ideas:',
-                            fields: todoFields,
-                        },
-                    ],
-                })
-                .then(() => {
-                    new Discord.Message(metaData.bot, {
-                        id: this.ideasChannel.completed,
-                        channel_id: interaction.channel,
-                    })
-                        .fetch()
-                        .then((completedMessage) => {
-                            if (completedMessage.embeds.length != 0) {
-                                completedMessage.embeds[0].fields.forEach((field, index, array) => {
-                                    if (index != array.length - 1) {
-                                        completedFields.push(field);
-                                    } else {
-                                        if (field.value.length + completedStringsArray.join('\n').length > 1024 - 1) {
-                                            completedFields.push(field);
-                                            completedFields.push({
-                                                name: 'Completed:',
-                                                value: '||' + completedStringsArray.join('\n') + '||',
-                                            });
-                                        } else {
-                                            completedFields.push({
-                                                name: 'Completed:',
-                                                value:
-                                                    field.value.substring(0, field.value.length - 2) +
-                                                    '\n' +
-                                                    completedStringsArray.join('\n') +
-                                                    '||',
-                                            });
-                                        }
-                                    }
-                                });
-                            }
-
-                            if (completedFields.length == 0) {
-                                completedFields.push({
-                                    name: 'Completed:',
-                                    value: '||' + completedStringsArray.join('\n') + '||',
-                                });
-                            }
-
-                            completedMessage.edit({
-                                content: 'Completed:',
-                                embeds: [
-                                    {
-                                        title: 'Completed:',
-                                        fields: completedFields,
-                                    },
-                                ],
+                        if (index == array.length - 1 && todoStringsArray.join('\n') != '') {
+                            todoFields.push({
+                                name: 'Ideas:',
+                                value: todoStringsArray.join('\n'),
                             });
-                        });
-                });
-        });
+                        }
+                    });
+                } else {
+                    todoFields.push({
+                        name: 'Ideas:',
+                        value: todoStringsArray.join('\n'),
+                    });
+                }
+
+                todoMessage
+                    .edit({
+                        content: 'Ideas:',
+                        embeds: [
+                            {
+                                title: 'Ideas:',
+                                fields: todoFields,
+                            },
+                        ],
+                    })
+                    .then(() => {
+                        try {
+                            new Discord.Message(metaData.bot, {
+                                id: this.ideasChannel.completed,
+                                channel_id: interaction.channel,
+                            })
+                                .fetch()
+                                .then((completedMessage) => {
+                                    if (completedMessage.embeds.length != 0) {
+                                        completedMessage.embeds[0].fields.forEach((field, index, array) => {
+                                            if (index != array.length - 1) {
+                                                completedFields.push(field);
+                                            } else {
+                                                if (
+                                                    field.value.length + completedStringsArray.join('\n').length >
+                                                    1024 - 1
+                                                ) {
+                                                    completedFields.push(field);
+                                                    completedFields.push({
+                                                        name: 'Completed:',
+                                                        value: '||' + completedStringsArray.join('\n') + '||',
+                                                    });
+                                                } else {
+                                                    completedFields.push({
+                                                        name: 'Completed:',
+                                                        value:
+                                                            field.value.substring(0, field.value.length - 2) +
+                                                            '\n' +
+                                                            completedStringsArray.join('\n') +
+                                                            '||',
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    }
+
+                                    if (completedFields.length == 0) {
+                                        completedFields.push({
+                                            name: 'Completed:',
+                                            value: '||' + completedStringsArray.join('\n') + '||',
+                                        });
+                                    }
+
+                                    completedMessage.edit({
+                                        content: 'Completed:',
+                                        embeds: [
+                                            {
+                                                title: 'Completed:',
+                                                fields: completedFields,
+                                            },
+                                        ],
+                                    });
+                                });
+                        } catch (e) {
+                            console.warn(e);
+                        }
+                    });
+            });
+    } catch (e) {
+        console.warn(e);
+    }
     interaction.reply({
         content: 'Moved the idea to completed',
         ephemeral: true,
@@ -337,119 +363,130 @@ async function unfinished(interaction, queryIdea) {
     await init();
 
     console.info("-\tMarking anything with the string '" + queryIdea + "' as an unfinished idea!");
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.completed,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((completedMessage) => {
-            let todoFields = [];
-            let completedFields = [];
-            let todoStringsArray = [];
-            let completedStringsArray = [];
-            let ideasMatch;
-            let regex = this.ideaRegex;
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.completed,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((completedMessage) => {
+                let todoFields = [];
+                let completedFields = [];
+                let todoStringsArray = [];
+                let completedStringsArray = [];
+                let ideasMatch;
+                let regex = this.ideaRegex;
 
-            // Converting from old method
-            while ((ideasMatch = regex.exec(completedMessage.content))) {
-                if (ideasMatch[1].includes(queryIdea)) {
-                    todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
-                } else {
-                    completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
+                // Converting from old method
+                while ((ideasMatch = regex.exec(completedMessage.content))) {
+                    if (ideasMatch[1].includes(queryIdea)) {
+                        todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
+                    } else {
+                        completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
+                    }
                 }
-            }
 
-            // New method using embeds
-            if (completedMessage.embeds.length != 0) {
-                completedMessage.embeds[0].fields.forEach((field, index, array) => {
-                    while ((ideasMatch = regex.exec(field.value))) {
-                        if (!ideasMatch[1].includes(queryIdea)) {
-                            if (
-                                completedStringsArray.join('\n').length + ('`- [x] ' + ideasMatch[1] + '`').length >
-                                1024 - 4
-                            ) {
-                                completedFields.push({
-                                    name: 'Completed:',
-                                    value: '||' + completedStringsArray.join('\n') + '||',
-                                });
-                                completedStringsArray = [];
+                // New method using embeds
+                if (completedMessage.embeds.length != 0) {
+                    completedMessage.embeds[0].fields.forEach((field, index, array) => {
+                        while ((ideasMatch = regex.exec(field.value))) {
+                            if (!ideasMatch[1].includes(queryIdea)) {
+                                if (
+                                    completedStringsArray.join('\n').length + ('`- [x] ' + ideasMatch[1] + '`').length >
+                                    1024 - 4
+                                ) {
+                                    completedFields.push({
+                                        name: 'Completed:',
+                                        value: '||' + completedStringsArray.join('\n') + '||',
+                                    });
+                                    completedStringsArray = [];
+                                }
+                                completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
+                            } else {
+                                todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
                             }
-                            completedStringsArray.push('`- [x] ' + ideasMatch[1] + '`');
-                        } else {
-                            todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
                         }
-                    }
-                    if (index == array.length - 1 && completedStringsArray.join('\n') != '') {
-                        completedFields.push({
-                            name: 'Completed:',
-                            value: '||' + completedStringsArray.join('\n') + '||',
-                        });
-                    }
-                });
-            } else {
-                completedFields.push({
-                    name: 'Completed:',
-                    value: '||' + completedStringsArray.join('\n') + '||',
-                });
-            }
-
-            completedMessage
-                .edit({
-                    content: 'Completed:',
-                    embeds: [
-                        {
-                            title: 'Completed:',
-                            fields: completedFields,
-                        },
-                    ],
-                })
-                .then(() => {
-                    new Discord.Message(metaData.bot, {
-                        id: this.ideasChannel.todo,
-                        channel_id: interaction.channel,
-                    })
-                        .fetch()
-                        .then((todoMessage) => {
-                            if (todoMessage.embeds.length != 0) {
-                                todoMessage.embeds[0].fields.forEach((field, index, array) => {
-                                    if (index != array.length - 1) {
-                                        todoFields.push(field);
-                                    } else {
-                                        if (field.value.length + todoStringsArray.join('\n').length > 1024 - 1) {
-                                            todoFields.push(field);
-                                            todoFields.push({
-                                                name: 'Ideas:',
-                                                value: todoStringsArray.join('\n'),
-                                            });
-                                        } else {
-                                            todoFields.push({
-                                                name: 'Ideas:',
-                                                value: field.value + '\n' + todoStringsArray.join('\n'),
-                                            });
-                                        }
-                                    }
-                                });
-                            }
-
-                            if (todoFields.length == 0 && todoStringsArray.join('\n') != '') {
-                                todoFields.push({
-                                    name: 'Ideas:',
-                                    value: todoStringsArray.join('\n'),
-                                });
-                            }
-
-                            todoMessage.edit({
-                                content: 'Ideas:',
-                                embeds: [
-                                    {
-                                        title: 'Ideas:',
-                                        fields: todoFields,
-                                    },
-                                ],
+                        if (index == array.length - 1 && completedStringsArray.join('\n') != '') {
+                            completedFields.push({
+                                name: 'Completed:',
+                                value: '||' + completedStringsArray.join('\n') + '||',
                             });
-                        });
-                });
-        });
+                        }
+                    });
+                } else {
+                    completedFields.push({
+                        name: 'Completed:',
+                        value: '||' + completedStringsArray.join('\n') + '||',
+                    });
+                }
+
+                completedMessage
+                    .edit({
+                        content: 'Completed:',
+                        embeds: [
+                            {
+                                title: 'Completed:',
+                                fields: completedFields,
+                            },
+                        ],
+                    })
+                    .then(() => {
+                        try {
+                            new Discord.Message(metaData.bot, {
+                                id: this.ideasChannel.todo,
+                                channel_id: interaction.channel,
+                            })
+                                .fetch()
+                                .then((todoMessage) => {
+                                    if (todoMessage.embeds.length != 0) {
+                                        todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                                            if (index != array.length - 1) {
+                                                todoFields.push(field);
+                                            } else {
+                                                if (
+                                                    field.value.length + todoStringsArray.join('\n').length >
+                                                    1024 - 1
+                                                ) {
+                                                    todoFields.push(field);
+                                                    todoFields.push({
+                                                        name: 'Ideas:',
+                                                        value: todoStringsArray.join('\n'),
+                                                    });
+                                                } else {
+                                                    todoFields.push({
+                                                        name: 'Ideas:',
+                                                        value: field.value + '\n' + todoStringsArray.join('\n'),
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    }
+
+                                    if (todoFields.length == 0 && todoStringsArray.join('\n') != '') {
+                                        todoFields.push({
+                                            name: 'Ideas:',
+                                            value: todoStringsArray.join('\n'),
+                                        });
+                                    }
+
+                                    todoMessage.edit({
+                                        content: 'Ideas:',
+                                        embeds: [
+                                            {
+                                                title: 'Ideas:',
+                                                fields: todoFields,
+                                            },
+                                        ],
+                                    });
+                                });
+                        } catch (e) {
+                            console.warn(e);
+                        }
+                    });
+            });
+    } catch (e) {
+        console.warn(e);
+    }
     interaction.reply({
         content: 'Moved the idea to unfinished',
         ephemeral: true,
@@ -464,70 +501,77 @@ async function remove(interaction, queryIdea) {
     await init();
 
     console.info("-\tRemoving anything with the string '" + queryIdea + "' as a todo idea!");
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.todo,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((todoMessage) => {
-            let fields = [];
-            let todoStringsArray = [];
-            let ideasMatch;
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.todo,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((todoMessage) => {
+                let fields = [];
+                let todoStringsArray = [];
+                let ideasMatch;
 
-            // convert from current format if required
-            while ((ideasMatch = this.ideaRegex.exec(todoMessage.content))) {
-                if (ideasMatch[1].includes(queryIdea)) {
-                    if (todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length > 1024) {
-                        fields.push({
-                            name: 'Ideas:',
-                            value: todoStringsArray.join('\n'),
-                        });
-                        todoStringsArray = [];
-                    }
-                    todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
-                }
-            }
-
-            // Using new embeds
-            if (todoMessage.embeds.length != 0) {
-                todoMessage.embeds[0].fields.forEach((field, index, array) => {
-                    while ((ideasMatch = this.ideaRegex.exec(field.value))) {
-                        if (!ideasMatch[1].includes(queryIdea)) {
-                            if (todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length > 1024) {
-                                fields.push({
-                                    name: 'Ideas:',
-                                    value: todoStringsArray.join('\n'),
-                                });
-                                todoStringsArray = [];
-                            }
-                            todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
+                // convert from current format if required
+                while ((ideasMatch = this.ideaRegex.exec(todoMessage.content))) {
+                    if (ideasMatch[1].includes(queryIdea)) {
+                        if (todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length > 1024) {
+                            fields.push({
+                                name: 'Ideas:',
+                                value: todoStringsArray.join('\n'),
+                            });
+                            todoStringsArray = [];
                         }
+                        todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
                     }
+                }
 
-                    if (index == array.length - 1 && todoStringsArray.join('\n') != '') {
-                        fields.push({
-                            name: 'Ideas:',
-                            value: todoStringsArray.join('\n'),
-                        });
-                    }
-                });
-            } else {
-                fields.push({
-                    name: 'Ideas:',
-                    value: todoStringsArray.join('\n'),
-                });
-            }
+                // Using new embeds
+                if (todoMessage.embeds.length != 0) {
+                    todoMessage.embeds[0].fields.forEach((field, index, array) => {
+                        while ((ideasMatch = this.ideaRegex.exec(field.value))) {
+                            if (!ideasMatch[1].includes(queryIdea)) {
+                                if (
+                                    todoStringsArray.join('\n').length + ('`- [ ] ' + ideasMatch[1] + '`').length >
+                                    1024
+                                ) {
+                                    fields.push({
+                                        name: 'Ideas:',
+                                        value: todoStringsArray.join('\n'),
+                                    });
+                                    todoStringsArray = [];
+                                }
+                                todoStringsArray.push('`- [ ] ' + ideasMatch[1] + '`');
+                            }
+                        }
 
-            todoMessage.edit({
-                content: 'Ideas:',
-                embeds: [
-                    {
-                        title: 'Ideas:',
-                        fields: fields,
-                    },
-                ],
+                        if (index == array.length - 1 && todoStringsArray.join('\n') != '') {
+                            fields.push({
+                                name: 'Ideas:',
+                                value: todoStringsArray.join('\n'),
+                            });
+                        }
+                    });
+                } else {
+                    fields.push({
+                        name: 'Ideas:',
+                        value: todoStringsArray.join('\n'),
+                    });
+                }
+
+                todoMessage.edit({
+                    content: 'Ideas:',
+                    embeds: [
+                        {
+                            title: 'Ideas:',
+                            fields: fields,
+                        },
+                    ],
+                });
             });
-        });
+    } catch (e) {
+        console.warn(e);
+    }
     interaction.reply({
         content: 'Removed the idea',
         ephemeral: true,
@@ -541,53 +585,65 @@ async function reset(interaction) {
     await init();
 
     console.info('-\tResetting the entire todo list!');
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.todo,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((todoMessage) => {
-            todoMessage.edit({
-                content: 'Ideas:',
-                embeds: [
-                    {
-                        title: 'Ideas:',
-                    },
-                ],
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.todo,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((todoMessage) => {
+                todoMessage.edit({
+                    content: 'Ideas:',
+                    embeds: [
+                        {
+                            title: 'Ideas:',
+                        },
+                    ],
+                });
             });
-        });
+    } catch (e) {
+        console.warn(e);
+    }
 
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.bad,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((badIdeasMessage) => {
-            badIdeasMessage.edit({
-                content: 'Bad Ideas:',
-                embeds: [
-                    {
-                        title: 'Bad Ideas:',
-                    },
-                ],
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.bad,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((badIdeasMessage) => {
+                badIdeasMessage.edit({
+                    content: 'Bad Ideas:',
+                    embeds: [
+                        {
+                            title: 'Bad Ideas:',
+                        },
+                    ],
+                });
             });
-        });
+    } catch (e) {
+        console.warn(e);
+    }
 
-    new Discord.Message(metaData.bot, {
-        id: this.ideasChannel.completed,
-        channel_id: interaction.channel,
-    })
-        .fetch()
-        .then((completedMessage) => {
-            completedMessage.edit({
-                content: 'Completed:',
-                embeds: [
-                    {
-                        title: 'Completed:',
-                    },
-                ],
+    try {
+        new Discord.Message(metaData.bot, {
+            id: this.ideasChannel.completed,
+            channel_id: interaction.channel,
+        })
+            .fetch()
+            .then((completedMessage) => {
+                completedMessage.edit({
+                    content: 'Completed:',
+                    embeds: [
+                        {
+                            title: 'Completed:',
+                        },
+                    ],
+                });
             });
-        });
+    } catch (e) {
+        console.warn(e);
+    }
     interaction.reply({
         content: 'Reset the ideas page',
         ephemeral: true,

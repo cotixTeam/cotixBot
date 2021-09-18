@@ -65,76 +65,61 @@ module.exports = class SpotifyPlayer {
             if (channel.name == 'Music') return channel;
         });
 
-        this.musicChannel = await new Discord.Channel(this.metaData.bot, {
-            id: musicChannelLocal.id,
-        }).fetch();
+        try {
+            this.musicChannel = await new Discord.Channel(this.metaData.bot, {
+                id: musicChannelLocal.id,
+            }).fetch();
 
-        this.qMessage = await new Discord.Message(this.metaData.bot, {
-            id: musicChannelLocal.embedMessage,
-            channel_id: this.musicChannel.id,
-        }).fetch();
+            this.qMessage = await new Discord.Message(this.metaData.bot, {
+                id: musicChannelLocal.embedMessage,
+                channel_id: this.musicChannel.id,
+            }).fetch();
 
-        await this.qMessage.edit(this.default_message);
+            await this.qMessage.edit(this.default_message);
 
-        await this.qMessage.reactions.removeAll();
-        await this.qMessage.react('◀️');
-        await this.qMessage.react('⏯️');
-        await this.qMessage.react('🇽');
-        await this.qMessage.react('▶️');
-        //await this.qMessage.react('🔉');
-        //this.qMessage.react('🔊');
+            await this.qMessage.reactions.removeAll();
+            await this.qMessage.react('◀️');
+            await this.qMessage.react('⏯️');
+            await this.qMessage.react('🇽');
+            await this.qMessage.react('▶️');
+            //await this.qMessage.react('🔉');
+            //this.qMessage.react('🔊');
 
-        let backListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
-        let playPauseListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
-        let stopListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
-        let skipListener = this.qMessage.createReactionCollector({
-            time: 0,
-        });
+            let backListener = this.qMessage.createReactionCollector({
+                time: 0,
+            });
+            let playPauseListener = this.qMessage.createReactionCollector({
+                time: 0,
+            });
+            let stopListener = this.qMessage.createReactionCollector({
+                time: 0,
+            });
+            let skipListener = this.qMessage.createReactionCollector({
+                time: 0,
+            });
 
-        backListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '◀️' && reaction.count == 2 && user.id != this.metaData.bot.id)
-                this.backPressed();
-        });
-        playPauseListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '⏯️' && reaction.count == 2 && user.id != this.metaData.bot.id)
-                this.pausePlayPressed(user);
-        });
-        stopListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '🇽' && reaction.count == 2 && user.id != this.metaData.bot.id)
-                this.stopPressed();
-        });
-        skipListener.on('collect', (reaction, user) => {
-            if (reaction.emoji.name == '▶️' && reaction.count == 2 && user.id != this.metaData.bot.id)
-                this.skipPressed();
-        });
+            backListener.on('collect', (reaction, user) => {
+                if (reaction.emoji.name == '◀️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                    this.backPressed();
+            });
+            playPauseListener.on('collect', (reaction, user) => {
+                if (reaction.emoji.name == '⏯️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                    this.pausePlayPressed(user);
+            });
+            stopListener.on('collect', (reaction, user) => {
+                if (reaction.emoji.name == '🇽' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                    this.stopPressed();
+            });
+            skipListener.on('collect', (reaction, user) => {
+                if (reaction.emoji.name == '▶️' && reaction.count == 2 && user.id != this.metaData.bot.id)
+                    this.skipPressed();
+            });
 
-        this.audioPlayer.on('stateChange', (oldState, newState) => {
-            console.log(this.audioPlayer);
-            if (newState.status == AudioPlayerStatus.Idle && oldState.status != AudioPlayerStatus.Idle) {
-                console.log('Audio player going to next song!');
-                // Next song for debug is loop
-                let resource = createAudioResource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
-                    inputType: StreamType.Arbitrary,
-                });
-                console.log(resource);
-                this.audioPlayer.play(resource);
-                //this.processQueue();
-            } else if (newState.status == AudioPlayerStatus.Playing) {
-                console.log('Audio player playing!');
-                this.playing = true;
-            } else {
-                console.log('Audio player paused!');
-                console.log(newState.status);
-                console.log(this.audioPlayer.state.resource);
-
-                this.playing = false;
-                if (newState.status == AudioPlayerStatus.Idle || newState.status == AudioPlayerStatus.Paused) {
+            this.audioPlayer.on('stateChange', (oldState, newState) => {
+                console.log(this.audioPlayer);
+                if (newState.status == AudioPlayerStatus.Idle && oldState.status != AudioPlayerStatus.Idle) {
+                    console.log('Audio player going to next song!');
+                    // Next song for debug is loop
                     let resource = createAudioResource(
                         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
                         {
@@ -143,29 +128,51 @@ module.exports = class SpotifyPlayer {
                     );
                     console.log(resource);
                     this.audioPlayer.play(resource);
+                    //this.processQueue();
+                } else if (newState.status == AudioPlayerStatus.Playing) {
+                    console.log('Audio player playing!');
+                    this.playing = true;
+                } else {
+                    console.log('Audio player paused!');
+                    console.log(newState.status);
+                    console.log(this.audioPlayer.state.resource);
+
+                    this.playing = false;
+                    if (newState.status == AudioPlayerStatus.Idle || newState.status == AudioPlayerStatus.Paused) {
+                        let resource = createAudioResource(
+                            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                            {
+                                inputType: StreamType.Arbitrary,
+                            }
+                        );
+                        console.log(resource);
+                        this.audioPlayer.play(resource);
+                    }
                 }
-            }
-        });
+            });
 
-        this.audioPlayer.on('error', (error) => console.error(error));
+            this.audioPlayer.on('error', (error) => console.error(error));
 
-        let resource = createAudioResource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
-            inputType: StreamType.Arbitrary,
-        });
-        console.log(resource);
-        this.audioPlayer.play(resource);
-        this.voiceConnection = joinVoiceChannel({
-            channelId: interaction.member.voice.channel.id,
-            guildId: interaction.member.voice.channel.guild.id,
-            adapterCreator: interaction.member.voice.channel.guild.voiceAdapterCreator,
-            selfDeaf: false,
-        });
-        this.voiceConnection.subscribe(this.audioPlayer);
-        //this.checkConnection(interaction.member);
-        // Used to debug the next commands to check
+            let resource = createAudioResource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
+                inputType: StreamType.Arbitrary,
+            });
+            console.log(resource);
+            this.audioPlayer.play(resource);
+            this.voiceConnection = joinVoiceChannel({
+                channelId: interaction.member.voice.channel.id,
+                guildId: interaction.member.voice.channel.guild.id,
+                adapterCreator: interaction.member.voice.channel.guild.voiceAdapterCreator,
+                selfDeaf: false,
+            });
+            this.voiceConnection.subscribe(this.audioPlayer);
+            //this.checkConnection(interaction.member);
+            // Used to debug the next commands to check
 
-        /*await this.addBySearch(interaction, 'traitor');
+            /*await this.addBySearch(interaction, 'traitor');
         this.pausePlayPressed(interaction.member);*/
+        } catch (e) {
+            console.warn(e);
+        }
     }
 
     /** Checks to see if the bot is connected to the correct voice channel to play music
