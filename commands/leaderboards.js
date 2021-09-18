@@ -157,15 +157,19 @@ async function updateLeaderboard(leaderboard, channel) {
         };
     });
 
-    new Discord.Message(metaData.bot, {
-        id: leaderboard.messageId,
-        channel_id: channel.id,
-    })
-        .fetch()
-        .then((leaderboardMessage) => {
-            console.log(leadboardMessage);
-            leaderboardMessage.edit(message);
-        });
+    try {
+        new Discord.Message(metaData.bot, {
+            id: leaderboard.messageId,
+            channel_id: channel.id,
+        })
+            .fetch()
+            .then((leaderboardMessage) => {
+                console.log(leadboardMessage);
+                leaderboardMessage.edit(message);
+            });
+    } catch (e) {
+        console.warn(e);
+    }
 }
 
 /** Add a new leaderboard to the channel.
@@ -244,14 +248,18 @@ async function remLeaderboard(interaction, title) {
         // Remove the message
         console.log(found);
 
-        new Discord.Message(metaData.bot, {
-            id: found.messageId,
-            channel_id: interaction.channel,
-        })
-            .fetch()
-            .then((leaderboardMessage) => {
-                leaderboardMessage.delete();
-            });
+        try {
+            new Discord.Message(metaData.bot, {
+                id: found.messageId,
+                channel_id: interaction.channel,
+            })
+                .fetch()
+                .then((leaderboardMessage) => {
+                    leaderboardMessage.delete();
+                });
+        } catch (e) {
+            console.warn(e);
+        }
 
         this.leaderboards = this.leaderboards.filter((leaderboard) => {
             return leaderboard != found;

@@ -18,7 +18,8 @@ function react(interaction, searchString, reactString) {
                         interaction.reply('The message "' + message.content + '" has been reacted to!');
                     }
                 });
-            });
+            })
+            .catch((e) => console.warn(e));
     }
 }
 
@@ -43,10 +44,13 @@ function reactId(interaction, id, reactString) {
 
     if (matchReact) {
         if (checkUnique(interaction, reactString)) {
-            interaction.channel.messages.fetch(matchReact[matchReact.length - 1]).then(async (reactMessage) => {
-                reactMacro(reactMessage, reactString);
-                interaction.reply('The message "' + reactMessage.content + '" has been reacted to!');
-            });
+            interaction.channel.messages
+                .fetch(matchReact[matchReact.length - 1])
+                .then(async (reactMessage) => {
+                    reactMacro(reactMessage, reactString);
+                    interaction.reply('The message "' + reactMessage.content + '" has been reacted to!');
+                })
+                .catch((e) => console.warn(e));
         }
     }
 }

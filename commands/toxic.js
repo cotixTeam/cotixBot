@@ -44,13 +44,17 @@ exports.toxicId = function toxicId(messageReceived, id) {
     console.info("-\tMarking the id'd message as toxic (" + matchToxic[1] + ')!');
 
     if (matchToxic) {
-        interaction.channel.messages.fetch(matchToxic[matchToxic.length - 1]).then((toxicMessage) => {
-            toxicMacro(toxicMessage);
-            interaction.reply({
-                content: 'Marked the message "' + message.content + '" by ' + message.author.username + ' as toxic!',
-            });
-            return;
-        });
+        interaction.channel.messages
+            .fetch(matchToxic[matchToxic.length - 1])
+            .then((toxicMessage) => {
+                toxicMacro(toxicMessage);
+                interaction.reply({
+                    content:
+                        'Marked the message "' + message.content + '" by ' + message.author.username + ' as toxic!',
+                });
+                return;
+            })
+            .catch((e) => console.warn(e));
     } else {
         interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
     }
@@ -81,7 +85,8 @@ async function toxic(interaction, searchString) {
                     return;
                 }
             });
-        });
+        })
+        .catch((e) => console.warn(e));
     if (!toxicFound) interaction.reply({ content: 'No message marked as toxic!', ephemeral: true });
 }
 

@@ -18,6 +18,7 @@ var userStatsMap = new Map();
 try {
     if (process.env.DISCORD_BOT_TOKEN) {
         console.log('Production Env');
+        exports.production = true;
         auth = {
             discordBotToken: process.env.DISCORD_BOT_TOKEN,
             discordClientId: process.env.DISCORD_CLIENT_ID,
