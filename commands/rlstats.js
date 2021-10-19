@@ -13,14 +13,14 @@ async function RLStats(interaction, user, playlist_name, username) {
     today.setUTCHours(23, 59, 59, 999);
 
     let yesterday = new Date();
-    yesterday.setUTCHours(0, 0, 0, 0);
-    yesterday.setUTCDate(0); // Debug for games
+    //yesterday.setUTCHours(0, 0, 0, 0);
+    //yesterday.setUTCDate(0); // Debug for games
     let yesterdayISO = yesterday.toISOString();
-    console.log(yesterdayISO);
+    //console.log(yesterdayISO);
     let yesterdayISOWeb = yesterdayISO.substring(0, 10);
 
     let todayISO = today.toISOString();
-    console.log(todayISO);
+    //console.log(todayISO);
     let todayISOWeb = todayISO.substring(0, 10);
 
     let steamId = metaData.accesses.get(user.id).steamId;
@@ -67,7 +67,7 @@ async function RLStats(interaction, user, playlist_name, username) {
          */
 
         if (username) {
-            console.log('//' + username + '//');
+            //console.log('//' + username + '//');
             let searchResult = await fetch(
                 'https://api.tracker.gg/api/v2/rocket-league/standard/search?platform=steam&autocomplete=true&query=' +
                     username,
@@ -87,7 +87,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                 }
             );
             let searchResultJson = await searchResult.json();
-            console.log(searchResultJson);
+            //console.log(searchResultJson);
             steamId = searchResultJson.data[0].platformUserIdentifier;
         }
 
@@ -157,7 +157,7 @@ async function RLStats(interaction, user, playlist_name, username) {
             '&player-id=Steam%3A' +
             steamId;
 
-        console.log(uri);
+        //console.log(uri);
 
         let ballchasingAPIResponseRaw = await fetch('https://ballchasing.com/api/replays/?' + uri, {
             headers: {
@@ -190,7 +190,7 @@ async function RLStats(interaction, user, playlist_name, username) {
             userRank_img: null,
         };
 
-        console.log(ballchasingAPIResponse);
+        //console.log(ballchasingAPIResponse);
 
         if (ballchasingAPIResponse.list.length <= 0) {
             let discordEmbed = new Discord.MessageEmbed();
@@ -224,7 +224,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                 let replayFetchJson = await replayFetch.json();
                 if (hasSeenHash.has(replayFetchJson.match_guid)) continue;
                 else hasSeenHash.set(replayFetchJson.match_guid, true);
-                console.log(replayFetchJson);
+                //console.log(replayFetchJson);
 
                 // Do the stats addition in here
                 stats.secondsPlayed += replayFetchJson.duration;
@@ -234,7 +234,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                 let player;
                 if (replayFetchJson.blue.players.some((player) => player.id.id == steamId)) {
                     player = replayFetchJson.blue.players.find((player) => player.id.id == steamId);
-                    console.log(player);
+                    //console.log(player);
 
                     // Player was on the blue team
                     stats.goalsForTeam += replayFetchJson.blue.stats.core.goals;
@@ -254,7 +254,7 @@ async function RLStats(interaction, user, playlist_name, username) {
                     }
                 } else if (replayFetchJson.orange.players.some((player) => player.id.id == steamId)) {
                     player = replayFetchJson.orange.players.find((player) => player.id.id == steamId);
-                    console.log(player);
+                    //console.log(player);
 
                     // Player was on the orange team
                     stats.goalsForTeam += replayFetchJson.orange.stats.core.goals;
@@ -295,7 +295,7 @@ async function RLStats(interaction, user, playlist_name, username) {
 
             let discordEmbed = new Discord.MessageEmbed();
 
-            console.log(stats);
+            //console.log(stats);
             discordEmbed
                 .setTitle('Rocket league stats for ' + todayISOWeb)
                 .setAuthor(stats.rank, stats.rank_img)
